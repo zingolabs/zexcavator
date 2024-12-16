@@ -1,0 +1,13 @@
+[package]
+name = "zwl-parser"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+byteorder = "1.5.0"
+zcash_primitives = "0.20.0"
+zcash_encoding = "0.2.2"
+zcash_keys = { version = "0.5.0", features = ["orchard"] }
+orchard = "0.10.0"
+sapling = { package = "sapling-crypto", version = "0.3", default-features = false }
+bip0039 = "0.12.0"
