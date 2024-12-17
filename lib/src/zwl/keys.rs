@@ -4,9 +4,9 @@ use zcash_encoding::Vector;
 
 use crate::zwl::walletokey::WalletOKey;
 use crate::zwl::walletzkey::WalletZKey;
+use crate::zwl::wallettkey::WalletTKey;
 
-
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Keys {
     // Is the wallet encrypted? If it is, then when writing to disk, the seed is always encrypted
     // and the individual spending keys are not written
@@ -20,6 +20,10 @@ pub struct Keys {
     // List of keys, actually in this wallet. This is a combination of HD keys derived from the seed,
     // viewing keys and imported spending keys.
     pub zkeys: Vec<WalletZKey>,
+
+    // Transparent keys. If the wallet is locked, then the secret keys will be encrypted,
+    // but the addresses will be present. This Vec contains both wallet and imported tkeys
+    pub tkeys: Vec<WalletTKey>,
 
     // Unified address (Orchard) keys actually in this wallet.
     // If wallet is locked, only viewing keys are present.
@@ -58,8 +62,11 @@ impl Keys {
         // TODO: read old versions of wallet file
         let okeys = Vector::read(&mut reader, |r| WalletOKey::read(r))?;
 
+        // TODO: read old versions of wallet file
         let zkeys = Vector::read(&mut reader, |r| WalletZKey::read(r))?;
 
+        // read wallet tkeys
+        let tkeys = Vector::read(&mut reader, |r| WalletTKey::read(r))?;
 
         Ok(
             Self {
@@ -68,6 +75,7 @@ impl Keys {
                 nonce,
                 seed: seed_bytes,
                 zkeys,
+                tkeys,
                 okeys
             }
         )

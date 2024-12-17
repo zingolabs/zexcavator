@@ -1,28 +1,35 @@
 pub mod zwl;
 
-use std::{io::{self, BufReader}, fs::File};
+use std::io;
 
-use zwl::{ZecWalletLite, keys::Keys};
+use zwl::keys::Keys;
 
 #[derive(Debug)]
 pub struct Wallet {
+    pub wallet_name: &'static str,
     pub version: u64,
     pub keys: Keys
 }
 
-impl Wallet {
-    pub fn parse(file: &str) -> io::Result<Self> {        
-        let file = File::open(file)?;
-        let reader = BufReader::new(file);
+pub trait WalletParser {
+    fn read(filename: &str) -> io::Result<Self> where Self: Sized;
+    fn inner(&self) -> &Wallet;
+}
 
-        let wallet = ZecWalletLite::read(reader)
+impl Wallet {
+    pub fn parse<T>(filename: &str) -> io::Result<Self>
+    where
+        T: WalletParser
+    {                
+        let wallet = T::read(filename)
             .map_err(|e| format!("Error: {}", e))
             .unwrap();
 
         Ok(
-            Wallet { 
-                version: wallet.version,
-                keys: wallet.keys
+            Self { 
+                wallet_name: wallet.inner().wallet_name,
+                version: wallet.inner().version,
+                keys: wallet.inner().keys.clone()
             }
         )
     }

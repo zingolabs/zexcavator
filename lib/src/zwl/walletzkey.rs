@@ -50,7 +50,7 @@ impl WalletZKey {
 
         // read if address is locked
         let locked = reader.read_u8()? > 0;
-
+        
         // read address extsk
         let extsk = Optional::read(&mut reader, |r| ExtendedSpendingKey::read(r))?;
         
@@ -81,6 +81,5 @@ impl WalletZKey {
                 nonce
             }
         )
-
     }
 }

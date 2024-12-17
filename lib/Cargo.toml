@@ -10,4 +10,5 @@ zcash_encoding = "0.2.2"
 zcash_keys = { version = "0.5.0", features = ["orchard"] }
 orchard = "0.10.0"
 sapling = { package = "sapling-crypto", version = "0.3", default-features = false }
+secp256k1 = "0.30.0"
 bip0039 = "0.12.0"
