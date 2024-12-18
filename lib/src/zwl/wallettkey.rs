@@ -12,7 +12,7 @@ pub enum WalletTKeyType {
 #[derive(Debug, Clone)]
 pub struct WalletTKey {
     pub keytype: WalletTKeyType,
-    locked: bool,
+    pub locked: bool,
     pub key: Option<secp256k1::SecretKey>,
     pub address: String,
 
@@ -20,8 +20,8 @@ pub struct WalletTKey {
     pub hdkey_num: Option<u32>,
 
     // If locked, the encrypted private key is stored here
-    enc_key: Option<Vec<u8>>,
-    nonce: Option<Vec<u8>>,
+    pub enc_key: Option<Vec<u8>>,
+    pub nonce: Option<Vec<u8>>,
 }
 
 impl WalletTKey {
@@ -42,7 +42,7 @@ impl WalletTKey {
                 format!("Unknown tkey type: {}", n)
             ))
         }?;
-
+        
         // read if address is locked
         let locked = reader.read_u8()? > 0;
 

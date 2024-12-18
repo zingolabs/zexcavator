@@ -2,29 +2,32 @@ pub (crate)mod keys;
 pub (crate)mod walletokey;
 pub (crate)mod walletzkey;
 pub (crate)mod wallettkey;
+pub (crate)mod data;
 
-use crate::{WalletParser, Wallet};
+use crate::WalletParser;
 
 use keys::Keys;
+use data::BlockData;
 
 use std::{io::{self, BufReader}, fs::File};
 use byteorder::{ReadBytesExt, LittleEndian};
+use zcash_encoding::Vector;
+
+use bip0039::{Mnemonic, English};
 
 pub struct ZecWalletLite {
-    inner: Wallet
+    pub version: u64,
+    pub keys: Keys,
+    pub blocks: Vec<BlockData>
 }
 
 impl ZecWalletLite {
     fn serialized_version() -> u64 {
         return 25;
     }
-
-    fn wallet_name() -> &'static str {
-        "ZecWalletLite"
-    }
 }
 
-impl WalletParser for ZecWalletLite {   
+impl WalletParser for ZecWalletLite {     
     fn read(filename: &str) -> io::Result<Self>{
         let file = File::open(filename)
             .map_err(|e| format!("Can't open file {}", e))
@@ -32,8 +35,6 @@ impl WalletParser for ZecWalletLite {
 
         let mut reader = BufReader::new(file);
         
-        let wallet_name = Self::wallet_name();
-
         let version = reader.read_u64::<LittleEndian>()?;
         if version > Self::serialized_version() {
             let e = format!(
@@ -44,21 +45,32 @@ impl WalletParser for ZecWalletLite {
         }
 
         // TODO: read old versions of wallet file
-        let keys = Keys::read(reader)?;
+        let keys = Keys::read(&mut reader)?;
+
+        let blocks = Vector::read(&mut reader, |r| BlockData::read(r))?;
 
         Ok(
-            Self { 
-                inner: Wallet { 
-                    wallet_name,
-                    version, 
-                    keys 
-                }
+            Self {                  
+                version, 
+                keys,
+                blocks                 
              }
         )
     }
 
-    fn inner(&self) -> &Wallet {
-        &self.inner
+    fn wallet_name(&self) -> String {
+        "ZecWalletLite".to_string()
+    }
+
+    fn wallet_version(&self) -> u64 {
+        self.version
+    }
+
+    fn wallet_seed(&self) -> String {
+        let seed_entropy = self.keys.seed;
+        let seed = <Mnemonic<English>>::from_entropy(seed_entropy).expect("Invalid seed entropy");
+        let phrase = seed.phrase();
+        phrase.to_string()
     }
 }
 
@@ -76,13 +88,13 @@ mod tests {
     #[test]
     fn test_zwl_version() {        
         let wallet = get_wallet();
-        assert!(wallet.inner.version > 0);
+        assert!(wallet.version > 0);
     }
 
     #[test]    
     fn test_zwl_seed() {
         let wallet = get_wallet();
-        let seed_entropy = wallet.inner.keys.seed;
+        let seed_entropy = wallet.keys.seed;
         let seed = <Mnemonic<English>>::from_entropy(seed_entropy).expect("Invalid seed entropy");
         let phrase = seed.phrase();
         assert_eq!(phrase, "clerk family rack dragon cannon wait vendor penalty absent country better coast expand true middle stable assist clerk tent phone toilet knee female kitchen");
