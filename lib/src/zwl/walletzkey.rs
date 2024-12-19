@@ -58,7 +58,7 @@ impl WalletZKey {
         let extfvk = ExtendedFullViewingKey::read(&mut reader)?;
         
         // derive zaddress from extfvk
-        let zaddress = extfvk.default_address().1;
+        let (_, zaddress) = extfvk.default_address();
         
         // If HD derived, read the key index
         let hdkey_num = Optional::read(&mut reader, |r| r.read_u32::<LittleEndian>())?;

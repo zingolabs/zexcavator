@@ -66,8 +66,7 @@ impl WalletOKey {
 
         // Derive unified address (orchard only) from fvk
         let address = fvk.address_at(0u64, Scope::External);
-        // let orchard_container = Receiver::Orchard(address.to_raw_address_bytes());
-        let unified_address = UnifiedAddress::from_receivers(Some(address), None).expect("Failed to construct unified address");
+        let unified_address = UnifiedAddress::from_receivers(Some(address), None, None).expect("Failed to construct unified address");
 
         // read "possible" encrypted key
         let enc_key = Optional::read(&mut reader, |r| Vector::read(r, |r| r.read_u8()))?;
