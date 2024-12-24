@@ -51,7 +51,7 @@ impl WalletTKey {
             r.read_exact(&mut tpk_bytes)?;
             SecretKey::from_slice(&tpk_bytes).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))            
         })?;
-
+        
         // read encoded t address as String
         // Strings are written as <littleendian> len + bytes
         let str_len = reader.read_u64::<LittleEndian>()?;

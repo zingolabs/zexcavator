@@ -4,7 +4,10 @@ use std::{
 };
 
 use byteorder::{ReadBytesExt, LittleEndian};
-use zcash_primitives::transaction::TxId;
+use zcash_encoding::Vector;
+use zcash_primitives::{transaction::TxId, consensus::BlockHeight};
+
+use crate::zwl::data::WalletTx;
 
 pub struct WalletTxns {
     pub current: HashMap<TxId, WalletTx>,
@@ -25,8 +28,44 @@ impl WalletTxns {
             ))
         }
 
-        
+        let txs_tuples = Vector::read(&mut reader, |r| {
+            let mut txid_bytes = [0u8; 32];
+            r.read_exact(&mut txid_bytes)?;
 
-        Ok()
+            Ok((TxId::from_bytes(txid_bytes), WalletTx::read(r).unwrap()))
+        })?;
+
+        let current = txs_tuples.into_iter().collect::<HashMap<TxId, WalletTx>>();
+        let last_txid = current
+            .values()
+            .fold(None, |c: Option<(TxId, BlockHeight)>, w| {
+                if c.is_none() || w.block > c.unwrap().1 {
+                    Some((w.txid.clone(), w.block))
+                } else {
+                    c
+                }
+            })
+            .map(|v| v.0);
+
+            let _mempool = if version <= 20 {
+                Vector::read(&mut reader, |r| {
+                    let mut txid_bytes = [0u8; 32];
+                    r.read_exact(&mut txid_bytes)?;
+                    let wtx = WalletTx::read(r)?;
+    
+                    Ok((TxId::from_bytes(txid_bytes), wtx))
+                })?
+                .into_iter()
+                .collect()
+            } else {
+                vec![]
+            };
+
+        Ok(
+            Self { 
+                current, 
+                last_txid 
+            }
+        )
     }
 }

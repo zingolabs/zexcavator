@@ -1,12 +1,14 @@
 pub mod zwl;
+pub mod ywallet;
 
 use std::io;
 
 use orchard::keys::{SpendingKey, FullViewingKey};
 use sapling::zip32::{ExtendedSpendingKey, ExtendedFullViewingKey};
-use zcash_keys::keys::UnifiedFullViewingKey;
+// use zcash_keys::keys::UnifiedFullViewingKey;
+use zcash_primitives::consensus::BlockHeight;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum WalletKeyType {
     HdKey = 0, // For HD drevied keys
     ImportedExtsk = 1, // For imported sapling extended spending key
@@ -17,7 +19,7 @@ pub enum WalletKeyType {
     ImportedPrivateKey = 6, // For imported transparent private key
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct WalletTKey {
     pub pk: secp256k1::SecretKey,
     pub key_type: WalletKeyType,
@@ -25,7 +27,7 @@ pub struct WalletTKey {
     pub address: String
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct WalletZKey {
     pub extsk: Option<ExtendedSpendingKey>,
     pub fvk: ExtendedFullViewingKey,
@@ -34,38 +36,45 @@ pub struct WalletZKey {
     pub address: String
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct WalletOKey {
     pub sk: Option<SpendingKey>,
     pub fvk: Option<FullViewingKey>,
-    pub ufvk: Option<UnifiedFullViewingKey>,
     pub key_type: WalletKeyType,
     pub index: u32,    
     pub address: String
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct WalletKeys {
-    pub tkeys: Option<Vec<WalletTKey>>,
-    pub zkeys: Option<Vec<WalletZKey>>,
-    pub okeys: Option<Vec<WalletOKey>>
+    pub tkeys: Option<WalletTKey>,
+    pub zkeys: Option<WalletZKey>,
+    pub okeys: Option<WalletOKey>
+}
+
+#[derive(Debug, Clone)]
+pub struct WalletAccount {
+    pub name: String,
+    pub seed: Option<Vec<u8>>,
+    // pub ufvk: Option<UnifiedFullViewingKey>,
+    pub birthday: BlockHeight,
+    pub keys: WalletKeys
 }
 
 #[derive(Debug)]
 pub struct Wallet {
     pub wallet_name: String,
     pub version: u64,
-    pub seed: String,
-    pub birthday: u64,
-    pub keys: WalletKeys
+    pub accounts: Vec<WalletAccount>
 }
 
 pub trait WalletParser {
+    /// Read the wallet contents from disk
     fn read(filename: &str) -> io::Result<Self> where Self: Sized;
     fn get_wallet_name(&self) -> String;
     fn get_wallet_version(&self) -> u64;
-    fn get_wallet_seed(&self) -> String;
-    fn get_wallet_keys(&self) -> io::Result<WalletKeys>;
+    // fn get_wallet_seed(&self) -> String;
+    fn get_wallet_accounts(&self) -> io::Result<Vec<WalletAccount>>;
 }
 
 impl Wallet {
@@ -81,9 +90,7 @@ impl Wallet {
             Self { 
                 wallet_name: wallet.get_wallet_name(),
                 version: wallet.get_wallet_version(),
-                seed: wallet.get_wallet_seed(),
-                birthday: 2740940,
-                keys: wallet.get_wallet_keys()?
+                accounts: wallet.get_wallet_accounts()?
             }
         )
     }

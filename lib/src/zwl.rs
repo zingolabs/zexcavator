@@ -2,32 +2,135 @@ pub (crate)mod keys;
 pub (crate)mod walletokey;
 pub (crate)mod walletzkey;
 pub (crate)mod wallettkey;
-pub (crate)mod data;
+// pub (crate)mod data;
 // pub (crate)mod wallet_txns;
 
 use crate::WalletParser;
 
+use bip0039::{Mnemonic, English};
+
 use keys::Keys;
-use data::BlockData;
-use zcash_keys::{encoding::encode_payment_address, keys::UnifiedFullViewingKey};
-use zcash_primitives::{consensus::{MainNetwork}, constants::mainnet::HRP_SAPLING_PAYMENT_ADDRESS};
+// use data::BlockData;
+// use wallet_txns::WalletTxns;
+
+use zcash_keys::{encoding::encode_payment_address, keys::{UnifiedSpendingKey, UnifiedFullViewingKey}};
+use zcash_primitives::{
+    consensus::{MainNetwork, BlockHeight}, 
+    constants::mainnet::HRP_SAPLING_PAYMENT_ADDRESS, zip32::AccountId, 
+    // legacy::keys::{IncomingViewingKey, NonHardenedChildIndex}
+};
+
+// use zcash_primitives::legacy::keys::ExternalIvk;
 
 use std::{io::{self, BufReader}, fs::File};
 use byteorder::{ReadBytesExt, LittleEndian};
-use zcash_encoding::Vector;
-
-// use sapling::zip32::{ExtendedSpendingKey, ExtendedFullViewingKey};
-use bip0039::{Mnemonic, English};
+// use zcash_encoding::Vector;
 
 pub struct ZecWalletLite {
     pub version: u64,
     pub keys: Keys,
-    pub blocks: Vec<BlockData>
+    // pub blocks: Vec<BlockData>
 }
 
 impl ZecWalletLite {
     fn serialized_version() -> u64 {
         return 25;
+    }
+
+    fn get_wallet_keys(&self, idx: usize) -> io::Result<crate::WalletKeys> {        
+        // construct a WalletTKey assosiated with hd index `idx`
+        let tkeys: Vec<crate::WalletTKey> = self.keys.tkeys.clone()
+            .iter()
+            .enumerate()
+            .filter(|&(_, k)| idx as u32 == k.hdkey_num.unwrap_or(u32::MAX))
+            .map(|(_, t)| {
+                let key_type = match t.keytype {
+                    wallettkey::WalletTKeyType::HdKey => crate::WalletKeyType::HdKey,
+                    wallettkey::WalletTKeyType::ImportedKey => crate::WalletKeyType::ImportedPrivateKey,
+                };
+
+                crate::WalletTKey {
+                    pk: t.key.unwrap(),
+                    key_type,
+                    index: t.hdkey_num.unwrap_or(0),
+                    address: t.address.clone(),
+                }            
+            })
+            .collect::<Vec<_>>();  
+
+        // construct a WalletZKey assosiated with hd index `idx`
+        let zkeys: Vec<crate::WalletZKey> = self.keys.zkeys
+            .iter()
+            .enumerate()
+            .filter(|&(_, k)| idx as u32 == k.hdkey_num.unwrap_or(u32::MAX))
+            .map(|(_, z)| {
+                let key_type = match z.keytype {
+                    walletzkey::WalletZKeyType::HdKey => crate::WalletKeyType::HdKey,
+                    walletzkey::WalletZKeyType::ImportedSpendingKey => crate::WalletKeyType::ImportedExtsk,
+                    walletzkey::WalletZKeyType::ImportedViewKey => crate::WalletKeyType::ImportedViewKey
+                };
+
+                let extsk = z.extsk.clone().unwrap();
+                let fvk = z.clone().extfvk;
+                let index = z.hdkey_num.unwrap_or(0);
+                let address = encode_payment_address(HRP_SAPLING_PAYMENT_ADDRESS, &z.zaddress);
+
+                crate::WalletZKey {
+                    extsk: Some(extsk),
+                    fvk,
+                    key_type,
+                    index,
+                    address,
+                }
+            })
+            .collect::<Vec<_>>();
+
+        // construct a WalletOKey assosiated with hd index `idx`
+        let okeys: Vec<crate::WalletOKey> = self.keys.okeys
+            .iter()
+            .enumerate()
+            .filter(|&(_, k)| idx as u32 == k.hdkey_num.unwrap_or(u32::MAX))
+            .map(|(_, o)| {
+                let key_type = match o.keytype {
+                    walletokey::WalletOKeyType::HdKey => crate::WalletKeyType::HdKey,
+                    walletokey::WalletOKeyType::ImportedSpendingKey => crate::WalletKeyType::ImportedSpendingKey,
+                    walletokey::WalletOKeyType::ImportedFullViewKey => crate::WalletKeyType::ImportedFvk,
+                };
+
+                let sk = o.sk.unwrap();
+                let fvk = o.clone().fvk;
+                let address = o.unified_address.encode(&MainNetwork);
+
+                let index = o.hdkey_num.unwrap_or(0);
+
+                crate::WalletOKey {
+                    sk: Some(sk),
+                    fvk: Some(fvk),
+                    key_type,
+                    index,
+                    address,
+                }
+            })
+            .collect::<Vec<_>>();
+      Ok(
+        crate::WalletKeys {
+            tkeys: tkeys.first().cloned(),
+            zkeys: zkeys.first().cloned(),
+            okeys: okeys.first().cloned()       
+        }
+      )
+    }
+
+    pub fn get_ufvk_for_account(&self, id: u32) -> io::Result<UnifiedFullViewingKey> {
+        let seed_entropy = self.keys.seed;
+        let mnemonic = <Mnemonic<English>>::from_entropy(&seed_entropy).unwrap();
+        let seed_bytes = mnemonic.to_seed("");
+        let usk = UnifiedSpendingKey::from_seed(&MainNetwork, &seed_bytes, AccountId::try_from(id).expect("Invalid AccountId"))
+            .map_err(|_|"Unable to create UnifiedSpendingKey from seed.")
+            .unwrap();
+
+        let ufvk = usk.to_unified_full_viewing_key();
+        Ok(ufvk)
     }
 }
 
@@ -51,13 +154,17 @@ impl WalletParser for ZecWalletLite {
         // TODO: read old versions of wallet file
         let keys = Keys::read(&mut reader)?;
 
-        let blocks = Vector::read(&mut reader, |r| BlockData::read(r))?;
+        // let blocks = Vector::read(&mut reader, |r| BlockData::read(r))?;
+        // TODO: read old versions of wallet file
+
+        // let txns = WalletTxns::read(&mut reader)?;
+
 
         Ok(
             Self {                  
                 version, 
                 keys,
-                blocks                 
+                // blocks                 
              }
         )
     }
@@ -70,91 +177,50 @@ impl WalletParser for ZecWalletLite {
         self.version
     }
 
-    fn get_wallet_seed(&self) -> String {
-        let seed_entropy = self.keys.seed;
-        let seed = <Mnemonic<English>>::from_entropy(seed_entropy).expect("Invalid seed entropy");
-        let phrase = seed.phrase();
-        phrase.to_string()
-    }
+    // fn get_wallet_seed(&self) -> String {
+    //     let seed_entropy = self.keys.seed;
+    //     let seed = <Mnemonic<English>>::from_entropy(seed_entropy).expect("Invalid seed entropy");
+    //     let phrase = seed.phrase();
+    //     phrase.to_string()
+    // }
 
-    fn get_wallet_keys(&self) -> io::Result<crate::WalletKeys> {
-        // construct a vector of tkeys
-        let tkeys: Vec<crate::WalletTKey> = self.keys.tkeys
-            .iter()
-            .map(|t| {
-                let key_type = match t.keytype {
-                    wallettkey::WalletTKeyType::HdKey => crate::WalletKeyType::HdKey,
-                    wallettkey::WalletTKeyType::ImportedKey => crate::WalletKeyType::ImportedPrivateKey
-                };
+    fn get_wallet_accounts(&self) -> io::Result<Vec<crate::WalletAccount>> {
+        let tkeys_last_index = self.keys.tkeys.len();
+        let zkeys_last_index = self.keys.zkeys.len();
+        let okeys_last_index = self.keys.okeys.len();
 
-                crate::WalletTKey {
-                    pk: t.key.unwrap(),
-                    key_type,
-                    index: t.hdkey_num.unwrap_or(0),
-                    address: t.address.clone(),                    
+        let mut accounts: Vec<crate::WalletAccount> = vec![];
+
+        let last_index = std::cmp::max(tkeys_last_index, std::cmp::max(zkeys_last_index, okeys_last_index));
+        for  i in 0..last_index {
+            let keys = self.get_wallet_keys(i)?;
+            
+            // let ufvk = self.get_ufvk_for_account(0u32)?;
+            // let t = ufvk
+            //     .transparent().unwrap()
+            //     .derive_external_ivk().unwrap()
+            //     .derive_address(NonHardenedChildIndex::from_index(i as u32).expect("Invalid NonHardenedChildIndex"))
+            //     .map_err(|_|"Invalid address")
+            //     .unwrap();
+                
+            // let taddy = zcash_keys::encoding::encode_transparent_address_p(&MainNetwork, &t);
+            // println!("{}", taddy);
+
+            accounts.push(
+                crate::WalletAccount {
+                    name: format!("Account {}", i + 1),
+                    seed: Some(self.keys.seed.to_vec()),
+                    // ufvk: Some(ufvk),
+                    birthday: BlockHeight::from_u32(0),
+                    keys
                 }
-            })
-            .collect();  
-        
-        // construct a vector of zkeys
-        let zkeys: Vec<crate::WalletZKey> = self.keys.zkeys
-            .iter()
-            .map(|z| {
-                let key_type = match z.keytype {
-                    walletzkey::WalletZKeyType::HdKey => crate::WalletKeyType::HdKey,
-                    walletzkey::WalletZKeyType::ImportedSpendingKey => crate::WalletKeyType::ImportedExtsk,
-                    walletzkey::WalletZKeyType::ImportedViewKey => crate::WalletKeyType::ImportedViewKey
-                };
-
-                let extsk = z.extsk.clone().unwrap();
-                let fvk = z.clone().extfvk;
-                let index = z.hdkey_num.unwrap_or(0);
-                let address = encode_payment_address(HRP_SAPLING_PAYMENT_ADDRESS, &z.zaddress);
-
-                crate::WalletZKey {
-                    extsk: Some(extsk),
-                    fvk,
-                    key_type,
-                    index,
-                    address,
-                }
-            })
-            .collect();
-
-        // construct a vector of okeys
-        let okeys: Vec<crate::WalletOKey> = self.keys.okeys
-            .iter()
-            .map(|o| {
-                let key_type = match o.keytype {
-                    walletokey::WalletOKeyType::HdKey => crate::WalletKeyType::HdKey,
-                    walletokey::WalletOKeyType::ImportedSpendingKey => crate::WalletKeyType::ImportedSpendingKey,
-                    walletokey::WalletOKeyType::ImportedFullViewKey => crate::WalletKeyType::ImportedFvk,
-                };
-
-                let sk = o.sk.unwrap();
-                let fvk = o.clone().fvk;
-                let address = o.unified_address.encode(&MainNetwork);
-
-                let index = o.hdkey_num.unwrap_or(0);
-
-                crate::WalletOKey {
-                    sk: Some(sk),
-                    fvk: Some(fvk),
-                    ufvk: None,
-                    key_type,
-                    index,
-                    address,
-                }
-            })
-            .collect();
-      Ok(
-        crate::WalletKeys {
-            tkeys: Some(tkeys),
-            zkeys: Some(zkeys),
-            okeys: Some(okeys)
+            )
         }
-      )
-    }
+
+        Ok(accounts)
+    }   
+
+    
 }
 
 #[cfg(test)]
