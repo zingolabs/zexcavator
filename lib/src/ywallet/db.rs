@@ -1,10 +1,11 @@
 use std::error::Error;
 
+use orchard::keys::{FullViewingKey, SpendingKey};
 use rusqlite::Connection;
 use sapling::zip32::{ExtendedFullViewingKey, ExtendedSpendingKey};
 use secp256k1::SecretKey;
-use zcash_keys::encoding::{decode_extended_spending_key, decode_extended_full_viewing_key};
-use zcash_primitives::constants::mainnet::{HRP_SAPLING_EXTENDED_SPENDING_KEY, HRP_SAPLING_EXTENDED_FULL_VIEWING_KEY};
+use zcash_keys::{encoding::{decode_extended_spending_key, decode_extended_full_viewing_key}, address::UnifiedAddress};
+use zcash_primitives::{constants::mainnet::{HRP_SAPLING_EXTENDED_SPENDING_KEY, HRP_SAPLING_EXTENDED_FULL_VIEWING_KEY}, consensus::MainNetwork};
 
 #[derive(Debug)]
 pub struct AccountT {
@@ -20,12 +21,11 @@ pub struct AccountVecT {
 pub fn get_schema_version(connection: &Connection) -> u32 {
     let version: Option<u32> = connection
         .query_row(
-            "SELECT version FROM schema_version WHERE id = 1",
+            "SELECT version FROM schema_version LIMIT 1",
             [],
             |row| row.get(0),
         )
-        .map_err(|_|"Fail")
-        .unwrap();
+        .map_err(|_|"Fail").expect("No schema version");
     version.unwrap_or(0)
 }
 
@@ -125,4 +125,52 @@ pub fn get_account_z_keys(conn: &Connection, id: u32) -> Result<(Option<Extended
     Ok(
         (extsk, Some(ivk), index)
     )
+}
+
+pub fn get_account_o_keys(conn: &Connection, id: u32) -> Result<(Option<SpendingKey>, Option<FullViewingKey>, u32, String), Box<dyn Error>> {
+    let (sk_blob, fvk_blob, index) = conn
+        .query_row(
+            "SELECT a.id_account, a.aindex, o.account, o.sk, o.fvk FROM accounts a LEFT JOIN orchard_addrs o ON a.id_account = o.account WHERE o.account = ?1",
+            [id],
+            |row| {
+                let sk_blob:Option<[u8;32]> = row.get(3)?;
+                let fvk_blob:Option<[u8;96]> = row.get(4)?;
+                let index: Option<u32> = row.get(1)?;
+                Ok(
+                    (sk_blob, fvk_blob, index)
+                )
+            },
+        )
+        .map_err(|_|"Fail to get orchard fvk")?;
+        
+
+    let sk:Option<SpendingKey> = match sk_blob {
+        Some(sk_bytes) => {
+            let sk = SpendingKey::from_bytes(sk_bytes).expect("Invalid sk");
+            Some(sk)
+        },
+        None => None,
+    };
+    
+    let fvk = match fvk_blob {
+        Some(f) => Some(FullViewingKey::from_bytes(&f).expect("Invalid fvk")),
+        None => None
+    };
+    
+    let address = if fvk.is_some() {
+        let o = fvk.clone().unwrap().address_at(index.unwrap(), orchard::keys::Scope::External);
+        let ua = UnifiedAddress::from_receivers(Some(o), None, None).expect("Invalid oaddrs");
+        let address = ua.encode(&MainNetwork);   
+        address
+    }
+    else {
+        String::new()
+    };
+     
+    Ok((
+        sk,
+        fvk,
+        index.unwrap_or(0u32),      
+        address
+    ))
 }

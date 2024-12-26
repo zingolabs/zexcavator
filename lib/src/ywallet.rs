@@ -1,6 +1,6 @@
 use std::io;
 
-use crate::{WalletParser, WalletAccount, WalletKeys, WalletZKey, WalletTKey};
+use crate::{WalletParser, WalletAccount, WalletKeys, WalletZKey, WalletTKey, WalletOKey, WalletKeyType};
 
 pub (crate)mod db;
 
@@ -79,9 +79,29 @@ impl YWallet {
         }
     }
 
-    // fn get_account_okeys() {
+    fn get_account_okeys(conn: &Connection, id: u32, has_seed: bool) -> io::Result<Option<WalletOKey>> {
+        match db::get_account_o_keys(&conn, id) {
+            Ok((sk, fvk, index, address)) => {
+                let key_type = if has_seed {
+                    crate::WalletKeyType::HdKey
+                } else if sk.is_some() {
+                    crate::WalletKeyType::ImportedExtsk
+                } else {
+                    crate::WalletKeyType::ImportedViewKey
+                };
 
-    // }
+                Ok(Some(WalletOKey { 
+                    sk,
+                    fvk,
+                    key_type,
+                    index,
+                    address
+                }))
+            },
+            Err(_) => Ok(None),
+        }
+        
+    }
 }
 
 impl WalletParser for YWallet {
@@ -100,19 +120,20 @@ impl WalletParser for YWallet {
             .ok_or("Empty account list")
             .unwrap()
             .iter()
-            .enumerate()
-            .map(|(i, a)| {
+            .map(| a| {
                 // get account seed
                 let seed = Self::get_account_seed(&conn, a.id);
                 
                 // get all keys for this account
-                let zkeys = Self::get_account_zkeys(&conn, i as u32 + 1, seed.is_some()).unwrap();
-                let tkeys = Self::get_account_tkeys(&conn, i as u32 + 1).unwrap();
+                let zkeys = Self::get_account_zkeys(&conn, a.id, seed.is_some()).unwrap();
+                let tkeys = Self::get_account_tkeys(&conn, a.id).unwrap();
+                let okeys = Self::get_account_okeys(&conn, a.id, seed.is_some()).unwrap();
+
 
                 let keys = WalletKeys {
                     tkeys,
                     zkeys,
-                    okeys: None
+                    okeys
                 };
                 
                 WalletAccount {
