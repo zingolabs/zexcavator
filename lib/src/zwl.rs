@@ -1,3 +1,36 @@
+//! # ZecWallet Lite Parser
+//!
+//! This module parses ZecWallet Lite wallet files, extracting key data such as 
+//! wallet version, keys, and other account-related information.
+//!
+//! ## Overview
+//! The ZecWallet Lite parser reads data from the `zecwallet-lite.dat` file. The data 
+//! is written and read linearly using a `BufReader`/`BufWriter`. 
+//!
+//! ### Data Read (in order):
+//! - **Wallet Version**: The version of the wallet file.
+//! - **Wallet Keys**: Keys associated with the wallet.
+//! - **Other Data**: Currently not parsed.
+//!
+//! ## Caveats
+//! - **Wallet Birthday**: Due to the linear and variable nature of the data storage, 
+//!   it is not possible to directly access certain pieces of data using file offsets. 
+//!   The wallet birthday is located after some data that this parser does not read, 
+//!   owing to complexity and incompatibility with newer `librustzcash` versions.
+//! - **Encrypted Wallets**: Encrypted wallet files are not supported by this parser.
+//!
+//! ## Implementation Details
+//! - ZecWallet Lite keeps an internal count for derived accounts, adhering to ZIP 32. 
+//!   It will always derive the first child (`ChildIndex 0`) for different accounts. 
+//! - Since the `ChildIndex` is fixed and only the account changes, this parser groups 
+//!   addresses derived from the same account. For instance:
+//!   - If the wallet contains 1 Orchard address, 2 Sapling addresses, and 2 Transparent addresses, 
+//!     the exported wallet will have 2 accounts:
+//!     1. The first account containing all keys.
+//!     2. The second account containing only Sapling and Transparent keys.
+//!
+//``` 
+
 pub (crate)mod keys;
 pub (crate)mod walletokey;
 pub (crate)mod walletzkey;
