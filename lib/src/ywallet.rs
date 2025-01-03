@@ -25,14 +25,13 @@
 
 use std::io;
 
-use crate::{WalletParser, WalletAccount, WalletKeys, WalletZKey, WalletTKey, WalletOKey};
+use crate::{WalletParser, WalletAccount, WalletKeys, WalletZKey, WalletTKey, WalletOKey, WalletWriter, Wallet};
 
 pub (crate)mod db;
 
 use bip0039::{Mnemonic, English};
 // use orchard::keys::FullViewingKey;
 use rusqlite::Connection;
-use zcash_primitives::consensus::BlockHeight;
 
 pub struct YWallet {
     pub version: u32,
@@ -70,7 +69,8 @@ impl YWallet {
             Ok(sk) => {
                 Ok(Some(WalletTKey{
                     pk: sk.expect("Invalid SecretKey"),
-                    key_type: crate::WalletKeyType::HdKey,
+                    // key_type: crate::WalletKeyType::HdKey,
+                    key_type: crate::WalletKeyType::HdDerived,
                     index: 0u32,
                     address,
                 }))
@@ -85,11 +85,15 @@ impl YWallet {
         match db::get_account_z_keys(&conn, id) {
             Ok((extsk, ivk, index)) => {
                 let key_type = if has_seed {
-                    crate::WalletKeyType::HdKey
-                } else if extsk.is_some() {
-                    crate::WalletKeyType::ImportedExtsk
-                } else {
-                    crate::WalletKeyType::ImportedViewKey
+                    // crate::WalletKeyType::HdKey
+                    crate::WalletKeyType::HdDerived
+                } 
+                // else if extsk.is_some() {
+                //     crate::WalletKeyType::ImportedExtsk
+                // }
+                else {
+                    // crate::WalletKeyType::ImportedViewKey
+                    crate::WalletKeyType::Imported
                 };      
         
                 Ok(Some(WalletZKey {
@@ -108,11 +112,15 @@ impl YWallet {
         match db::get_account_o_keys(&conn, id) {
             Ok((sk, fvk, index, address)) => {
                 let key_type = if has_seed {
-                    crate::WalletKeyType::HdKey
-                } else if sk.is_some() {
-                    crate::WalletKeyType::ImportedExtsk
-                } else {
-                    crate::WalletKeyType::ImportedViewKey
+                    // crate::WalletKeyType::HdKey
+                    crate::WalletKeyType::HdDerived
+                } 
+                // else if sk.is_some() {
+                //     crate::WalletKeyType::ImportedExtsk
+                // } 
+                else {
+                    // crate::WalletKeyType::ImportedViewKey
+                    crate::WalletKeyType::Imported
                 };
 
                 Ok(Some(WalletOKey { 
@@ -154,17 +162,18 @@ impl WalletParser for YWallet {
                 let tkeys = Self::get_account_tkeys(&conn, a.id).unwrap();
                 let okeys = Self::get_account_okeys(&conn, a.id, seed.is_some()).unwrap();
 
-
                 let keys = WalletKeys {
                     tkeys,
                     zkeys,
                     okeys
                 };
+
+                let birthday = db::get_account_birthday(&conn, a.id);
                 
                 WalletAccount {
                     name: a.name.clone().unwrap_or(format!("Account {}", a.id)),
                     seed,
-                    birthday: BlockHeight::from_u32(0),
+                    birthday,
                     keys,
                 }
             })
@@ -188,5 +197,12 @@ impl WalletParser for YWallet {
 
     fn get_wallet_accounts(&self) -> std::io::Result<Vec<crate::WalletAccount>> {
         Ok(self.accounts.clone())
+    }
+}
+
+impl WalletWriter for YWallet {
+    fn write(wallet: &Wallet, _filename: &str) -> std::io::Result<()> {
+        println!("{:?}", wallet);
+        Ok(())
     }
 }

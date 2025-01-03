@@ -10,13 +10,15 @@ use zcash_primitives::consensus::BlockHeight;
 
 #[derive(Debug, Clone)]
 pub enum WalletKeyType {
-    HdKey = 0, // For HD drevied keys
-    ImportedExtsk = 1, // For imported sapling extended spending key
-    ImportedSpendingKey = 2, // For imported orchard spending key
-    ImportedViewKey = 3, // For imported sapling viewing key
-    ImportedFvk = 4, // For imported orchard full viewing key
-    ImportedUfvk = 5, // For imported unified full viewing key
-    ImportedPrivateKey = 6, // For imported transparent private key
+    // HdKey = 0, // For HD drevied keys
+    // ImportedExtsk = 1, // For imported sapling extended spending key
+    // ImportedSpendingKey = 2, // For imported orchard spending key
+    // ImportedViewKey = 3, // For imported sapling viewing key
+    // ImportedFvk = 4, // For imported orchard full viewing key
+    // ImportedUfvk = 5, // For imported unified full viewing key
+    // ImportedPrivateKey = 6, // For imported transparent private key
+    HdDerived = 0,
+    Imported = 1
 }
 
 #[derive(Debug, Clone)]
@@ -77,6 +79,11 @@ pub trait WalletParser {
     fn get_wallet_accounts(&self) -> io::Result<Vec<WalletAccount>>;
 }
 
+pub trait WalletWriter {
+    /// dhasfsa
+    fn write(wallet: &Wallet, filename: &str) -> std::io::Result<()>;
+}
+
 impl Wallet {
     pub fn parse<P>(filename: &str) -> io::Result<Self>
     where
@@ -93,5 +100,13 @@ impl Wallet {
                 accounts: wallet.get_wallet_accounts()?
             }
         )
+    }
+
+    pub fn write<W>(&self, filename: &str) -> io::Result<()>
+    where 
+        W: WalletWriter
+    {
+        let _ = W::write(&self, filename);
+        Ok(())
     }
 }

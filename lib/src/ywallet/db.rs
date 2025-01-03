@@ -5,7 +5,7 @@ use rusqlite::Connection;
 use sapling::zip32::{ExtendedFullViewingKey, ExtendedSpendingKey};
 use secp256k1::SecretKey;
 use zcash_keys::{encoding::{decode_extended_spending_key, decode_extended_full_viewing_key}, address::UnifiedAddress};
-use zcash_primitives::{constants::mainnet::{HRP_SAPLING_EXTENDED_SPENDING_KEY, HRP_SAPLING_EXTENDED_FULL_VIEWING_KEY}, consensus::MainNetwork};
+use zcash_primitives::{constants::mainnet::{HRP_SAPLING_EXTENDED_SPENDING_KEY, HRP_SAPLING_EXTENDED_FULL_VIEWING_KEY}, consensus::{MainNetwork, BlockHeight}};
 
 #[derive(Debug)]
 pub struct AccountT {
@@ -173,4 +173,26 @@ pub fn get_account_o_keys(conn: &Connection, id: u32) -> Result<(Option<Spending
         index.unwrap_or(0u32),      
         address
     ))
+}
+
+/// Since I don't know where YWallet stores birthday info,
+/// I try to estimated birthday height based on first recevied not for this account
+pub fn get_account_birthday(conn: &Connection, id: u32) -> BlockHeight {
+    let height = conn
+    .query_row(
+        "SELECT height FROM received_notes WHERE account = ?1",
+        [id],
+        |row| {
+            let height: Option<u32> = row.get(0)?;
+            Ok(height)
+        },
+    )
+    .map_err(|_|"Fail to get note height");
+
+    let birthday = match height {
+        Ok(h) => BlockHeight::from_u32(h.expect("Invalid height")),
+        Err(_) => BlockHeight::from_u32(0),
+    };
+
+    birthday
 }

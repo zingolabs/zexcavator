@@ -77,9 +77,14 @@ impl ZecWalletLite {
             .enumerate()
             .filter(|&(_, k)| idx as u32 == k.hdkey_num.unwrap_or(u32::MAX))
             .map(|(_, t)| {
+                // let key_type = match t.keytype {
+                //     wallettkey::WalletTKeyType::HdKey => crate::WalletKeyType::HdKey,
+                //     wallettkey::WalletTKeyType::ImportedKey => crate::WalletKeyType::ImportedPrivateKey,
+                // };
+
                 let key_type = match t.keytype {
-                    wallettkey::WalletTKeyType::HdKey => crate::WalletKeyType::HdKey,
-                    wallettkey::WalletTKeyType::ImportedKey => crate::WalletKeyType::ImportedPrivateKey,
+                    wallettkey::WalletTKeyType::HdKey => crate::WalletKeyType::HdDerived,
+                    wallettkey::WalletTKeyType::ImportedKey => crate::WalletKeyType::Imported,
                 };
 
                 crate::WalletTKey {
@@ -97,10 +102,15 @@ impl ZecWalletLite {
             .enumerate()
             .filter(|&(_, k)| idx as u32 == k.hdkey_num.unwrap_or(u32::MAX))
             .map(|(_, z)| {
+                // let key_type = match z.keytype {
+                //     walletzkey::WalletZKeyType::HdKey => crate::WalletKeyType::HdKey,
+                //     walletzkey::WalletZKeyType::ImportedSpendingKey => crate::WalletKeyType::ImportedExtsk,
+                //     walletzkey::WalletZKeyType::ImportedViewKey => crate::WalletKeyType::ImportedViewKey
+                // };
+
                 let key_type = match z.keytype {
-                    walletzkey::WalletZKeyType::HdKey => crate::WalletKeyType::HdKey,
-                    walletzkey::WalletZKeyType::ImportedSpendingKey => crate::WalletKeyType::ImportedExtsk,
-                    walletzkey::WalletZKeyType::ImportedViewKey => crate::WalletKeyType::ImportedViewKey
+                    walletzkey::WalletZKeyType::HdKey => crate::WalletKeyType::HdDerived,
+                    walletzkey::WalletZKeyType::ImportedSpendingKey | walletzkey::WalletZKeyType::ImportedViewKey => crate::WalletKeyType::Imported,
                 };
 
                 let extsk = z.extsk.clone().unwrap();
@@ -124,10 +134,15 @@ impl ZecWalletLite {
             .enumerate()
             .filter(|&(_, k)| idx as u32 == k.hdkey_num.unwrap_or(u32::MAX))
             .map(|(_, o)| {
+                // let key_type = match o.keytype {
+                //     walletokey::WalletOKeyType::HdKey => crate::WalletKeyType::HdKey,
+                //     walletokey::WalletOKeyType::ImportedSpendingKey => crate::WalletKeyType::ImportedSpendingKey,
+                //     walletokey::WalletOKeyType::ImportedFullViewKey => crate::WalletKeyType::ImportedFvk,
+                // };
+
                 let key_type = match o.keytype {
-                    walletokey::WalletOKeyType::HdKey => crate::WalletKeyType::HdKey,
-                    walletokey::WalletOKeyType::ImportedSpendingKey => crate::WalletKeyType::ImportedSpendingKey,
-                    walletokey::WalletOKeyType::ImportedFullViewKey => crate::WalletKeyType::ImportedFvk,
+                    walletokey::WalletOKeyType::HdKey => crate::WalletKeyType::HdDerived,
+                    walletokey::WalletOKeyType::ImportedSpendingKey | walletokey::WalletOKeyType::ImportedFullViewKey => crate::WalletKeyType::Imported,                    
                 };
 
                 let sk = o.sk.unwrap();
