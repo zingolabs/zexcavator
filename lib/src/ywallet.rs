@@ -23,7 +23,7 @@
 //!
 //```
 
-use std::io;
+use std::{io, path::Path};
 
 use crate::{WalletParser, WalletAccount, WalletKeys, WalletZKey, WalletTKey, WalletOKey, WalletWriter, Wallet};
 
@@ -201,8 +201,26 @@ impl WalletParser for YWallet {
 }
 
 impl WalletWriter for YWallet {
-    fn write(wallet: &Wallet, _filename: &str) -> std::io::Result<()> {
-        println!("{:?}", wallet);
+    fn write(_wallet: &Wallet, filename: &str) -> std::io::Result<()> {
+        let path = Path::new(filename);
+        
+        if path.exists() {
+            println!("File {} already exist, will not overwrite.", filename);
+            return Err(io::Error::new(io::ErrorKind::AlreadyExists, "File exists"));
+        }
+
+        let conn = Connection::open(path.file_name().unwrap())
+            .map_err(|_|format!("Couldn't open database file {}", filename))
+            .unwrap();
+
+        println!("Exporting wallet to YWallet db format ...");
+        let res = db::init_db(&conn)
+            .map_err(|_|"Error");
+            
+        if res.is_ok() {
+            println!("db init sucess");
+        }
+
         Ok(())
     }
 }

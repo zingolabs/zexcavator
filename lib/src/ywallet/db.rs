@@ -176,7 +176,7 @@ pub fn get_account_o_keys(conn: &Connection, id: u32) -> Result<(Option<Spending
 }
 
 /// Since I don't know where YWallet stores birthday info,
-/// I try to estimated birthday height based on first recevied not for this account
+/// I try to estimate birthday height based on first recevied note for this account
 pub fn get_account_birthday(conn: &Connection, id: u32) -> BlockHeight {
     let height = conn
     .query_row(
@@ -195,4 +195,300 @@ pub fn get_account_birthday(conn: &Connection, id: u32) -> BlockHeight {
     };
 
     birthday
+}
+
+pub fn init_db(conn: &Connection) -> std::io::Result<()> {
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS schema_version (
+            id INTEGER PRIMARY KEY NOT NULL,
+            version INTEGER NOT NULL)",
+        [],
+    ).expect("Error creating schema table");
+
+    conn.execute(
+        "CREATE TABLE accounts (
+            id_account INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            seed TEXT,
+            aindex INTEGER NOT NULL,
+            sk TEXT,
+            ivk TEXT NOT NULL UNIQUE,
+            address TEXT NOT NULL)",
+        [],
+    ).expect("Error creating accounts table");
+
+    conn.execute(
+        "CREATE TABLE blocks (
+            height INTEGER PRIMARY KEY,
+            hash BLOB NOT NULL,
+            timestamp INTEGER NOT NULL)",
+        [],
+    ).expect("Error creating blocks table");
+
+    conn.execute(
+        "CREATE TABLE transactions (
+            id_tx INTEGER PRIMARY KEY,
+            account INTEGER NOT NULL,
+            txid BLOB NOT NULL,
+            height INTEGER NOT NULL,
+            timestamp INTEGER NOT NULL,
+            value INTEGER NOT NULL,
+            address TEXT,
+            memo TEXT,
+            tx_index INTEGER, messages BLOB NULL,
+            CONSTRAINT tx_account UNIQUE (height, tx_index, account))",
+        [],
+    ).expect("Error creating transactions table");
+
+    conn.execute(
+        "CREATE TABLE sapling_witnesses (
+            id_witness INTEGER PRIMARY KEY,
+            note INTEGER NOT NULL,
+            height INTEGER NOT NULL,
+            witness BLOB NOT NULL,
+            CONSTRAINT witness_height UNIQUE (note, height))",
+        [],
+    ).expect("Error creating sapling_witnesses table");
+
+    conn.execute(
+        "CREATE TABLE diversifiers (
+            account INTEGER PRIMARY KEY NOT NULL,
+            diversifier_index BLOB NOT NULL)",
+        [],
+    ).expect("Error creating diversifiers table");
+
+    conn.execute(
+        "CREATE TABLE contacts (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            address TEXT NOT NULL,
+            dirty BOOL NOT NULL)",
+        [],
+    ).expect("Error creating contacts table");
+
+    conn.execute(
+        "CREATE INDEX i_account ON accounts(address)",
+        [],
+    ).expect("Error creating i_account index");
+
+    conn.execute(
+        "CREATE INDEX i_contact ON contacts(address)",
+        [],
+    ).expect("Error creating i_contact index");
+
+    conn.execute(
+        "CREATE INDEX i_transaction ON transactions(account)",
+        [],
+    ).expect("Error creating i_transaction index");
+
+    conn.execute(
+        "CREATE INDEX i_witness ON sapling_witnesses(height)",
+        [],
+    ).expect("Error creating i_witness index");
+
+    conn.execute(
+        "CREATE TABLE messages (
+            id INTEGER PRIMARY KEY,
+            account INTEGER NOT NULL,
+            sender TEXT,
+            recipient TEXT NOT NULL,
+            subject TEXT NOT NULL,
+            body TEXT NOT NULL,
+            timestamp INTEGER NOT NULL,
+            height INTEGER NOT NULL,
+            read BOOL NOT NULL, id_tx INTEGER, incoming BOOL NOT NULL DEFAULT true, vout INTEGER NOT NULL DEFAULT(0))",
+        [],
+    ).expect("Error creating messages table");
+
+    conn.execute(
+        "CREATE TABLE ua_settings(
+            account INTEGER PRIMARY KEY,
+            transparent BOOL NOT NULL,
+            sapling BOOL NOT NULL,
+            orchard BOOL NOT NULL)",
+        [],
+    ).expect("Error creating ua_settings table");
+
+    conn.execute(
+        "CREATE TABLE sapling_tree(
+            height INTEGER PRIMARY KEY,
+            tree BLOB NOT NULL)",
+        [],
+    ).expect("Error creating sapling_tree table");
+
+    conn.execute(
+        "CREATE TABLE orchard_tree(
+            height INTEGER PRIMARY KEY,
+            tree BLOB NOT NULL)",
+        [],
+    ).expect("Error creating orchard_tree table");
+
+    conn.execute(
+        "CREATE TABLE received_notes (
+            id_note INTEGER PRIMARY KEY,
+            account INTEGER NOT NULL,
+            position INTEGER NOT NULL,
+            tx INTEGER NOT NULL,
+            height INTEGER NOT NULL,
+            output_index INTEGER NOT NULL,
+            diversifier BLOB NOT NULL,
+            value INTEGER NOT NULL,
+            rcm BLOB NOT NULL,
+            nf BLOB NOT NULL UNIQUE,
+            rho BLOB,
+            orchard BOOL NOT NULL DEFAULT false,
+            spent INTEGER,
+            excluded BOOL,
+            CONSTRAINT tx_output UNIQUE (tx, orchard, output_index))",
+        [],
+    ).expect("Error creating received_notes table");
+
+    conn.execute(
+        "CREATE TABLE orchard_witnesses (
+            id_witness INTEGER PRIMARY KEY,
+            note INTEGER NOT NULL,
+            height INTEGER NOT NULL,
+            witness BLOB NOT NULL,
+            CONSTRAINT witness_height UNIQUE (note, height))",
+        [],
+    ).expect("Error creating orchard_witnesses table");
+
+    conn.execute(
+        "CREATE INDEX i_orchard_witness ON orchard_witnesses(height)",
+        [],
+    ).expect("Error creating i_orchard_witnessx index");
+
+    conn.execute(
+        "CREATE TABLE send_templates (
+            id_send_template INTEGER PRIMARY KEY,
+            title TEXT NOT NULL,
+            address TEXT NOT NULL,
+            amount INTEGER NOT NULL,
+            fiat_amount DECIMAL NOT NULL,
+            fee_included BOOL NOT NULL,
+            fiat TEXT,
+            include_reply_to BOOL NOT NULL,
+            subject TEXT NOT NULL,
+            body TEXT NOT NULL)",
+        [],
+    ).expect("Error creating send_templates table");
+
+    conn.execute(
+        "CREATE TABLE properties (
+            name TEXT PRIMARY KEY,
+            value TEXT NOT NULL)",
+        [],
+    ).expect("Error creating properties table");
+
+    conn.execute(
+        "CREATE TABLE taddrs (
+            account INTEGER PRIMARY KEY NOT NULL,
+            sk TEXT,
+            address TEXT NOT NULL, balance INTEGER, height INTEGER NOT NULL DEFAULT 0)",
+        [],
+    ).expect("Error creating taddrs table");
+
+    conn.execute(
+        "CREATE TABLE hw_wallets(
+            account INTEGER PRIMARY KEY NOT NULL,
+            ledger BOOL NOT NULL)",
+        [],
+    ).expect("Error creating hw_wallets table");
+
+    conn.execute(
+        "CREATE TABLE accounts2 (
+            account INTEGER PRIMARY KEY NOT NULL,
+            saved BOOL NOT NULL)",
+        [],
+    ).expect("Error creating accounts2 table");
+
+    conn.execute(
+        "CREATE TABLE account_properties (
+            account INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            value BLOB NOT NULL,
+            PRIMARY KEY (account, name))",
+        [],
+    ).expect("Error creating account_properties table");
+
+    conn.execute(
+        "CREATE TABLE transparent_checkpoints (
+            height INTEGER PRIMARY KEY)",
+        [],
+    ).expect("Error creating transparent_checkpoints table");
+
+    conn.execute(
+        "CREATE TABLE block_times (
+            height INTEGER PRIMARY KEY,
+            timestamp INTEGER NOT NULL)",
+        [],
+    ).expect("Error creating block_times table");
+
+    conn.execute(
+        "CREATE TABLE transparent_tins (
+            id_tx INTEGER NOT NULL,
+            idx INTEGER NOT NULL,
+            hash BLOB NOT NULL,
+            vout INTEGER NOT NULL,
+            PRIMARY KEY (id_tx, idx))",
+        [],
+    ).expect("Error creating transparent_tins table");
+
+    conn.execute(
+        "CREATE TABLE transparent_touts (
+            id_tx INTEGER PRIMARY KEY,
+            address TEXT NOT NULL)",
+        [],
+    ).expect("Error creating transparent_touts table");
+    
+    conn.execute(
+        "CREATE TABLE utxos (
+            id_utxo INTEGER NOT NULL PRIMARY KEY,
+            account INTEGER NOT NULL,
+            height INTEGER NOT NULL,
+            time INTEGER NOT NULL,
+            txid BLOB NOT NULL,
+            idx INTEGER NOT NULL,
+            value INTEGER NOT NULL,
+            spent INTEGER)",
+        [],
+    ).expect("Error creating utxos table");
+
+    conn.execute(
+        "CREATE TABLE swaps(
+            id_swap INTEGER NOT NULL PRIMARY KEY,
+            account INTEGER NOT NULL,
+            provider TEXT NOT NULL,
+            provider_id TEXT NOT NULL,
+            timestamp INTEGER,
+            from_currency TEXT NOT NULL,
+            from_amount TEXT NOT NULL,
+            from_address TEXT NOT NULL,
+            from_image TEXT NOT NULL,
+            to_currency TEXT NOT NULL,
+            to_amount TEXT NOT NULL,
+            to_address TEXT NOT NULL,
+            to_image TEXT NOT NULL)",
+        [],
+    ).expect("Error creating swaps table");
+
+    conn.execute(
+        "CREATE TABLE tins(
+            id_tin INTEGER NOT NULL PRIMARY KEY,
+            account INTEGER NOT NULL,
+            height INTEGER NOT NULL,
+            id_tx INTEGER NOT NULL,
+            vout INTEGER NOT NULL,
+            value INTEGER NOT NULL,
+            spent INTEGER)",
+        [],
+    ).expect("Error creating tins table");
+
+    conn.execute(
+        "CREATE UNIQUE INDEX transactions_txid
+        ON transactions (account, txid)",
+        [],
+    ).expect("Error creating transactions_txid index");
+
+    Ok(())
 }
