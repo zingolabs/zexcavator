@@ -201,7 +201,7 @@ impl WalletParser for YWallet {
 }
 
 impl WalletWriter for YWallet {
-    fn write(_wallet: &Wallet, filename: &str) -> std::io::Result<()> {
+    fn write(wallet: &Wallet, filename: &str) -> std::io::Result<()> {
         let path = Path::new(filename);
         
         if path.exists() {
@@ -218,7 +218,22 @@ impl WalletWriter for YWallet {
             .map_err(|_|"Error");
             
         if res.is_ok() {
-            println!("db init sucess");
+            println!("ywallet db init sucess");
+
+            wallet.accounts
+            .iter()
+            .enumerate()
+            .for_each(|(i, w)| {
+                // Handle on accounts with sapling keys
+                // YWallet accounts table requires sapling keys
+                if w.keys.zkeys.is_some() {
+                    println!("Adding account {}", i + 1);
+                    db::create_account_with_keys(&conn,w.clone(), i + 1).expect("unable to create account");
+                } else {
+                    println!("For transparent only accounts, use YWallet sweep function");
+                }
+            });
+
         }
 
         Ok(())

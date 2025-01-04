@@ -1,11 +1,14 @@
 use std::error::Error;
 
+use bip0039::{Mnemonic, English};
 use orchard::keys::{FullViewingKey, SpendingKey};
 use rusqlite::Connection;
 use sapling::zip32::{ExtendedFullViewingKey, ExtendedSpendingKey};
 use secp256k1::SecretKey;
-use zcash_keys::{encoding::{decode_extended_spending_key, decode_extended_full_viewing_key}, address::UnifiedAddress};
+use zcash_keys::{encoding::{decode_extended_spending_key, decode_extended_full_viewing_key, encode_extended_spending_key, encode_extended_full_viewing_key}, address::UnifiedAddress};
 use zcash_primitives::{constants::mainnet::{HRP_SAPLING_EXTENDED_SPENDING_KEY, HRP_SAPLING_EXTENDED_FULL_VIEWING_KEY}, consensus::{MainNetwork, BlockHeight}};
+
+use crate::{WalletKeys, WalletAccount};
 
 #[derive(Debug)]
 pub struct AccountT {
@@ -301,6 +304,14 @@ pub fn init_db(conn: &Connection) -> std::io::Result<()> {
     ).expect("Error creating messages table");
 
     conn.execute(
+        "CREATE TABLE orchard_addrs(
+            account INTEGER PRIMARY KEY,
+            sk BLOB,
+            fvk BLOB NOT NULL)",
+        [],
+    ).expect("Error creating orchard_addrs table");
+
+    conn.execute(
         "CREATE TABLE ua_settings(
             account INTEGER PRIMARY KEY,
             transparent BOOL NOT NULL,
@@ -489,6 +500,112 @@ pub fn init_db(conn: &Connection) -> std::io::Result<()> {
         ON transactions (account, txid)",
         [],
     ).expect("Error creating transactions_txid index");
+
+    // add shcema version
+    conn.execute(
+        "INSERT INTO schema_version (id, version) VALUES (?1, ?2)",
+        (
+            1, 
+            15            
+        )
+    ).expect("Unable to insert values");
+
+    Ok(())
+}
+
+pub fn create_account_with_keys(conn: &Connection, account: WalletAccount, id: usize) -> std::io::Result<()> {
+    let seed = match account.seed {
+        Some(s) => {
+            let mnemonic = <Mnemonic<English>>::from_entropy(s).expect("Invalid seed entropy");
+            let phrase = mnemonic.phrase().to_string();
+            Some(phrase)
+        },
+        None => None,
+    };
+
+    // Handle sapling keys first
+    let (extsk, ivk, address) = match account.keys.zkeys {
+        Some(z) => {
+            let mut sk = String::new();
+            
+            let ivk = encode_extended_full_viewing_key(HRP_SAPLING_EXTENDED_FULL_VIEWING_KEY, &z.clone().fvk);
+            let address = z.clone().address;
+
+            if z.extsk.is_some() {
+                sk = encode_extended_spending_key(HRP_SAPLING_EXTENDED_SPENDING_KEY, &z.extsk.unwrap());
+                
+            }
+            (Some(sk), Some(ivk), Some(address))
+        },
+        None => (None, None, None)
+    };
+
+    // insert accounts table
+    conn.execute(
+        "INSERT INTO accounts (id_account, name, seed, aindex, sk, ivk, address) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+        (
+            id as u32, 
+            account.name,
+            seed,
+            id,
+            extsk,
+            ivk,
+            address
+        )
+    ).expect("Unable to insert values");
+
+    // Then handle orchard keys
+    if account.keys.okeys.is_some() {
+        let sk = account.keys.okeys.clone().unwrap().sk.expect("Invalid orchard sk");
+        let fvk = account.keys.okeys.clone().unwrap().fvk.expect("Invalid orchard fvk");
+        
+        // insert orchard_addrs table
+        conn.execute(
+            "INSERT INTO orchard_addrs (account, sk, fvk) VALUES (?1, ?2, ?3)",
+            (
+                id as u32, 
+                sk.to_bytes(),
+                fvk.to_bytes()
+            )
+        ).expect("Unable to insert values");
+    }
+
+    // Add transparent addresses and keys
+    if account.keys.tkeys.is_some() {
+        let pk = account.keys.tkeys.clone().unwrap().pk;
+        let taddress = account.keys.tkeys.unwrap().address;
+        
+        // insert taddrs table
+        conn.execute(
+            "INSERT INTO taddrs (account, sk, address, balance) VALUES (?1, ?2, ?3, ?4)",
+            (
+                id as u32, 
+                pk.display_secret().to_string() as String,
+                taddress,
+                0
+            )
+        ).expect("Unable to insert values");
+    }
+
+    // db extra configuration
+    conn.execute(
+        "INSERT INTO accounts2 (account, saved) VALUES (?1, ?2)",
+        (
+            id as u32, 
+            0
+        )
+    ).expect("Unable to insert values");
+
+    // configure ua settings
+    conn.execute(
+        "INSERT INTO ua_settings (account, transparent, sapling, orchard) VALUES (?1, ?2, ?3, ?4)",
+        (
+            id as u32, 
+            0,
+            1,
+            if account.keys.okeys.is_some() { 1 } else { 0 }
+        )
+    ).expect("Unable to insert values");
 
     Ok(())
 }

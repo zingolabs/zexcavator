@@ -80,7 +80,6 @@ pub trait WalletParser {
 }
 
 pub trait WalletWriter {
-    /// dhasfsa
     fn write(wallet: &Wallet, filename: &str) -> std::io::Result<()>;
 }
 
