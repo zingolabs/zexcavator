@@ -1,4 +1,5 @@
 pub mod ywallet;
+pub mod zingolib;
 pub mod zwl;
 
 use std::io;
