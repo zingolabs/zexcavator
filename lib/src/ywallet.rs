@@ -25,11 +25,10 @@
 
 use std::{io, path::Path};
 
-<<<<<<< HEAD
-use crate::{WalletParser, WalletAccount, WalletKeys, WalletZKey, WalletTKey, WalletOKey, WalletWriter, Wallet};
-=======
-use crate::{WalletAccount, WalletKeys, WalletOKey, WalletParser, WalletTKey, WalletZKey};
->>>>>>> e61054b (Run cargo-fmt)
+use crate::{
+    Wallet, WalletAccount, WalletKeys, WalletOKey, WalletParser, WalletTKey, WalletWriter,
+    WalletZKey,
+};
 
 pub(crate) mod db;
 
@@ -73,24 +72,15 @@ impl YWallet {
             .unwrap();
 
         match db::get_account_t_keys(conn, id) {
-<<<<<<< HEAD
             Ok(sk) => {
-                Ok(Some(WalletTKey{
+                Ok(Some(WalletTKey {
                     pk: sk.expect("Invalid SecretKey"),
                     // key_type: crate::WalletKeyType::HdKey,
                     key_type: crate::WalletKeyType::HdDerived,
                     index: 0u32,
                     address,
                 }))
-            },
-=======
-            Ok(sk) => Ok(Some(WalletTKey {
-                pk: sk.expect("Invalid SecretKey"),
-                key_type: crate::WalletKeyType::HdKey,
-                index: 0u32,
-                address,
-            })),
->>>>>>> e61054b (Run cargo-fmt)
+            }
             Err(_) => Ok(None),
         }
     }
@@ -105,27 +95,17 @@ impl YWallet {
         match db::get_account_z_keys(conn, id) {
             Ok((extsk, ivk, index)) => {
                 let key_type = if has_seed {
-<<<<<<< HEAD
                     // crate::WalletKeyType::HdKey
                     crate::WalletKeyType::HdDerived
-                } 
+                }
                 // else if extsk.is_some() {
                 //     crate::WalletKeyType::ImportedExtsk
                 // }
                 else {
                     // crate::WalletKeyType::ImportedViewKey
                     crate::WalletKeyType::Imported
-                };      
-        
-=======
-                    crate::WalletKeyType::HdKey
-                } else if extsk.is_some() {
-                    crate::WalletKeyType::ImportedExtsk
-                } else {
-                    crate::WalletKeyType::ImportedViewKey
                 };
 
->>>>>>> e61054b (Run cargo-fmt)
                 Ok(Some(WalletZKey {
                     extsk,
                     fvk: ivk.unwrap(),
@@ -148,10 +128,10 @@ impl YWallet {
                 let key_type = if has_seed {
                     // crate::WalletKeyType::HdKey
                     crate::WalletKeyType::HdDerived
-                } 
+                }
                 // else if sk.is_some() {
                 //     crate::WalletKeyType::ImportedExtsk
-                // } 
+                // }
                 else {
                     // crate::WalletKeyType::ImportedViewKey
                     crate::WalletKeyType::Imported
@@ -202,11 +182,8 @@ impl WalletParser for YWallet {
                     okeys,
                 };
 
-<<<<<<< HEAD
                 let birthday = db::get_account_birthday(&conn, a.id);
-                
-=======
->>>>>>> e61054b (Run cargo-fmt)
+
                 WalletAccount {
                     name: a.name.clone().unwrap_or(format!("Account {}", a.id)),
                     seed,
@@ -231,46 +208,39 @@ impl WalletParser for YWallet {
         Ok(self.accounts.clone())
     }
 }
-<<<<<<< HEAD
 
 impl WalletWriter for YWallet {
     fn write(wallet: &Wallet, filename: &str) -> std::io::Result<()> {
         let path = Path::new(filename);
-        
+
         if path.exists() {
             println!("File {} already exist, will not overwrite.", filename);
             return Err(io::Error::new(io::ErrorKind::AlreadyExists, "File exists"));
         }
 
         let conn = Connection::open(path.file_name().unwrap())
-            .map_err(|_|format!("Couldn't open database file {}", filename))
+            .map_err(|_| format!("Couldn't open database file {}", filename))
             .unwrap();
 
         println!("Exporting wallet to YWallet db format ...");
-        let res = db::init_db(&conn)
-            .map_err(|_|"Error");
-            
+        let res = db::init_db(&conn).map_err(|_| "Error");
+
         if res.is_ok() {
             println!("ywallet db init sucess");
 
-            wallet.accounts
-            .iter()
-            .enumerate()
-            .for_each(|(i, w)| {
+            wallet.accounts.iter().enumerate().for_each(|(i, w)| {
                 // Handle on accounts with sapling keys
                 // YWallet accounts table requires sapling keys
                 if w.keys.zkeys.is_some() {
                     println!("Adding account {}", i + 1);
-                    db::create_account_with_keys(&conn,w.clone(), i + 1).expect("unable to create account");
+                    db::create_account_with_keys(&conn, w.clone(), i + 1)
+                        .expect("unable to create account");
                 } else {
                     println!("For transparent only accounts, use YWallet sweep function");
                 }
             });
-
         }
 
         Ok(())
     }
 }
-=======
->>>>>>> e61054b (Run cargo-fmt)

@@ -5,23 +5,10 @@ use orchard::keys::{FullViewingKey, SpendingKey};
 use rusqlite::Connection;
 use sapling::zip32::{ExtendedFullViewingKey, ExtendedSpendingKey};
 use secp256k1::SecretKey;
-<<<<<<< HEAD
 use zcash_keys::{encoding::{decode_extended_spending_key, decode_extended_full_viewing_key, encode_extended_spending_key, encode_extended_full_viewing_key}, address::UnifiedAddress};
 use zcash_primitives::{constants::mainnet::{HRP_SAPLING_EXTENDED_SPENDING_KEY, HRP_SAPLING_EXTENDED_FULL_VIEWING_KEY}, consensus::{MainNetwork, BlockHeight}};
 
 use crate::{WalletKeys, WalletAccount};
-=======
-use zcash_keys::{
-    address::UnifiedAddress,
-    encoding::{decode_extended_full_viewing_key, decode_extended_spending_key},
-};
-use zcash_primitives::{
-    consensus::MainNetwork,
-    constants::mainnet::{
-        HRP_SAPLING_EXTENDED_FULL_VIEWING_KEY, HRP_SAPLING_EXTENDED_SPENDING_KEY,
-    },
-};
->>>>>>> e61054b (Run cargo-fmt)
 
 #[derive(Debug)]
 pub struct AccountT {
@@ -194,7 +181,6 @@ pub fn get_account_o_keys(
     } else {
         String::new()
     };
-<<<<<<< HEAD
      
     Ok((
         sk,
@@ -635,8 +621,3 @@ pub fn create_account_with_keys(conn: &Connection, account: WalletAccount, id: u
 
     Ok(())
 }
-=======
-
-    Ok((sk, fvk, index.unwrap_or(0u32), address))
-}
->>>>>>> e61054b (Run cargo-fmt)

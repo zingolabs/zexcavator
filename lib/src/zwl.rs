@@ -93,15 +93,8 @@ impl ZecWalletLite {
                 // };
 
                 let key_type = match t.keytype {
-<<<<<<< HEAD
                     wallettkey::WalletTKeyType::HdKey => crate::WalletKeyType::HdDerived,
                     wallettkey::WalletTKeyType::ImportedKey => crate::WalletKeyType::Imported,
-=======
-                    wallettkey::WalletTKeyType::HdKey => crate::WalletKeyType::HdKey,
-                    wallettkey::WalletTKeyType::ImportedKey => {
-                        crate::WalletKeyType::ImportedPrivateKey
-                    }
->>>>>>> e61054b (Run cargo-fmt)
                 };
 
                 crate::WalletTKey {
@@ -128,18 +121,9 @@ impl ZecWalletLite {
                 // };
 
                 let key_type = match z.keytype {
-<<<<<<< HEAD
                     walletzkey::WalletZKeyType::HdKey => crate::WalletKeyType::HdDerived,
-                    walletzkey::WalletZKeyType::ImportedSpendingKey | walletzkey::WalletZKeyType::ImportedViewKey => crate::WalletKeyType::Imported,
-=======
-                    walletzkey::WalletZKeyType::HdKey => crate::WalletKeyType::HdKey,
-                    walletzkey::WalletZKeyType::ImportedSpendingKey => {
-                        crate::WalletKeyType::ImportedExtsk
-                    }
-                    walletzkey::WalletZKeyType::ImportedViewKey => {
-                        crate::WalletKeyType::ImportedViewKey
-                    }
->>>>>>> e61054b (Run cargo-fmt)
+                    walletzkey::WalletZKeyType::ImportedSpendingKey
+                    | walletzkey::WalletZKeyType::ImportedViewKey => crate::WalletKeyType::Imported,
                 };
 
                 let extsk = z.extsk.clone().unwrap();
@@ -172,18 +156,11 @@ impl ZecWalletLite {
                 // };
 
                 let key_type = match o.keytype {
-<<<<<<< HEAD
                     walletokey::WalletOKeyType::HdKey => crate::WalletKeyType::HdDerived,
-                    walletokey::WalletOKeyType::ImportedSpendingKey | walletokey::WalletOKeyType::ImportedFullViewKey => crate::WalletKeyType::Imported,                    
-=======
-                    walletokey::WalletOKeyType::HdKey => crate::WalletKeyType::HdKey,
-                    walletokey::WalletOKeyType::ImportedSpendingKey => {
-                        crate::WalletKeyType::ImportedSpendingKey
+                    walletokey::WalletOKeyType::ImportedSpendingKey
+                    | walletokey::WalletOKeyType::ImportedFullViewKey => {
+                        crate::WalletKeyType::Imported
                     }
-                    walletokey::WalletOKeyType::ImportedFullViewKey => {
-                        crate::WalletKeyType::ImportedFvk
-                    }
->>>>>>> e61054b (Run cargo-fmt)
                 };
 
                 let sk = o.sk.unwrap();

@@ -11,7 +11,6 @@ use zcash_primitives::consensus::BlockHeight;
 
 #[derive(Debug, Clone)]
 pub enum WalletKeyType {
-<<<<<<< HEAD
     // HdKey = 0, // For HD drevied keys
     // ImportedExtsk = 1, // For imported sapling extended spending key
     // ImportedSpendingKey = 2, // For imported orchard spending key
@@ -20,16 +19,7 @@ pub enum WalletKeyType {
     // ImportedUfvk = 5, // For imported unified full viewing key
     // ImportedPrivateKey = 6, // For imported transparent private key
     HdDerived = 0,
-    Imported = 1
-=======
-    HdKey = 0,               // For HD drevied keys
-    ImportedExtsk = 1,       // For imported sapling extended spending key
-    ImportedSpendingKey = 2, // For imported orchard spending key
-    ImportedViewKey = 3,     // For imported sapling viewing key
-    ImportedFvk = 4,         // For imported orchard full viewing key
-    ImportedUfvk = 5,        // For imported unified full viewing key
-    ImportedPrivateKey = 6,  // For imported transparent private key
->>>>>>> e61054b (Run cargo-fmt)
+    Imported = 1,
 }
 
 #[derive(Debug, Clone)]
@@ -111,16 +101,12 @@ impl Wallet {
             accounts: wallet.get_wallet_accounts()?,
         })
     }
-<<<<<<< HEAD
 
     pub fn write<W>(&self, filename: &str) -> io::Result<()>
-    where 
-        W: WalletWriter
+    where
+        W: WalletWriter,
     {
         let _ = W::write(&self, filename);
         Ok(())
     }
 }
-=======
-}
->>>>>>> e61054b (Run cargo-fmt)
