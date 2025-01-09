@@ -1,11 +1,11 @@
 //! # ZecWallet Lite Parser
 //!
-//! This module parses ZecWallet Lite wallet files, extracting key data such as 
+//! This module parses ZecWallet Lite wallet files, extracting key data such as
 //! wallet version, keys, and other account-related information.
 //!
 //! ## Overview
-//! The ZecWallet Lite parser reads data from the `zecwallet-lite.dat` file. The data 
-//! is written and read linearly using a `BufReader`/`BufWriter`. 
+//! The ZecWallet Lite parser reads data from the `zecwallet-lite.dat` file. The data
+//! is written and read linearly using a `BufReader`/`BufWriter`.
 //!
 //! ### Data Read (in order):
 //! - **Wallet Version**: The version of the wallet file.
@@ -13,50 +13,57 @@
 //! - **Other Data**: Currently not parsed.
 //!
 //! ## Caveats
-//! - **Wallet Birthday**: Due to the linear and variable nature of the data storage, 
-//!   it is not possible to directly access certain pieces of data using file offsets. 
-//!   The wallet birthday is located after some data that this parser does not read, 
+//! - **Wallet Birthday**: Due to the linear and variable nature of the data storage,
+//!   it is not possible to directly access certain pieces of data using file offsets.
+//!   The wallet birthday is located after some data that this parser does not read,
 //!   owing to complexity and incompatibility with newer `librustzcash` versions.
 //! - **Encrypted Wallets**: Encrypted wallet files are not supported by this parser.
 //!
 //! ## Implementation Details
-//! - ZecWallet Lite keeps an internal count for derived accounts, adhering to ZIP 32. 
-//!   It will always derive the first child (`ChildIndex 0`) for different accounts. 
-//! - Since the `ChildIndex` is fixed and only the account changes, this parser groups 
+//! - ZecWallet Lite keeps an internal count for derived accounts, adhering to ZIP 32.
+//!   It will always derive the first child (`ChildIndex 0`) for different accounts.
+//! - Since the `ChildIndex` is fixed and only the account changes, this parser groups
 //!   addresses derived from the same account. For instance:
-//!   - If the wallet contains 1 Orchard address, 2 Sapling addresses, and 2 Transparent addresses, 
+//!   - If the wallet contains 1 Orchard address, 2 Sapling addresses, and 2 Transparent addresses,
 //!     the exported wallet will have 2 accounts:
 //!     1. The first account containing all keys.
 //!     2. The second account containing only Sapling and Transparent keys.
 //!
-//``` 
+//```
 
-pub (crate)mod keys;
-pub (crate)mod walletokey;
-pub (crate)mod walletzkey;
-pub (crate)mod wallettkey;
+pub(crate) mod keys;
+pub(crate) mod walletokey;
+pub(crate) mod wallettkey;
+pub(crate) mod walletzkey;
 // pub (crate)mod data;
 // pub (crate)mod wallet_txns;
 
 use crate::WalletParser;
 
-use bip0039::{Mnemonic, English};
+use bip0039::{English, Mnemonic};
 
 use keys::Keys;
 // use data::BlockData;
 // use wallet_txns::WalletTxns;
 
-use zcash_keys::{encoding::encode_payment_address, keys::{UnifiedSpendingKey, UnifiedFullViewingKey}};
+use zcash_keys::{
+    encoding::encode_payment_address,
+    keys::{UnifiedFullViewingKey, UnifiedSpendingKey},
+};
 use zcash_primitives::{
-    consensus::{MainNetwork, BlockHeight}, 
-    constants::mainnet::HRP_SAPLING_PAYMENT_ADDRESS, zip32::AccountId, 
+    consensus::{BlockHeight, MainNetwork},
+    constants::mainnet::HRP_SAPLING_PAYMENT_ADDRESS,
+    zip32::AccountId,
     // legacy::keys::{IncomingViewingKey, NonHardenedChildIndex}
 };
 
 // use zcash_primitives::legacy::keys::ExternalIvk;
 
-use std::{io::{self, BufReader}, fs::File};
-use byteorder::{ReadBytesExt, LittleEndian};
+use byteorder::{LittleEndian, ReadBytesExt};
+use std::{
+    fs::File,
+    io::{self, BufReader},
+};
 // use zcash_encoding::Vector;
 
 pub struct ZecWalletLite {
@@ -70,9 +77,12 @@ impl ZecWalletLite {
         25
     }
 
-    fn get_wallet_keys(&self, idx: usize) -> io::Result<crate::WalletKeys> {        
+    fn get_wallet_keys(&self, idx: usize) -> io::Result<crate::WalletKeys> {
         // construct a WalletTKey assosiated with hd index `idx`
-        let tkeys: Vec<crate::WalletTKey> = self.keys.tkeys.clone()
+        let tkeys: Vec<crate::WalletTKey> = self
+            .keys
+            .tkeys
+            .clone()
             .iter()
             .enumerate()
             .filter(|&(_, k)| idx as u32 == k.hdkey_num.unwrap_or(u32::MAX))
@@ -83,8 +93,15 @@ impl ZecWalletLite {
                 // };
 
                 let key_type = match t.keytype {
+<<<<<<< HEAD
                     wallettkey::WalletTKeyType::HdKey => crate::WalletKeyType::HdDerived,
                     wallettkey::WalletTKeyType::ImportedKey => crate::WalletKeyType::Imported,
+=======
+                    wallettkey::WalletTKeyType::HdKey => crate::WalletKeyType::HdKey,
+                    wallettkey::WalletTKeyType::ImportedKey => {
+                        crate::WalletKeyType::ImportedPrivateKey
+                    }
+>>>>>>> e61054b (Run cargo-fmt)
                 };
 
                 crate::WalletTKey {
@@ -92,12 +109,14 @@ impl ZecWalletLite {
                     key_type,
                     index: t.hdkey_num.unwrap_or(0),
                     address: t.address.clone(),
-                }            
+                }
             })
-            .collect::<Vec<_>>();  
+            .collect::<Vec<_>>();
 
         // construct a WalletZKey assosiated with hd index `idx`
-        let zkeys: Vec<crate::WalletZKey> = self.keys.zkeys
+        let zkeys: Vec<crate::WalletZKey> = self
+            .keys
+            .zkeys
             .iter()
             .enumerate()
             .filter(|&(_, k)| idx as u32 == k.hdkey_num.unwrap_or(u32::MAX))
@@ -109,8 +128,18 @@ impl ZecWalletLite {
                 // };
 
                 let key_type = match z.keytype {
+<<<<<<< HEAD
                     walletzkey::WalletZKeyType::HdKey => crate::WalletKeyType::HdDerived,
                     walletzkey::WalletZKeyType::ImportedSpendingKey | walletzkey::WalletZKeyType::ImportedViewKey => crate::WalletKeyType::Imported,
+=======
+                    walletzkey::WalletZKeyType::HdKey => crate::WalletKeyType::HdKey,
+                    walletzkey::WalletZKeyType::ImportedSpendingKey => {
+                        crate::WalletKeyType::ImportedExtsk
+                    }
+                    walletzkey::WalletZKeyType::ImportedViewKey => {
+                        crate::WalletKeyType::ImportedViewKey
+                    }
+>>>>>>> e61054b (Run cargo-fmt)
                 };
 
                 let extsk = z.extsk.clone().unwrap();
@@ -129,7 +158,9 @@ impl ZecWalletLite {
             .collect::<Vec<_>>();
 
         // construct a WalletOKey assosiated with hd index `idx`
-        let okeys: Vec<crate::WalletOKey> = self.keys.okeys
+        let okeys: Vec<crate::WalletOKey> = self
+            .keys
+            .okeys
             .iter()
             .enumerate()
             .filter(|&(_, k)| idx as u32 == k.hdkey_num.unwrap_or(u32::MAX))
@@ -141,8 +172,18 @@ impl ZecWalletLite {
                 // };
 
                 let key_type = match o.keytype {
+<<<<<<< HEAD
                     walletokey::WalletOKeyType::HdKey => crate::WalletKeyType::HdDerived,
                     walletokey::WalletOKeyType::ImportedSpendingKey | walletokey::WalletOKeyType::ImportedFullViewKey => crate::WalletKeyType::Imported,                    
+=======
+                    walletokey::WalletOKeyType::HdKey => crate::WalletKeyType::HdKey,
+                    walletokey::WalletOKeyType::ImportedSpendingKey => {
+                        crate::WalletKeyType::ImportedSpendingKey
+                    }
+                    walletokey::WalletOKeyType::ImportedFullViewKey => {
+                        crate::WalletKeyType::ImportedFvk
+                    }
+>>>>>>> e61054b (Run cargo-fmt)
                 };
 
                 let sk = o.sk.unwrap();
@@ -160,36 +201,38 @@ impl ZecWalletLite {
                 }
             })
             .collect::<Vec<_>>();
-      Ok(
-        crate::WalletKeys {
+        Ok(crate::WalletKeys {
             tkeys: tkeys.first().cloned(),
             zkeys: zkeys.first().cloned(),
-            okeys: okeys.first().cloned()       
-        }
-      )
+            okeys: okeys.first().cloned(),
+        })
     }
 
     pub fn get_ufvk_for_account(&self, id: u32) -> io::Result<UnifiedFullViewingKey> {
         let seed_entropy = self.keys.seed;
         let mnemonic = <Mnemonic<English>>::from_entropy(seed_entropy).unwrap();
         let seed_bytes = mnemonic.to_seed("");
-        let usk = UnifiedSpendingKey::from_seed(&MainNetwork, &seed_bytes, AccountId::try_from(id).expect("Invalid AccountId"))
-            .map_err(|_|"Unable to create UnifiedSpendingKey from seed.")
-            .unwrap();
+        let usk = UnifiedSpendingKey::from_seed(
+            &MainNetwork,
+            &seed_bytes,
+            AccountId::try_from(id).expect("Invalid AccountId"),
+        )
+        .map_err(|_| "Unable to create UnifiedSpendingKey from seed.")
+        .unwrap();
 
         let ufvk = usk.to_unified_full_viewing_key();
         Ok(ufvk)
     }
 }
 
-impl WalletParser for ZecWalletLite {     
-    fn read(filename: &str) -> io::Result<Self>{
+impl WalletParser for ZecWalletLite {
+    fn read(filename: &str) -> io::Result<Self> {
         let file = File::open(filename)
             .map_err(|e| format!("Can't open file {}", e))
             .unwrap();
 
         let mut reader = BufReader::new(file);
-        
+
         let version = reader.read_u64::<LittleEndian>()?;
         if version > Self::serialized_version() {
             let e = format!(
@@ -207,14 +250,11 @@ impl WalletParser for ZecWalletLite {
 
         // let txns = WalletTxns::read(&mut reader)?;
 
-
-        Ok(
-            Self {                  
-                version, 
-                keys,
-                // blocks                 
-             }
-        )
+        Ok(Self {
+            version,
+            keys,
+            // blocks
+        })
     }
 
     fn get_wallet_name(&self) -> String {
@@ -239,10 +279,13 @@ impl WalletParser for ZecWalletLite {
 
         let mut accounts: Vec<crate::WalletAccount> = vec![];
 
-        let last_index = std::cmp::max(tkeys_last_index, std::cmp::max(zkeys_last_index, okeys_last_index));
-        for  i in 0..last_index {
+        let last_index = std::cmp::max(
+            tkeys_last_index,
+            std::cmp::max(zkeys_last_index, okeys_last_index),
+        );
+        for i in 0..last_index {
             let keys = self.get_wallet_keys(i)?;
-            
+
             // let ufvk = self.get_ufvk_for_account(0u32)?;
             // let t = ufvk
             //     .transparent().unwrap()
@@ -250,31 +293,27 @@ impl WalletParser for ZecWalletLite {
             //     .derive_address(NonHardenedChildIndex::from_index(i as u32).expect("Invalid NonHardenedChildIndex"))
             //     .map_err(|_|"Invalid address")
             //     .unwrap();
-                
+
             // let taddy = zcash_keys::encoding::encode_transparent_address_p(&MainNetwork, &t);
             // println!("{}", taddy);
 
-            accounts.push(
-                crate::WalletAccount {
-                    name: format!("Account {}", i + 1),
-                    seed: Some(self.keys.seed.to_vec()),
-                    // ufvk: Some(ufvk),
-                    birthday: BlockHeight::from_u32(0),
-                    keys
-                }
-            )
+            accounts.push(crate::WalletAccount {
+                name: format!("Account {}", i + 1),
+                seed: Some(self.keys.seed.to_vec()),
+                // ufvk: Some(ufvk),
+                birthday: BlockHeight::from_u32(0),
+                keys,
+            })
         }
 
         Ok(accounts)
-    }   
-
-    
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use bip0039::{Mnemonic, English};
-    use super::*;  
+    use super::*;
+    use bip0039::{English, Mnemonic};
 
     fn get_wallet() -> ZecWalletLite {
         ZecWalletLite::read("../zecwallet-light-wallet.dat")
@@ -283,12 +322,12 @@ mod tests {
     }
 
     #[test]
-    fn test_zwl_version() {        
+    fn test_zwl_version() {
         let wallet = get_wallet();
         assert!(wallet.version > 0);
     }
 
-    #[test]    
+    #[test]
     fn test_zwl_seed() {
         let wallet = get_wallet();
         let seed_entropy = wallet.keys.seed;
@@ -296,5 +335,4 @@ mod tests {
         let phrase = seed.phrase();
         assert_eq!(phrase, "clerk family rack dragon cannon wait vendor penalty absent country better coast expand true middle stable assist clerk tent phone toilet knee female kitchen");
     }
-
 }

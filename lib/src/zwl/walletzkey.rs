@@ -1,7 +1,7 @@
-use std::io::{Read, self, ErrorKind};
+use std::io::{self, ErrorKind, Read};
 
-use byteorder::{ReadBytesExt, LittleEndian};
-use sapling::zip32::{ExtendedSpendingKey, ExtendedFullViewingKey};
+use byteorder::{LittleEndian, ReadBytesExt};
+use sapling::zip32::{ExtendedFullViewingKey, ExtendedSpendingKey};
 use sapling::PaymentAddress;
 use zcash_encoding::{Optional, Vector};
 
@@ -50,16 +50,16 @@ impl WalletZKey {
 
         // read if address is locked
         let locked = reader.read_u8()? > 0;
-        
+
         // read address extsk
         let extsk = Optional::read(&mut reader, ExtendedSpendingKey::read)?;
-        
+
         // read address extfvk
         let extfvk = ExtendedFullViewingKey::read(&mut reader)?;
-        
+
         // derive zaddress from extfvk
         let (_, zaddress) = extfvk.default_address();
-        
+
         // If HD derived, read the key index
         let hdkey_num = Optional::read(&mut reader, |r| r.read_u32::<LittleEndian>())?;
 
@@ -69,17 +69,15 @@ impl WalletZKey {
         // read ""possible" nounce used for encryption
         let nonce = Optional::read(&mut reader, |r| Vector::read(r, |r| r.read_u8()))?;
 
-        Ok(
-            Self {
-                keytype,
-                locked,
-                extsk,
-                extfvk,
-                zaddress,
-                hdkey_num,
-                enc_key,
-                nonce
-            }
-        )
+        Ok(Self {
+            keytype,
+            locked,
+            extsk,
+            extfvk,
+            zaddress,
+            hdkey_num,
+            enc_key,
+            nonce,
+        })
     }
 }

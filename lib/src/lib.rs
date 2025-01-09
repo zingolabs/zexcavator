@@ -1,15 +1,16 @@
-pub mod zwl;
 pub mod ywallet;
+pub mod zwl;
 
 use std::io;
 
-use orchard::keys::{SpendingKey, FullViewingKey};
-use sapling::zip32::{ExtendedSpendingKey, ExtendedFullViewingKey};
+use orchard::keys::{FullViewingKey, SpendingKey};
+use sapling::zip32::{ExtendedFullViewingKey, ExtendedSpendingKey};
 // use zcash_keys::keys::UnifiedFullViewingKey;
 use zcash_primitives::consensus::BlockHeight;
 
 #[derive(Debug, Clone)]
 pub enum WalletKeyType {
+<<<<<<< HEAD
     // HdKey = 0, // For HD drevied keys
     // ImportedExtsk = 1, // For imported sapling extended spending key
     // ImportedSpendingKey = 2, // For imported orchard spending key
@@ -19,14 +20,23 @@ pub enum WalletKeyType {
     // ImportedPrivateKey = 6, // For imported transparent private key
     HdDerived = 0,
     Imported = 1
+=======
+    HdKey = 0,               // For HD drevied keys
+    ImportedExtsk = 1,       // For imported sapling extended spending key
+    ImportedSpendingKey = 2, // For imported orchard spending key
+    ImportedViewKey = 3,     // For imported sapling viewing key
+    ImportedFvk = 4,         // For imported orchard full viewing key
+    ImportedUfvk = 5,        // For imported unified full viewing key
+    ImportedPrivateKey = 6,  // For imported transparent private key
+>>>>>>> e61054b (Run cargo-fmt)
 }
 
 #[derive(Debug, Clone)]
 pub struct WalletTKey {
     pub pk: secp256k1::SecretKey,
     pub key_type: WalletKeyType,
-    pub index: u32,    
-    pub address: String
+    pub index: u32,
+    pub address: String,
 }
 
 #[derive(Debug, Clone)]
@@ -34,8 +44,8 @@ pub struct WalletZKey {
     pub extsk: Option<ExtendedSpendingKey>,
     pub fvk: ExtendedFullViewingKey,
     pub key_type: WalletKeyType,
-    pub index: u32,    
-    pub address: String
+    pub index: u32,
+    pub address: String,
 }
 
 #[derive(Debug, Clone)]
@@ -43,15 +53,15 @@ pub struct WalletOKey {
     pub sk: Option<SpendingKey>,
     pub fvk: Option<FullViewingKey>,
     pub key_type: WalletKeyType,
-    pub index: u32,    
-    pub address: String
+    pub index: u32,
+    pub address: String,
 }
 
 #[derive(Debug, Clone)]
 pub struct WalletKeys {
     pub tkeys: Option<WalletTKey>,
     pub zkeys: Option<WalletZKey>,
-    pub okeys: Option<WalletOKey>
+    pub okeys: Option<WalletOKey>,
 }
 
 #[derive(Debug, Clone)]
@@ -60,19 +70,21 @@ pub struct WalletAccount {
     pub seed: Option<Vec<u8>>,
     // pub ufvk: Option<UnifiedFullViewingKey>,
     pub birthday: BlockHeight,
-    pub keys: WalletKeys
+    pub keys: WalletKeys,
 }
 
 #[derive(Debug)]
 pub struct Wallet {
     pub wallet_name: String,
     pub version: u64,
-    pub accounts: Vec<WalletAccount>
+    pub accounts: Vec<WalletAccount>,
 }
 
 pub trait WalletParser {
     /// Read the wallet contents from disk
-    fn read(filename: &str) -> io::Result<Self> where Self: Sized;
+    fn read(filename: &str) -> io::Result<Self>
+    where
+        Self: Sized;
     fn get_wallet_name(&self) -> String;
     fn get_wallet_version(&self) -> u64;
     // fn get_wallet_seed(&self) -> String;
@@ -86,20 +98,19 @@ pub trait WalletWriter {
 impl Wallet {
     pub fn parse<P>(filename: &str) -> io::Result<Self>
     where
-        P: WalletParser
-    {                
+        P: WalletParser,
+    {
         let wallet = P::read(filename)
             .map_err(|e| format!("Error: {}", e))
-            .unwrap();        
+            .unwrap();
 
-        Ok(
-            Self { 
-                wallet_name: wallet.get_wallet_name(),
-                version: wallet.get_wallet_version(),
-                accounts: wallet.get_wallet_accounts()?
-            }
-        )
+        Ok(Self {
+            wallet_name: wallet.get_wallet_name(),
+            version: wallet.get_wallet_version(),
+            accounts: wallet.get_wallet_accounts()?,
+        })
     }
+<<<<<<< HEAD
 
     pub fn write<W>(&self, filename: &str) -> io::Result<()>
     where 
@@ -109,3 +120,6 @@ impl Wallet {
         Ok(())
     }
 }
+=======
+}
+>>>>>>> e61054b (Run cargo-fmt)
