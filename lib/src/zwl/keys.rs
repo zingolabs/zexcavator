@@ -32,7 +32,7 @@ pub struct Keys {
 
 impl Keys {
     pub fn serialized_version() -> u64 {
-        return 22;
+        22
     }
 
     pub fn read<R: Read>(mut reader: R) -> io::Result<Self> {

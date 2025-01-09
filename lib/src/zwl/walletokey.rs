@@ -30,7 +30,7 @@ pub struct WalletOKey {
 
 impl WalletOKey {
     pub fn serialized_version() -> u8 {
-        return 1;
+        1
     }
     
     pub fn read<R: Read>(mut reader: R) -> io::Result<Self> {

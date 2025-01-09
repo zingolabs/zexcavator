@@ -61,11 +61,11 @@ impl YWallet {
     }
     
     fn get_account_tkeys(conn: &Connection, id: u32) -> io::Result<Option<WalletTKey>> {
-        let address = db::get_account_taddress(&conn, id)
+        let address = db::get_account_taddress(conn, id)
             .map_err(|_|"No address")
             .unwrap();
 
-        match db::get_account_t_keys(&conn, id) {
+        match db::get_account_t_keys(conn, id) {
             Ok(sk) => {
                 Ok(Some(WalletTKey{
                     pk: sk.expect("Invalid SecretKey"),
@@ -80,9 +80,9 @@ impl YWallet {
     }
 
     fn get_account_zkeys(conn: &Connection, id: u32, has_seed: bool) -> io::Result<Option<WalletZKey>> {
-        let address = db::get_account_zaddress(&conn, id).unwrap();
+        let address = db::get_account_zaddress(conn, id).unwrap();
 
-        match db::get_account_z_keys(&conn, id) {
+        match db::get_account_z_keys(conn, id) {
             Ok((extsk, ivk, index)) => {
                 let key_type = if has_seed {
                     // crate::WalletKeyType::HdKey
@@ -109,7 +109,7 @@ impl YWallet {
     }
 
     fn get_account_okeys(conn: &Connection, id: u32, has_seed: bool) -> io::Result<Option<WalletOKey>> {
-        match db::get_account_o_keys(&conn, id) {
+        match db::get_account_o_keys(conn, id) {
             Ok((sk, fvk, index, address)) => {
                 let key_type = if has_seed {
                     // crate::WalletKeyType::HdKey

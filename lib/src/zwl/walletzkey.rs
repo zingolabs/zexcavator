@@ -30,7 +30,7 @@ pub struct WalletZKey {
 
 impl WalletZKey {
     pub fn serialized_version() -> u8 {
-        return 1;
+        1
     }
 
     pub fn read<R: Read>(mut reader: R) -> io::Result<Self> {
@@ -52,7 +52,7 @@ impl WalletZKey {
         let locked = reader.read_u8()? > 0;
         
         // read address extsk
-        let extsk = Optional::read(&mut reader, |r| ExtendedSpendingKey::read(r))?;
+        let extsk = Optional::read(&mut reader, ExtendedSpendingKey::read)?;
         
         // read address extfvk
         let extfvk = ExtendedFullViewingKey::read(&mut reader)?;

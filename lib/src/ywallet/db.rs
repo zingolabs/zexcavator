@@ -68,7 +68,7 @@ pub fn get_account_taddress(conn: &Connection, id: u32) -> Result<String, Box<dy
             },
         );
         
-    Ok(address.unwrap_or(String::new()))
+    Ok(address.unwrap_or_default())
 }
 
 pub fn get_account_t_keys(conn: &Connection, id: u32) -> Result<Option<secp256k1::SecretKey>, Box<dyn Error>> {
@@ -104,7 +104,7 @@ pub fn get_account_zaddress(conn: &Connection, id: u32) -> Result<String, Box<dy
         )
         .map_err(|_|"Fail to get z address");
         
-    Ok(address.unwrap_or(String::new()))
+    Ok(address.unwrap_or_default())
 }
 
 pub fn get_account_z_keys(conn: &Connection, id: u32) -> Result<(Option<ExtendedSpendingKey>, Option<ExtendedFullViewingKey>, Option<u32>), Box<dyn Error>> {
@@ -155,16 +155,13 @@ pub fn get_account_o_keys(conn: &Connection, id: u32) -> Result<(Option<Spending
         None => None,
     };
     
-    let fvk = match fvk_blob {
-        Some(f) => Some(FullViewingKey::from_bytes(&f).expect("Invalid fvk")),
-        None => None
-    };
+    let fvk = fvk_blob.map(|f| FullViewingKey::from_bytes(&f).expect("Invalid fvk"));
     
     let address = if fvk.is_some() {
         let o = fvk.clone().unwrap().address_at(index.unwrap(), orchard::keys::Scope::External);
         let ua = UnifiedAddress::from_receivers(Some(o), None, None).expect("Invalid oaddrs");
-        let address = ua.encode(&MainNetwork);   
-        address
+           
+        ua.encode(&MainNetwork)
     }
     else {
         String::new()

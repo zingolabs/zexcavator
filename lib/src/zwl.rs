@@ -67,7 +67,7 @@ pub struct ZecWalletLite {
 
 impl ZecWalletLite {
     fn serialized_version() -> u64 {
-        return 25;
+        25
     }
 
     fn get_wallet_keys(&self, idx: usize) -> io::Result<crate::WalletKeys> {        
@@ -171,7 +171,7 @@ impl ZecWalletLite {
 
     pub fn get_ufvk_for_account(&self, id: u32) -> io::Result<UnifiedFullViewingKey> {
         let seed_entropy = self.keys.seed;
-        let mnemonic = <Mnemonic<English>>::from_entropy(&seed_entropy).unwrap();
+        let mnemonic = <Mnemonic<English>>::from_entropy(seed_entropy).unwrap();
         let seed_bytes = mnemonic.to_seed("");
         let usk = UnifiedSpendingKey::from_seed(&MainNetwork, &seed_bytes, AccountId::try_from(id).expect("Invalid AccountId"))
             .map_err(|_|"Unable to create UnifiedSpendingKey from seed.")
