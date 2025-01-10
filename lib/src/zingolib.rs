@@ -13,4 +13,6 @@ pub struct Zingolib {
     birthday: u64,
     verified_tree: Option<TreeState>, // use zcash_encoding::Optional
     price_info: ZecPriceInfo,         // Previous prices
+    seed_bytes: Vec<u8>,
+    mnemonic: u32,
 }
