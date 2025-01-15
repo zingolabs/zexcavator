@@ -18,17 +18,16 @@ pub struct AccountT {
 }
 #[derive(Debug)]
 pub struct AccountVecT {
-  pub accounts: Option<Vec<AccountT>>,
+    pub accounts: Option<Vec<AccountT>>,
 }
 
 pub fn get_schema_version(connection: &Connection) -> u32 {
     let version: Option<u32> = connection
-        .query_row(
-            "SELECT version FROM schema_version LIMIT 1",
-            [],
-            |row| row.get(0),
-        )
-        .map_err(|_|"Fail").expect("No schema version");
+        .query_row("SELECT version FROM schema_version LIMIT 1", [], |row| {
+            row.get(0)
+        })
+        .map_err(|_| "Fail")
+        .expect("No schema version");
     version.unwrap_or(0)
 }
 
@@ -58,35 +57,34 @@ pub fn get_account_list(conn: &Connection) -> Result<AccountVecT, Box<dyn Error>
 }
 
 pub fn get_account_taddress(conn: &Connection, id: u32) -> Result<String, Box<dyn Error>> {
-    let address = conn
-        .query_row(
-            "SELECT address FROM taddrs WHERE account = ?1",
-            [id],
-            |row| {
-                let address: String = row.get(0)?;
-                Ok(address)
-            },
-        );
-        
-    Ok(address.unwrap_or(String::new()))
-}
-
-pub fn get_account_t_keys(conn: &Connection, id: u32) -> Result<Option<secp256k1::SecretKey>, Box<dyn Error>> {
-    let sk_str = conn.query_row(
-        "SELECT sk FROM taddrs WHERE account = ?1",
+    let address = conn.query_row(
+        "SELECT address FROM taddrs WHERE account = ?1",
         [id],
         |row| {
-            let sk_str: Option<String> = row.get(0)?;
-            Ok(sk_str)
-        })?;
+            let address: String = row.get(0)?;
+            Ok(address)
+        },
+    );
+
+    Ok(address.unwrap_or_default())
+}
+
+pub fn get_account_t_keys(
+    conn: &Connection,
+    id: u32,
+) -> Result<Option<secp256k1::SecretKey>, Box<dyn Error>> {
+    let sk_str = conn.query_row("SELECT sk FROM taddrs WHERE account = ?1", [id], |row| {
+        let sk_str: Option<String> = row.get(0)?;
+        Ok(sk_str)
+    })?;
 
     let sk = match sk_str {
-        Some(s) => {                        
+        Some(s) => {
             let sk_hex = hex::decode(s)?;
             let sk = SecretKey::from_slice(&sk_hex)?;
             Some(sk)
-        },
-        None => None
+        }
+        None => None,
     };
 
     Ok(sk)
@@ -102,12 +100,22 @@ pub fn get_account_zaddress(conn: &Connection, id: u32) -> Result<String, Box<dy
                 Ok(address)
             },
         )
-        .map_err(|_|"Fail to get z address");
-        
-    Ok(address.unwrap_or(String::new()))
+        .map_err(|_| "Fail to get z address");
+
+    Ok(address.unwrap_or_default())
 }
 
-pub fn get_account_z_keys(conn: &Connection, id: u32) -> Result<(Option<ExtendedSpendingKey>, Option<ExtendedFullViewingKey>, Option<u32>), Box<dyn Error>> {
+pub fn get_account_z_keys(
+    conn: &Connection,
+    id: u32,
+) -> Result<
+    (
+        Option<ExtendedSpendingKey>,
+        Option<ExtendedFullViewingKey>,
+        Option<u32>,
+    ),
+    Box<dyn Error>,
+> {
     let (sk_str, ivk_str, index) = conn.query_row(
         "SELECT name, seed, sk, ivk, address, aindex FROM accounts WHERE id_account = ?1",
         [id],
@@ -116,21 +124,27 @@ pub fn get_account_z_keys(conn: &Connection, id: u32) -> Result<(Option<Extended
             let ivk_str: Option<String> = row.get(3)?;
             let index: Option<u32> = row.get(5)?;
             Ok((sk_str, ivk_str, index))
-        })?;
-        
-    let ivk = decode_extended_full_viewing_key(HRP_SAPLING_EXTENDED_FULL_VIEWING_KEY, &ivk_str.unwrap())?;
+        },
+    )?;
+
+    let ivk =
+        decode_extended_full_viewing_key(HRP_SAPLING_EXTENDED_FULL_VIEWING_KEY, &ivk_str.unwrap())?;
 
     let extsk = match sk_str {
-        Some(s) => Some(decode_extended_spending_key(HRP_SAPLING_EXTENDED_SPENDING_KEY, &s)?),
+        Some(s) => Some(decode_extended_spending_key(
+            HRP_SAPLING_EXTENDED_SPENDING_KEY,
+            &s,
+        )?),
         None => None,
     };
-    
-    Ok(
-        (extsk, Some(ivk), index)
-    )
+
+    Ok((extsk, Some(ivk), index))
 }
 
-pub fn get_account_o_keys(conn: &Connection, id: u32) -> Result<(Option<SpendingKey>, Option<FullViewingKey>, u32, String), Box<dyn Error>> {
+pub fn get_account_o_keys(
+    conn: &Connection,
+    id: u32,
+) -> Result<(Option<SpendingKey>, Option<FullViewingKey>, u32, String), Box<dyn Error>> {
     let (sk_blob, fvk_blob, index) = conn
         .query_row(
             "SELECT a.id_account, a.aindex, o.account, o.sk, o.fvk FROM accounts a LEFT JOIN orchard_addrs o ON a.id_account = o.account WHERE o.account = ?1",
@@ -145,28 +159,26 @@ pub fn get_account_o_keys(conn: &Connection, id: u32) -> Result<(Option<Spending
             },
         )
         .map_err(|_|"Fail to get orchard fvk")?;
-        
 
-    let sk:Option<SpendingKey> = match sk_blob {
+    let sk: Option<SpendingKey> = match sk_blob {
         Some(sk_bytes) => {
             let sk = SpendingKey::from_bytes(sk_bytes).expect("Invalid sk");
             Some(sk)
-        },
+        }
         None => None,
     };
-    
-    let fvk = match fvk_blob {
-        Some(f) => Some(FullViewingKey::from_bytes(&f).expect("Invalid fvk")),
-        None => None
-    };
-    
+
+    let fvk = fvk_blob.map(|f| FullViewingKey::from_bytes(&f).expect("Invalid fvk"));
+
     let address = if fvk.is_some() {
-        let o = fvk.clone().unwrap().address_at(index.unwrap(), orchard::keys::Scope::External);
+        let o = fvk
+            .clone()
+            .unwrap()
+            .address_at(index.unwrap(), orchard::keys::Scope::External);
         let ua = UnifiedAddress::from_receivers(Some(o), None, None).expect("Invalid oaddrs");
-        let address = ua.encode(&MainNetwork);   
-        address
-    }
-    else {
+
+        ua.encode(&MainNetwork)
+    } else {
         String::new()
     };
      

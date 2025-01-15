@@ -1,8 +1,12 @@
-use std::io::{Read, self};
-use byteorder::{ReadBytesExt, LittleEndian};
-use zcash_encoding::{Vector, Optional};
-use zcash_primitives::{merkle_tree::read_commitment_tree, consensus::BlockHeight, transaction::TxId, memo::Memo};
-use sapling::{CommitmentTree, zip32::ExtendedFullViewingKey, Diversifier, Rseed, IncrementalWitness};
+use byteorder::{LittleEndian, ReadBytesExt};
+use sapling::{
+    zip32::ExtendedFullViewingKey, CommitmentTree, Diversifier, IncrementalWitness, Rseed,
+};
+use std::io::{self, Read};
+use zcash_encoding::{Optional, Vector};
+use zcash_primitives::{
+    consensus::BlockHeight, memo::Memo, merkle_tree::read_commitment_tree, transaction::TxId,
+};
 
 #[derive(Clone, Debug)]
 pub struct BlockData {
@@ -34,14 +38,9 @@ impl BlockData {
         let _version = reader.read_u64::<LittleEndian>()?;
 
         // read "ecb" (encoded compact block?)
-        let ecb =Vector::read(&mut reader, |r| r.read_u8()).unwrap_or(vec![]);
+        let ecb = Vector::read(&mut reader, |r| r.read_u8()).unwrap_or(vec![]);
 
-        Ok(
-            Self {
-                ecb,
-                height
-            }
-        )
+        Ok(Self { ecb, height })
     }
 }
 
@@ -117,7 +116,7 @@ impl WalletTx {
         let utxos = Vector::read(&mut reader, |r| Utxo::read(r))?;
 
         // TODO read old wallet version
-        let total_orchard_value_spent =reader.read_u64::<LittleEndian>()?;
+        let total_orchard_value_spent = reader.read_u64::<LittleEndian>()?;
 
         let total_sapling_value_spent = reader.read_u64::<LittleEndian>()?;
         let total_transparent_value_spent = reader.read_u64::<LittleEndian>()?;
@@ -225,7 +224,9 @@ impl SaplingNoteData {
 
         let mut diversifier_bytes = [0u8; 11];
         reader.read_exact(&mut diversifier_bytes)?;
-        let diversifier = Diversifier { 0: diversifier_bytes };
+        let diversifier = Diversifier {
+            0: diversifier_bytes,
+        };
 
         // To recover the note, read the value and r, and then use the payment address
         // to recreate the note

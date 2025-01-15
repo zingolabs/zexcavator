@@ -1,10 +1,10 @@
-use std::io::{Read, self};
-use byteorder::{ReadBytesExt, LittleEndian};
+use byteorder::{LittleEndian, ReadBytesExt};
+use std::io::{self, Read};
 use zcash_encoding::Vector;
 
 use crate::zwl::walletokey::WalletOKey;
-use crate::zwl::walletzkey::WalletZKey;
 use crate::zwl::wallettkey::WalletTKey;
+use crate::zwl::walletzkey::WalletZKey;
 
 #[derive(Debug, Clone)]
 pub struct Keys {
@@ -32,7 +32,7 @@ pub struct Keys {
 
 impl Keys {
     pub fn serialized_version() -> u64 {
-        return 22;
+        22
     }
 
     pub fn read<R: Read>(mut reader: R) -> io::Result<Self> {
@@ -68,16 +68,14 @@ impl Keys {
         // read wallet tkeys
         let tkeys = Vector::read(&mut reader, |r| WalletTKey::read(r))?;
 
-        Ok(
-            Self {
-                encrypted,
-                enc_seed,
-                nonce,
-                seed: seed_bytes,
-                zkeys,
-                tkeys,
-                okeys
-            }
-        )
+        Ok(Self {
+            encrypted,
+            enc_seed,
+            nonce,
+            seed: seed_bytes,
+            zkeys,
+            tkeys,
+            okeys,
+        })
     }
 }

@@ -3,9 +3,9 @@ use std::{
     io::{self, Read},
 };
 
-use byteorder::{ReadBytesExt, LittleEndian};
+use byteorder::{LittleEndian, ReadBytesExt};
 use zcash_encoding::Vector;
-use zcash_primitives::{transaction::TxId, consensus::BlockHeight};
+use zcash_primitives::{consensus::BlockHeight, transaction::TxId};
 
 use crate::zwl::data::WalletTx;
 
@@ -24,8 +24,8 @@ impl WalletTxns {
         if version > Self::serialized_version() {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
-                "Can't read wallettxns because of incorrect version"
-            ))
+                "Can't read wallettxns because of incorrect version",
+            ));
         }
 
         let txs_tuples = Vector::read(&mut reader, |r| {
@@ -47,25 +47,20 @@ impl WalletTxns {
             })
             .map(|v| v.0);
 
-            let _mempool = if version <= 20 {
-                Vector::read(&mut reader, |r| {
-                    let mut txid_bytes = [0u8; 32];
-                    r.read_exact(&mut txid_bytes)?;
-                    let wtx = WalletTx::read(r)?;
-    
-                    Ok((TxId::from_bytes(txid_bytes), wtx))
-                })?
-                .into_iter()
-                .collect()
-            } else {
-                vec![]
-            };
+        let _mempool = if version <= 20 {
+            Vector::read(&mut reader, |r| {
+                let mut txid_bytes = [0u8; 32];
+                r.read_exact(&mut txid_bytes)?;
+                let wtx = WalletTx::read(r)?;
 
-        Ok(
-            Self { 
-                current, 
-                last_txid 
-            }
-        )
+                Ok((TxId::from_bytes(txid_bytes), wtx))
+            })?
+            .into_iter()
+            .collect()
+        } else {
+            vec![]
+        };
+
+        Ok(Self { current, last_txid })
     }
 }

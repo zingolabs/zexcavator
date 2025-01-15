@@ -1,7 +1,7 @@
-use std::io::{Read, self};
-use byteorder::{ReadBytesExt, LittleEndian};
+use byteorder::{LittleEndian, ReadBytesExt};
+use orchard::keys::{FullViewingKey, Scope, SpendingKey};
+use std::io::{self, Read};
 use zcash_encoding::{Optional, Vector};
-use orchard::keys::{SpendingKey, FullViewingKey, Scope};
 use zcash_keys::address::UnifiedAddress;
 
 #[derive(PartialEq, Debug, Clone)]
@@ -30,22 +30,22 @@ pub struct WalletOKey {
 
 impl WalletOKey {
     pub fn serialized_version() -> u8 {
-        return 1;
+        1
     }
-    
+
     pub fn read<R: Read>(mut reader: R) -> io::Result<Self> {
         let version = reader.read_u8()?;
         assert!(version <= Self::serialized_version());
 
         // Read orchard key type
         let keytype = match reader.read_u32::<LittleEndian>()? {
-           0 => Ok(WalletOKeyType::HdKey),
-           1 => Ok(WalletOKeyType::ImportedSpendingKey),
-           2 => Ok(WalletOKeyType::ImportedFullViewKey),
-           n => Err(io::Error::new(
-            io::ErrorKind::InvalidInput,
-                format!("Invalid okey type {}", n))
-            )
+            0 => Ok(WalletOKeyType::HdKey),
+            1 => Ok(WalletOKeyType::ImportedSpendingKey),
+            2 => Ok(WalletOKeyType::ImportedFullViewKey),
+            n => Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!("Invalid okey type {}", n),
+            )),
         }?;
 
         // read if key is locked
@@ -56,7 +56,7 @@ impl WalletOKey {
 
         // read address fvk
         let fvk = FullViewingKey::read(&mut reader)?;
-        
+
         // read sk if available (read as 32 bytes)
         let sk = Optional::read(&mut reader, |r| {
             let mut bytes = [0u8; 32];
@@ -66,7 +66,8 @@ impl WalletOKey {
 
         // Derive unified address (orchard only) from fvk
         let address = fvk.address_at(0u64, Scope::External);
-        let unified_address = UnifiedAddress::from_receivers(Some(address), None, None).expect("Failed to construct unified address");
+        let unified_address = UnifiedAddress::from_receivers(Some(address), None, None)
+            .expect("Failed to construct unified address");
 
         // read "possible" encrypted key
         let enc_key = Optional::read(&mut reader, |r| Vector::read(r, |r| r.read_u8()))?;
@@ -74,18 +75,15 @@ impl WalletOKey {
         // read "possible" nouce used in key encryption
         let nonce = Optional::read(&mut reader, |r| Vector::read(r, |r| r.read_u8()))?;
 
-        Ok(
-            Self {
-                locked,
-                keytype,
-                sk,
-                fvk,
-                unified_address,
-                hdkey_num,
-                enc_key,
-                nonce 
-            }
-        )
-
+        Ok(Self {
+            locked,
+            keytype,
+            sk,
+            fvk,
+            unified_address,
+            hdkey_num,
+            enc_key,
+            nonce,
+        })
     }
 }
