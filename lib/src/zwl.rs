@@ -38,7 +38,7 @@ pub(crate) mod walletzkey;
 // pub (crate)mod data;
 // pub (crate)mod wallet_txns;
 
-use crate::WalletParser;
+use crate::{WalletParser, WalletAccount, WalletKeyType, WalletKeys};
 
 use bip0039::{English, Mnemonic};
 
@@ -46,23 +46,26 @@ use keys::Keys;
 // use data::BlockData;
 // use wallet_txns::WalletTxns;
 
+use orchard::{zip32::ChildIndex, keys::{SpendingKey, FullViewingKey}};
+use sapling::zip32::{ExtendedSpendingKey, ExtendedFullViewingKey};
+use secp256k1::{PublicKey, Secp256k1, SecretKey};
+use zcash_client_backend::encoding::encode_transparent_address;
 use zcash_keys::{
     encoding::encode_payment_address,
-    keys::{UnifiedFullViewingKey, UnifiedSpendingKey},
+    keys::{UnifiedFullViewingKey, UnifiedSpendingKey}, address::UnifiedAddress,
 };
 use zcash_primitives::{
     consensus::{BlockHeight, MainNetwork},
-    constants::mainnet::HRP_SAPLING_PAYMENT_ADDRESS,
-    zip32::AccountId,
+    constants::mainnet::{HRP_SAPLING_PAYMENT_ADDRESS, B58_PUBKEY_ADDRESS_PREFIX, B58_SCRIPT_ADDRESS_PREFIX},
+    zip32::AccountId, legacy::{keys::{AccountPrivKey, NonHardenedChildIndex, TransparentKeyScope, IncomingViewingKey}, TransparentAddress},
     // legacy::keys::{IncomingViewingKey, NonHardenedChildIndex}
 };
-
 // use zcash_primitives::legacy::keys::ExternalIvk;
 
 use byteorder::{LittleEndian, ReadBytesExt};
 use std::{
     fs::File,
-    io::{self, BufReader},
+    io::{self, BufReader}, hash::Hash,
 };
 // use zcash_encoding::Vector;
 
@@ -199,6 +202,95 @@ impl ZecWalletLite {
 
         let ufvk = usk.to_unified_full_viewing_key();
         Ok(ufvk)
+    }
+    
+    #[allow(deprecated)]
+    pub fn from_seed_phrase(phrase: &str, num_addr: u32) -> io::Result<crate::Wallet> {
+        let mnemonic = <Mnemonic<English>>::from_phrase(phrase).expect("Invalid mnemonic phrase");
+        let seed = mnemonic.to_seed("");
+
+        
+
+        let mut accounts = vec![];
+
+        // derive sapling addresses
+        for hdkey_num in 0..num_addr {
+            // derive extsk
+            let extsk = ExtendedSpendingKey::master(&seed);
+
+            let (_,addr) = extsk.clone()
+                .derive_child(ChildIndex::hardened(32))
+                .derive_child(ChildIndex::hardened(133))
+                .derive_child(ChildIndex::hardened(hdkey_num))
+                .default_address();
+
+            let fvk = extsk.to_extended_full_viewing_key();
+            let z_address = encode_payment_address(HRP_SAPLING_PAYMENT_ADDRESS, &addr);
+
+            let zkeys = crate::WalletZKey {
+                extsk: Some(extsk),
+                fvk,
+                key_type: crate::WalletKeyType::HdDerived,
+                index: hdkey_num,
+                address: z_address,
+            };
+
+            // derive orchard addresses
+            let sk = SpendingKey::from_zip32_seed(&seed, 133, AccountId::try_from(hdkey_num).expect("invalid account id")).expect("invalid zip32 seed");
+            let fvk = orchard::keys::FullViewingKey::from(&sk);
+            let oaddr = fvk.address_at(0u64, orchard::keys::Scope::External);
+            let o_address = UnifiedAddress::from_receivers(Some(oaddr), None, None).expect("Invalud unified address");
+
+            let okeys = crate::WalletOKey {
+                sk: Some(sk),
+                fvk: Some(fvk),
+                key_type: crate::WalletKeyType::HdDerived,
+                index: hdkey_num,
+                address: o_address.encode(&MainNetwork),
+            };
+
+            // Derive transparent addresses
+            let priv_key = AccountPrivKey::from_seed(&MainNetwork, &seed, AccountId::try_from(0).expect("invalid account id")).expect("Invalid zip32 seed");
+            
+            let pk = priv_key
+            .derive_external_secret_key(NonHardenedChildIndex::from_index(hdkey_num).expect("Invalid index"))
+            .expect("Invalid secret key");
+
+            let taddy = priv_key
+                .to_account_pubkey()
+                .derive_external_ivk()
+                .expect("Invalid pubkey")
+                .derive_address(NonHardenedChildIndex::from_index(hdkey_num).expect("Invalid index"))
+                .expect("Invalid transparent address.");
+
+            let t_address = encode_transparent_address(&B58_PUBKEY_ADDRESS_PREFIX, &B58_SCRIPT_ADDRESS_PREFIX, &taddy);
+
+            
+            let tkeys = crate::WalletTKey {
+                pk,
+                key_type: WalletKeyType::HdDerived,
+                index: hdkey_num,
+                address: t_address,
+            };
+
+            accounts.push(crate::WalletAccount {
+                name: format!("Account {}", hdkey_num + 1),
+                seed: Some(seed.to_vec()),
+                birthday: BlockHeight::from_u32(0),
+                keys: crate::WalletKeys {
+                    tkeys: Some(tkeys),
+                    zkeys: Some(zkeys),
+                    okeys: Some(okeys),
+                },
+            })
+        }
+
+        Ok(crate::Wallet {
+            wallet_name: "ZecWalletLite".to_string(),
+            version: 25,
+            accounts,
+        })
+        
     }
 }
 

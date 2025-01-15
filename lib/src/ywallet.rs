@@ -231,6 +231,7 @@ impl WalletWriter for YWallet {
             wallet.accounts.iter().enumerate().for_each(|(i, w)| {
                 // Handle on accounts with sapling keys
                 // YWallet accounts table requires sapling keys
+
                 if w.keys.zkeys.is_some() {
                     println!("Adding account {}", i + 1);
                     db::create_account_with_keys(&conn, w.clone(), i + 1)
