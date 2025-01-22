@@ -6,7 +6,7 @@ use crate::prelude::*;
 
 use crate::config::ZexCavatorCliConfig;
 use abscissa_core::{config, Command, FrameworkError, Runnable};
-use zwl_parser::zwl::ZecWalletLite;
+use zwl_parser::{zwl::ZecWalletLite, WalletParser};
 
 /// `parse` subcommand
 ///
@@ -18,6 +18,7 @@ use zwl_parser::zwl::ZecWalletLite;
 #[derive(clap::Parser, Command, Debug)]
 pub struct ParseCmd {
     /// What wallet file are we parsing?
+    #[arg(required = true)]
     wallet_path: Vec<String>,
 }
 
@@ -25,8 +26,8 @@ impl Runnable for ParseCmd {
     /// Start the application.
     fn run(&self) {
         let config = APP.config();
-        let gen = ZecWalletLite::from_seed_phrase("own split raw essay easy ordinary flat glance oil labor pave loan deliver recall kingdom feed toilet moment perfect kid world village liberty honey", 3).unwrap();
-        println!("{:#?}", gen);
+        let gen = ZecWalletLite::read(&config.file.wallet_file).unwrap();
+        println!("{:#?}", gen.keys);
     }
 }
 
