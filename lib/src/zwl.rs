@@ -31,6 +31,7 @@
 //!
 //```
 
+pub(crate) mod block;
 pub(crate) mod keys;
 pub(crate) mod walletokey;
 pub(crate) mod wallettkey;
@@ -42,6 +43,7 @@ use crate::{WalletKeyType, WalletParser};
 
 use bip0039::{English, Mnemonic};
 
+use block::BlockData;
 use keys::Keys;
 // use data::BlockData;
 // use wallet_txns::WalletTxns;
@@ -49,6 +51,7 @@ use keys::Keys;
 use orchard::{keys::SpendingKey, zip32::ChildIndex};
 use sapling::zip32::ExtendedSpendingKey;
 use zcash_client_backend::encoding::encode_transparent_address;
+use zcash_encoding::Vector;
 use zcash_keys::{
     address::UnifiedAddress,
     encoding::encode_payment_address,
@@ -75,7 +78,7 @@ use std::{
 pub struct ZecWalletLite {
     pub version: u64,
     pub keys: Keys,
-    // pub blocks: Vec<BlockData>
+    pub blocks: Vec<BlockData>,
 }
 
 impl ZecWalletLite {
@@ -333,7 +336,7 @@ impl WalletParser for ZecWalletLite {
         // TODO: read old versions of wallet file
         let keys = Keys::read(&mut reader)?;
 
-        // let blocks = Vector::read(&mut reader, |r| BlockData::read(r))?;
+        let blocks = Vector::read(reader, |r| BlockData::read(r))?;
         // TODO: read old versions of wallet file
 
         // let txns = WalletTxns::read(&mut reader)?;
@@ -341,7 +344,7 @@ impl WalletParser for ZecWalletLite {
         Ok(Self {
             version,
             keys,
-            // blocks
+            blocks,
         })
     }
 
