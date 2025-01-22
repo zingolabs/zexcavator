@@ -106,7 +106,7 @@ impl Wallet {
     where
         W: WalletWriter,
     {
-        let _ = W::write(&self, filename);
+        let _ = W::write(self, filename);
         Ok(())
     }
 }

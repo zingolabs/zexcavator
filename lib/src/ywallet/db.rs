@@ -1,14 +1,25 @@
 use std::error::Error;
 
-use bip0039::{Mnemonic, English};
+use bip0039::{English, Mnemonic};
 use orchard::keys::{FullViewingKey, SpendingKey};
 use rusqlite::Connection;
 use sapling::zip32::{ExtendedFullViewingKey, ExtendedSpendingKey};
 use secp256k1::SecretKey;
-use zcash_keys::{encoding::{decode_extended_spending_key, decode_extended_full_viewing_key, encode_extended_spending_key, encode_extended_full_viewing_key}, address::UnifiedAddress};
-use zcash_primitives::{constants::mainnet::{HRP_SAPLING_EXTENDED_SPENDING_KEY, HRP_SAPLING_EXTENDED_FULL_VIEWING_KEY}, consensus::{MainNetwork, BlockHeight}};
+use zcash_keys::{
+    address::UnifiedAddress,
+    encoding::{
+        decode_extended_full_viewing_key, decode_extended_spending_key,
+        encode_extended_full_viewing_key, encode_extended_spending_key,
+    },
+};
+use zcash_primitives::{
+    consensus::{BlockHeight, MainNetwork},
+    constants::mainnet::{
+        HRP_SAPLING_EXTENDED_FULL_VIEWING_KEY, HRP_SAPLING_EXTENDED_SPENDING_KEY,
+    },
+};
 
-use crate::{WalletKeys, WalletAccount};
+use crate::WalletAccount;
 
 #[derive(Debug)]
 pub struct AccountT {
@@ -181,35 +192,28 @@ pub fn get_account_o_keys(
     } else {
         String::new()
     };
-     
-    Ok((
-        sk,
-        fvk,
-        index.unwrap_or(0u32),      
-        address
-    ))
+
+    Ok((sk, fvk, index.unwrap_or(0u32), address))
 }
 
 /// Since I don't know where YWallet stores birthday info,
 /// I try to estimate birthday height based on first recevied note for this account
 pub fn get_account_birthday(conn: &Connection, id: u32) -> BlockHeight {
     let height = conn
-    .query_row(
-        "SELECT height FROM received_notes WHERE account = ?1",
-        [id],
-        |row| {
-            let height: Option<u32> = row.get(0)?;
-            Ok(height)
-        },
-    )
-    .map_err(|_|"Fail to get note height");
+        .query_row(
+            "SELECT height FROM received_notes WHERE account = ?1",
+            [id],
+            |row| {
+                let height: Option<u32> = row.get(0)?;
+                Ok(height)
+            },
+        )
+        .map_err(|_| "Fail to get note height");
 
-    let birthday = match height {
+    match height {
         Ok(h) => BlockHeight::from_u32(h.expect("Invalid height")),
         Err(_) => BlockHeight::from_u32(0),
-    };
-
-    birthday
+    }
 }
 
 pub fn init_db(conn: &Connection) -> std::io::Result<()> {
@@ -218,7 +222,8 @@ pub fn init_db(conn: &Connection) -> std::io::Result<()> {
             id INTEGER PRIMARY KEY NOT NULL,
             version INTEGER NOT NULL)",
         [],
-    ).expect("Error creating schema table");
+    )
+    .expect("Error creating schema table");
 
     conn.execute(
         "CREATE TABLE accounts (
@@ -230,7 +235,8 @@ pub fn init_db(conn: &Connection) -> std::io::Result<()> {
             ivk TEXT NOT NULL UNIQUE,
             address TEXT NOT NULL)",
         [],
-    ).expect("Error creating accounts table");
+    )
+    .expect("Error creating accounts table");
 
     conn.execute(
         "CREATE TABLE blocks (
@@ -238,7 +244,8 @@ pub fn init_db(conn: &Connection) -> std::io::Result<()> {
             hash BLOB NOT NULL,
             timestamp INTEGER NOT NULL)",
         [],
-    ).expect("Error creating blocks table");
+    )
+    .expect("Error creating blocks table");
 
     conn.execute(
         "CREATE TABLE transactions (
@@ -253,7 +260,8 @@ pub fn init_db(conn: &Connection) -> std::io::Result<()> {
             tx_index INTEGER, messages BLOB NULL,
             CONSTRAINT tx_account UNIQUE (height, tx_index, account))",
         [],
-    ).expect("Error creating transactions table");
+    )
+    .expect("Error creating transactions table");
 
     conn.execute(
         "CREATE TABLE sapling_witnesses (
@@ -263,14 +271,16 @@ pub fn init_db(conn: &Connection) -> std::io::Result<()> {
             witness BLOB NOT NULL,
             CONSTRAINT witness_height UNIQUE (note, height))",
         [],
-    ).expect("Error creating sapling_witnesses table");
+    )
+    .expect("Error creating sapling_witnesses table");
 
     conn.execute(
         "CREATE TABLE diversifiers (
             account INTEGER PRIMARY KEY NOT NULL,
             diversifier_index BLOB NOT NULL)",
         [],
-    ).expect("Error creating diversifiers table");
+    )
+    .expect("Error creating diversifiers table");
 
     conn.execute(
         "CREATE TABLE contacts (
@@ -279,27 +289,20 @@ pub fn init_db(conn: &Connection) -> std::io::Result<()> {
             address TEXT NOT NULL,
             dirty BOOL NOT NULL)",
         [],
-    ).expect("Error creating contacts table");
+    )
+    .expect("Error creating contacts table");
 
-    conn.execute(
-        "CREATE INDEX i_account ON accounts(address)",
-        [],
-    ).expect("Error creating i_account index");
+    conn.execute("CREATE INDEX i_account ON accounts(address)", [])
+        .expect("Error creating i_account index");
 
-    conn.execute(
-        "CREATE INDEX i_contact ON contacts(address)",
-        [],
-    ).expect("Error creating i_contact index");
+    conn.execute("CREATE INDEX i_contact ON contacts(address)", [])
+        .expect("Error creating i_contact index");
 
-    conn.execute(
-        "CREATE INDEX i_transaction ON transactions(account)",
-        [],
-    ).expect("Error creating i_transaction index");
+    conn.execute("CREATE INDEX i_transaction ON transactions(account)", [])
+        .expect("Error creating i_transaction index");
 
-    conn.execute(
-        "CREATE INDEX i_witness ON sapling_witnesses(height)",
-        [],
-    ).expect("Error creating i_witness index");
+    conn.execute("CREATE INDEX i_witness ON sapling_witnesses(height)", [])
+        .expect("Error creating i_witness index");
 
     conn.execute(
         "CREATE TABLE messages (
@@ -321,7 +324,8 @@ pub fn init_db(conn: &Connection) -> std::io::Result<()> {
             sk BLOB,
             fvk BLOB NOT NULL)",
         [],
-    ).expect("Error creating orchard_addrs table");
+    )
+    .expect("Error creating orchard_addrs table");
 
     conn.execute(
         "CREATE TABLE ua_settings(
@@ -330,21 +334,24 @@ pub fn init_db(conn: &Connection) -> std::io::Result<()> {
             sapling BOOL NOT NULL,
             orchard BOOL NOT NULL)",
         [],
-    ).expect("Error creating ua_settings table");
+    )
+    .expect("Error creating ua_settings table");
 
     conn.execute(
         "CREATE TABLE sapling_tree(
             height INTEGER PRIMARY KEY,
             tree BLOB NOT NULL)",
         [],
-    ).expect("Error creating sapling_tree table");
+    )
+    .expect("Error creating sapling_tree table");
 
     conn.execute(
         "CREATE TABLE orchard_tree(
             height INTEGER PRIMARY KEY,
             tree BLOB NOT NULL)",
         [],
-    ).expect("Error creating orchard_tree table");
+    )
+    .expect("Error creating orchard_tree table");
 
     conn.execute(
         "CREATE TABLE received_notes (
@@ -364,7 +371,8 @@ pub fn init_db(conn: &Connection) -> std::io::Result<()> {
             excluded BOOL,
             CONSTRAINT tx_output UNIQUE (tx, orchard, output_index))",
         [],
-    ).expect("Error creating received_notes table");
+    )
+    .expect("Error creating received_notes table");
 
     conn.execute(
         "CREATE TABLE orchard_witnesses (
@@ -374,12 +382,14 @@ pub fn init_db(conn: &Connection) -> std::io::Result<()> {
             witness BLOB NOT NULL,
             CONSTRAINT witness_height UNIQUE (note, height))",
         [],
-    ).expect("Error creating orchard_witnesses table");
+    )
+    .expect("Error creating orchard_witnesses table");
 
     conn.execute(
         "CREATE INDEX i_orchard_witness ON orchard_witnesses(height)",
         [],
-    ).expect("Error creating i_orchard_witnessx index");
+    )
+    .expect("Error creating i_orchard_witnessx index");
 
     conn.execute(
         "CREATE TABLE send_templates (
@@ -394,14 +404,16 @@ pub fn init_db(conn: &Connection) -> std::io::Result<()> {
             subject TEXT NOT NULL,
             body TEXT NOT NULL)",
         [],
-    ).expect("Error creating send_templates table");
+    )
+    .expect("Error creating send_templates table");
 
     conn.execute(
         "CREATE TABLE properties (
             name TEXT PRIMARY KEY,
             value TEXT NOT NULL)",
         [],
-    ).expect("Error creating properties table");
+    )
+    .expect("Error creating properties table");
 
     conn.execute(
         "CREATE TABLE taddrs (
@@ -409,21 +421,24 @@ pub fn init_db(conn: &Connection) -> std::io::Result<()> {
             sk TEXT,
             address TEXT NOT NULL, balance INTEGER, height INTEGER NOT NULL DEFAULT 0)",
         [],
-    ).expect("Error creating taddrs table");
+    )
+    .expect("Error creating taddrs table");
 
     conn.execute(
         "CREATE TABLE hw_wallets(
             account INTEGER PRIMARY KEY NOT NULL,
             ledger BOOL NOT NULL)",
         [],
-    ).expect("Error creating hw_wallets table");
+    )
+    .expect("Error creating hw_wallets table");
 
     conn.execute(
         "CREATE TABLE accounts2 (
             account INTEGER PRIMARY KEY NOT NULL,
             saved BOOL NOT NULL)",
         [],
-    ).expect("Error creating accounts2 table");
+    )
+    .expect("Error creating accounts2 table");
 
     conn.execute(
         "CREATE TABLE account_properties (
@@ -432,20 +447,23 @@ pub fn init_db(conn: &Connection) -> std::io::Result<()> {
             value BLOB NOT NULL,
             PRIMARY KEY (account, name))",
         [],
-    ).expect("Error creating account_properties table");
+    )
+    .expect("Error creating account_properties table");
 
     conn.execute(
         "CREATE TABLE transparent_checkpoints (
             height INTEGER PRIMARY KEY)",
         [],
-    ).expect("Error creating transparent_checkpoints table");
+    )
+    .expect("Error creating transparent_checkpoints table");
 
     conn.execute(
         "CREATE TABLE block_times (
             height INTEGER PRIMARY KEY,
             timestamp INTEGER NOT NULL)",
         [],
-    ).expect("Error creating block_times table");
+    )
+    .expect("Error creating block_times table");
 
     conn.execute(
         "CREATE TABLE transparent_tins (
@@ -455,15 +473,17 @@ pub fn init_db(conn: &Connection) -> std::io::Result<()> {
             vout INTEGER NOT NULL,
             PRIMARY KEY (id_tx, idx))",
         [],
-    ).expect("Error creating transparent_tins table");
+    )
+    .expect("Error creating transparent_tins table");
 
     conn.execute(
         "CREATE TABLE transparent_touts (
             id_tx INTEGER PRIMARY KEY,
             address TEXT NOT NULL)",
         [],
-    ).expect("Error creating transparent_touts table");
-    
+    )
+    .expect("Error creating transparent_touts table");
+
     conn.execute(
         "CREATE TABLE utxos (
             id_utxo INTEGER NOT NULL PRIMARY KEY,
@@ -475,7 +495,8 @@ pub fn init_db(conn: &Connection) -> std::io::Result<()> {
             value INTEGER NOT NULL,
             spent INTEGER)",
         [],
-    ).expect("Error creating utxos table");
+    )
+    .expect("Error creating utxos table");
 
     conn.execute(
         "CREATE TABLE swaps(
@@ -493,7 +514,8 @@ pub fn init_db(conn: &Connection) -> std::io::Result<()> {
             to_address TEXT NOT NULL,
             to_image TEXT NOT NULL)",
         [],
-    ).expect("Error creating swaps table");
+    )
+    .expect("Error creating swaps table");
 
     conn.execute(
         "CREATE TABLE tins(
@@ -505,33 +527,37 @@ pub fn init_db(conn: &Connection) -> std::io::Result<()> {
             value INTEGER NOT NULL,
             spent INTEGER)",
         [],
-    ).expect("Error creating tins table");
+    )
+    .expect("Error creating tins table");
 
     conn.execute(
         "CREATE UNIQUE INDEX transactions_txid
         ON transactions (account, txid)",
         [],
-    ).expect("Error creating transactions_txid index");
+    )
+    .expect("Error creating transactions_txid index");
 
     // add shcema version
     conn.execute(
         "INSERT INTO schema_version (id, version) VALUES (?1, ?2)",
-        (
-            1, 
-            15            
-        )
-    ).expect("Unable to insert values");
+        (1, 15),
+    )
+    .expect("Unable to insert values");
 
     Ok(())
 }
 
-pub fn create_account_with_keys(conn: &Connection, account: WalletAccount, id: usize) -> std::io::Result<()> {
+pub fn create_account_with_keys(
+    conn: &Connection,
+    account: WalletAccount,
+    id: usize,
+) -> std::io::Result<()> {
     let seed = match account.seed {
         Some(s) => {
             let mnemonic = <Mnemonic<English>>::from_entropy(s).expect("Invalid seed entropy");
             let phrase = mnemonic.phrase().to_string();
             Some(phrase)
-        },
+        }
         None => None,
     };
 
@@ -539,24 +565,29 @@ pub fn create_account_with_keys(conn: &Connection, account: WalletAccount, id: u
     let (extsk, ivk, address) = match account.keys.zkeys {
         Some(z) => {
             let mut sk = String::new();
-            
-            let ivk = encode_extended_full_viewing_key(HRP_SAPLING_EXTENDED_FULL_VIEWING_KEY, &z.clone().fvk);
+
+            let ivk = encode_extended_full_viewing_key(
+                HRP_SAPLING_EXTENDED_FULL_VIEWING_KEY,
+                &z.clone().fvk,
+            );
             let address = z.clone().address;
 
             if z.extsk.is_some() {
-                sk = encode_extended_spending_key(HRP_SAPLING_EXTENDED_SPENDING_KEY, &z.extsk.unwrap());
-                
+                sk = encode_extended_spending_key(
+                    HRP_SAPLING_EXTENDED_SPENDING_KEY,
+                    &z.extsk.unwrap(),
+                );
             }
             (Some(sk), Some(ivk), Some(address))
-        },
-        None => (None, None, None)
+        }
+        None => (None, None, None),
     };
 
     // insert accounts table
     conn.execute(
         "INSERT INTO accounts (id_account, name, seed, aindex, sk, ivk, address) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
         (
-            id as u32, 
+            id as u32,
             account.name,
             seed,
             id,
@@ -568,56 +599,65 @@ pub fn create_account_with_keys(conn: &Connection, account: WalletAccount, id: u
 
     // Then handle orchard keys
     if account.keys.okeys.is_some() {
-        let sk = account.keys.okeys.clone().unwrap().sk.expect("Invalid orchard sk");
-        let fvk = account.keys.okeys.clone().unwrap().fvk.expect("Invalid orchard fvk");
-        
+        let sk = account
+            .keys
+            .okeys
+            .clone()
+            .unwrap()
+            .sk
+            .expect("Invalid orchard sk");
+        let fvk = account
+            .keys
+            .okeys
+            .clone()
+            .unwrap()
+            .fvk
+            .expect("Invalid orchard fvk");
+
         // insert orchard_addrs table
         conn.execute(
             "INSERT INTO orchard_addrs (account, sk, fvk) VALUES (?1, ?2, ?3)",
-            (
-                id as u32, 
-                sk.to_bytes(),
-                fvk.to_bytes()
-            )
-        ).expect("Unable to insert values");
+            (id as u32, sk.to_bytes(), fvk.to_bytes()),
+        )
+        .expect("Unable to insert values");
     }
 
     // Add transparent addresses and keys
     if account.keys.tkeys.is_some() {
         let pk = account.keys.tkeys.clone().unwrap().pk;
         let taddress = account.keys.tkeys.unwrap().address;
-        
+
         // insert taddrs table
         conn.execute(
             "INSERT INTO taddrs (account, sk, address, balance) VALUES (?1, ?2, ?3, ?4)",
             (
-                id as u32, 
+                id as u32,
                 pk.display_secret().to_string() as String,
                 taddress,
-                0
-            )
-        ).expect("Unable to insert values");
+                0,
+            ),
+        )
+        .expect("Unable to insert values");
     }
 
     // db extra configuration
     conn.execute(
         "INSERT INTO accounts2 (account, saved) VALUES (?1, ?2)",
-        (
-            id as u32, 
-            0
-        )
-    ).expect("Unable to insert values");
+        (id as u32, 0),
+    )
+    .expect("Unable to insert values");
 
     // configure ua settings
     conn.execute(
         "INSERT INTO ua_settings (account, transparent, sapling, orchard) VALUES (?1, ?2, ?3, ?4)",
         (
-            id as u32, 
+            id as u32,
             0,
             1,
-            if account.keys.okeys.is_some() { 1 } else { 0 }
-        )
-    ).expect("Unable to insert values");
+            if account.keys.okeys.is_some() { 1 } else { 0 },
+        ),
+    )
+    .expect("Unable to insert values");
 
     Ok(())
 }
