@@ -74,7 +74,7 @@ use std::{
     io::{self, BufReader},
 };
 // use zcash_encoding::Vector;
-
+#[derive(Debug, Clone)]
 pub struct ZecWalletLite {
     pub version: u64,
     pub keys: Keys,

@@ -28,6 +28,7 @@ impl Runnable for ParseCmd {
         let config = APP.config();
         let gen = ZecWalletLite::read(&config.file.wallet_file).unwrap();
         println!("{:#?}", gen.blocks);
+        println!("{:#?}", gen.keys);
     }
 }
 
