@@ -1,3 +1,4 @@
+pub mod parser;
 pub mod ywallet;
 pub mod zingolib;
 pub mod zwl;
