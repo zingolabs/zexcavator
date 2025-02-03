@@ -88,11 +88,11 @@ impl Display for Keys {
 
         match self.encrypted {
             true => {
-                writeln!(f, "Encrypted seed: {}", hex::encode(&self.enc_seed)).unwrap();
+                writeln!(f, "Encrypted seed: {}", hex::encode(self.enc_seed)).unwrap();
                 writeln!(f, "Nonce: {}", hex::encode(&self.nonce)).unwrap();
             }
             false => {
-                writeln!(f, "Seed: {}", hex::encode(&self.seed)).unwrap();
+                writeln!(f, "Seed: {}", hex::encode(self.seed)).unwrap();
             }
         }
 
