@@ -32,12 +32,13 @@
 //```
 
 pub(crate) mod block;
+// pub(crate) mod data;
 pub(crate) mod keys;
+// pub(crate) mod wallet_tx;
+// pub(crate) mod wallet_txns;
 pub(crate) mod walletokey;
 pub(crate) mod wallettkey;
 pub(crate) mod walletzkey;
-// pub (crate)mod data;
-// pub (crate)mod wallet_txns;
 
 use crate::{WalletKeyType, WalletParser};
 
@@ -339,7 +340,7 @@ impl WalletParser for ZecWalletLite {
         let blocks = Vector::read(reader, |r| BlockData::read(r))?;
         // TODO: read old versions of wallet file
 
-        // let txns = WalletTxns::read(&mut reader)?;
+        // let txns = WalletTxns::read(reader)?;
 
         Ok(Self {
             version,
@@ -398,6 +399,11 @@ impl WalletParser for ZecWalletLite {
         }
 
         Ok(accounts)
+    }
+
+    fn print_internal(&self) {
+        println!("ZecWalletLite");
+        println!("{}", self.keys);
     }
 }
 

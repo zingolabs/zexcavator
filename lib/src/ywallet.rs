@@ -36,6 +36,7 @@ use bip0039::{English, Mnemonic};
 // use orchard::keys::FullViewingKey;
 use rusqlite::Connection;
 
+#[derive(Debug, Clone)]
 pub struct YWallet {
     pub version: u32,
     pub accounts: Vec<WalletAccount>,
@@ -206,6 +207,10 @@ impl WalletParser for YWallet {
 
     fn get_wallet_accounts(&self) -> std::io::Result<Vec<crate::WalletAccount>> {
         Ok(self.accounts.clone())
+    }
+
+    fn print_internal(&self) {
+        println!("YWallet: {:#?}", self);
     }
 }
 

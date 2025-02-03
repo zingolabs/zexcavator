@@ -1,4 +1,5 @@
 use byteorder::{LittleEndian, ReadBytesExt};
+use std::fmt::Display;
 use std::io::{self, Read};
 use zcash_encoding::Vector;
 
@@ -77,5 +78,24 @@ impl Keys {
             tkeys,
             okeys,
         })
+    }
+}
+
+impl Display for Keys {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, ">> Keys << ").unwrap();
+        writeln!(f, "Encrypted: {}", self.encrypted).unwrap();
+
+        match self.encrypted {
+            true => {
+                writeln!(f, "Encrypted seed: {}", hex::encode(&self.enc_seed)).unwrap();
+                writeln!(f, "Nonce: {}", hex::encode(&self.nonce)).unwrap();
+            }
+            false => {
+                writeln!(f, "Seed: {}", hex::encode(&self.seed)).unwrap();
+            }
+        }
+
+        Ok(())
     }
 }

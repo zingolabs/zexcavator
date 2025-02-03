@@ -28,9 +28,8 @@ impl Runnable for ParseCmd {
         let config = APP.config();
         let wallet_parser = WalletParserFactory::read(&config.file.wallet_file).unwrap();
 
-        println!("{:#?}", wallet_parser.parser.get_wallet_name());
-        // println!("{:#?}", gen.blocks);
-        // println!("{:#?}", gen.keys);
+        // println!("{:#?}", wallet_parser.parser.get_wallet_name());
+        wallet_parser.parser.print_internal();
     }
 }
 

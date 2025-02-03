@@ -81,6 +81,7 @@ pub trait WalletParser {
     fn get_wallet_version(&self) -> u64;
     // fn get_wallet_seed(&self) -> String;
     fn get_wallet_accounts(&self) -> io::Result<Vec<WalletAccount>>;
+    fn print_internal(&self);
 }
 
 pub trait WalletWriter {
