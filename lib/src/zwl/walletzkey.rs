@@ -1,3 +1,4 @@
+use std::fmt;
 use std::io::{self, ErrorKind, Read};
 
 use byteorder::{LittleEndian, ReadBytesExt};
@@ -79,5 +80,45 @@ impl WalletZKey {
             enc_key,
             nonce,
         })
+    }
+}
+
+impl fmt::Display for WalletZKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "=== WalletZKey === ").unwrap();
+
+        match self.keytype {
+            WalletZKeyType::HdKey => {
+                writeln!(f, "Type: HD key").unwrap();
+            }
+            WalletZKeyType::ImportedSpendingKey => {
+                writeln!(f, "Type: Imported spending key").unwrap();
+            }
+            WalletZKeyType::ImportedViewKey => {
+                writeln!(f, "Type: Imported view key").unwrap();
+            }
+            _ => {
+                writeln!(f, "Type: Unknown").unwrap();
+            }
+        }
+
+        match self.locked {
+            true => {
+                writeln!(f, "Status: Encrypted").unwrap();
+            }
+            false => {
+                writeln!(f, "Status: Decrypted").unwrap();
+            }
+        }
+
+        if let Some(extsk) = &self.extsk {
+            writeln!(f, "{:?}", extsk).unwrap();
+        }
+
+        writeln!(f, "{:?}", self.extfvk).unwrap();
+
+        writeln!(f, "{:?}", self.zaddress).unwrap();
+
+        Ok(())
     }
 }

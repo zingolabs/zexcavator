@@ -96,6 +96,11 @@ impl Display for Keys {
             }
         }
 
+        writeln!(f, "Zkeys found: {}", self.zkeys.len()).unwrap();
+        for zkey in &self.zkeys {
+            writeln!(f, "{}", zkey).unwrap();
+        }
+
         Ok(())
     }
 }
