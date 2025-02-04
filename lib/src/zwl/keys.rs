@@ -95,24 +95,23 @@ impl Display for Keys {
                 writeln!(f, "Seed: {}", hex::encode(self.seed)).unwrap();
             }
         }
-        writeln!(f).unwrap();
 
         writeln!(f, "=== ORCHARD ===").unwrap();
-        writeln!(f, "Okeys found: {}", self.okeys.len()).unwrap();
+        writeln!(f, "Orchard keys found: {}", self.okeys.len()).unwrap();
 
         for okey in &self.okeys {
             writeln!(f, "{}", okey).unwrap();
         }
 
         writeln!(f, "=== SAPLING ===").unwrap();
-        writeln!(f, "Zkeys found: {}", self.zkeys.len()).unwrap();
+        writeln!(f, "Sapling keys found: {}", self.zkeys.len()).unwrap();
 
         for zkey in &self.zkeys {
             writeln!(f, "{}", zkey).unwrap();
         }
 
         writeln!(f, "=== TRANSPARENT ===").unwrap();
-        writeln!(f, "Tkeys found: {}", self.tkeys.len()).unwrap();
+        writeln!(f, "Transparent keys found: {}", self.tkeys.len()).unwrap();
         for tkey in &self.tkeys {
             writeln!(f, "{}", tkey).unwrap();
         }

@@ -1,4 +1,7 @@
-use std::io::{self, Read};
+use std::{
+    fmt,
+    io::{self, Read},
+};
 
 use byteorder::{LittleEndian, ReadBytesExt};
 use sapling::CommitmentTree;
@@ -38,5 +41,18 @@ impl BlockData {
         let ecb = Vector::read(&mut reader, |r| r.read_u8()).unwrap_or_default();
 
         Ok(Self { ecb, height })
+    }
+}
+
+impl fmt::Display for BlockData {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "Block height: {}", self.height).unwrap();
+        writeln!(
+            f,
+            "Encoded compact block: {}",
+            hex::encode(self.ecb.clone())
+        )
+        .unwrap();
+        Ok(())
     }
 }

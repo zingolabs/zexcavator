@@ -397,7 +397,13 @@ impl Display for ZecWalletLite {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "Wallet Version: {}", self.version).unwrap();
         writeln!(f, "{}", self.keys).unwrap();
-        // writeln!(f, "{}", self.blocks).unwrap();
+
+        // Blocks
+        // TODO: This should be moved into a wrapper struct
+        for block in &self.blocks {
+            writeln!(f, "{}", block).unwrap();
+        }
+
         writeln!(f, "{}", self.transactions).unwrap();
         Ok(())
     }
