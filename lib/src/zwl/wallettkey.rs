@@ -1,6 +1,9 @@
 use byteorder::{LittleEndian, ReadBytesExt};
 use secp256k1::SecretKey;
-use std::io::{self, Read};
+use std::{
+    fmt,
+    io::{self, Read},
+};
 use zcash_encoding::{Optional, Vector};
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -81,5 +84,43 @@ impl WalletTKey {
             nonce,
             address,
         })
+    }
+}
+
+impl fmt::Display for WalletTKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.keytype {
+            WalletTKeyType::HdKey => {
+                writeln!(f, "Type: HD key").unwrap();
+            }
+            WalletTKeyType::ImportedKey => {
+                writeln!(f, "Type: Imported key").unwrap();
+            }
+            _ => {
+                writeln!(f, "Type: Unknown").unwrap();
+            }
+        }
+
+        match self.locked {
+            true => {
+                writeln!(f, "Status: Encrypted").unwrap();
+            }
+            false => {
+                writeln!(f, "Status: Decrypted").unwrap();
+            }
+        }
+
+        if let Some(private_key) = &self.key {
+            writeln!(
+                f,
+                "Private key: {}",
+                hex::encode(private_key.secret_bytes())
+            )
+            .unwrap();
+        }
+
+        writeln!(f, "Address: {}", self.address).unwrap();
+
+        Ok(())
     }
 }

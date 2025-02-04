@@ -96,11 +96,21 @@ impl Display for Keys {
             }
         }
 
+        writeln!(f, "=== ORCHARD ===").unwrap();
+        writeln!(f, "Okeys found: {}", self.okeys.len()).unwrap();
+
+        writeln!(f, "=== SAPLING ===").unwrap();
         writeln!(f, "Zkeys found: {}", self.zkeys.len()).unwrap();
+
         for zkey in &self.zkeys {
             writeln!(f, "{}", zkey).unwrap();
         }
 
+        writeln!(f, "=== TRANSPARENT ===").unwrap();
+        writeln!(f, "Tkeys found: {}", self.tkeys.len()).unwrap();
+        for tkey in &self.tkeys {
+            writeln!(f, "{}", tkey).unwrap();
+        }
         Ok(())
     }
 }

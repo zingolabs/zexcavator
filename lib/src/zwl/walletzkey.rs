@@ -85,8 +85,6 @@ impl WalletZKey {
 
 impl fmt::Display for WalletZKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "=== WalletZKey === ").unwrap();
-
         match self.keytype {
             WalletZKeyType::HdKey => {
                 writeln!(f, "Type: HD key").unwrap();
