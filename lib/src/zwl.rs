@@ -32,10 +32,11 @@
 //```
 
 pub(crate) mod block;
-// pub(crate) mod data;
+pub(crate) mod data;
 pub(crate) mod keys;
-// pub(crate) mod wallet_tx;
-// pub(crate) mod wallet_txns;
+pub(crate) mod orchard_data;
+pub(crate) mod sapling_data;
+pub(crate) mod transactions;
 pub(crate) mod walletokey;
 pub(crate) mod wallettkey;
 pub(crate) mod walletzkey;
@@ -51,6 +52,7 @@ use keys::Keys;
 
 use orchard::{keys::SpendingKey, zip32::ChildIndex};
 use sapling::zip32::ExtendedSpendingKey;
+use transactions::WalletTxns;
 use zcash_client_backend::encoding::encode_transparent_address;
 use zcash_encoding::Vector;
 use zcash_keys::{
@@ -64,13 +66,12 @@ use zcash_primitives::{
         B58_PUBKEY_ADDRESS_PREFIX, B58_SCRIPT_ADDRESS_PREFIX, HRP_SAPLING_PAYMENT_ADDRESS,
     },
     legacy::keys::{AccountPrivKey, IncomingViewingKey, NonHardenedChildIndex},
-    // legacy::keys::{IncomingViewingKey, NonHardenedChildIndex}
     zip32::AccountId,
 };
-// use zcash_primitives::legacy::keys::ExternalIvk;
 
 use byteorder::{LittleEndian, ReadBytesExt};
 use std::{
+    fmt::Display,
     fs::File,
     io::{self, BufReader},
 };
@@ -80,6 +81,7 @@ pub struct ZecWalletLite {
     pub version: u64,
     pub keys: Keys,
     pub blocks: Vec<BlockData>,
+    pub transactions: WalletTxns,
 }
 
 impl ZecWalletLite {
@@ -97,11 +99,6 @@ impl ZecWalletLite {
             .enumerate()
             .filter(|&(_, k)| idx as u32 == k.hdkey_num.unwrap_or(u32::MAX))
             .map(|(_, t)| {
-                // let key_type = match t.keytype {
-                //     wallettkey::WalletTKeyType::HdKey => crate::WalletKeyType::HdKey,
-                //     wallettkey::WalletTKeyType::ImportedKey => crate::WalletKeyType::ImportedPrivateKey,
-                // };
-
                 let key_type = match t.keytype {
                     wallettkey::WalletTKeyType::HdKey => crate::WalletKeyType::HdDerived,
                     wallettkey::WalletTKeyType::ImportedKey => crate::WalletKeyType::Imported,
@@ -124,12 +121,6 @@ impl ZecWalletLite {
             .enumerate()
             .filter(|&(_, k)| idx as u32 == k.hdkey_num.unwrap_or(u32::MAX))
             .map(|(_, z)| {
-                // let key_type = match z.keytype {
-                //     walletzkey::WalletZKeyType::HdKey => crate::WalletKeyType::HdKey,
-                //     walletzkey::WalletZKeyType::ImportedSpendingKey => crate::WalletKeyType::ImportedExtsk,
-                //     walletzkey::WalletZKeyType::ImportedViewKey => crate::WalletKeyType::ImportedViewKey
-                // };
-
                 let key_type = match z.keytype {
                     walletzkey::WalletZKeyType::HdKey => crate::WalletKeyType::HdDerived,
                     walletzkey::WalletZKeyType::ImportedSpendingKey
@@ -159,12 +150,6 @@ impl ZecWalletLite {
             .enumerate()
             .filter(|&(_, k)| idx as u32 == k.hdkey_num.unwrap_or(u32::MAX))
             .map(|(_, o)| {
-                // let key_type = match o.keytype {
-                //     walletokey::WalletOKeyType::HdKey => crate::WalletKeyType::HdKey,
-                //     walletokey::WalletOKeyType::ImportedSpendingKey => crate::WalletKeyType::ImportedSpendingKey,
-                //     walletokey::WalletOKeyType::ImportedFullViewKey => crate::WalletKeyType::ImportedFvk,
-                // };
-
                 let key_type = match o.keytype {
                     walletokey::WalletOKeyType::HdKey => crate::WalletKeyType::HdDerived,
                     walletokey::WalletOKeyType::ImportedSpendingKey
@@ -337,15 +322,16 @@ impl WalletParser for ZecWalletLite {
         // TODO: read old versions of wallet file
         let keys = Keys::read(&mut reader)?;
 
-        let blocks = Vector::read(reader, |r| BlockData::read(r))?;
+        let blocks = Vector::read(&mut reader, |r| BlockData::read(r))?;
         // TODO: read old versions of wallet file
 
-        // let txns = WalletTxns::read(reader)?;
+        let txns = WalletTxns::read(reader)?;
 
         Ok(Self {
             version,
             keys,
             blocks,
+            transactions: txns,
         })
     }
 
@@ -403,7 +389,17 @@ impl WalletParser for ZecWalletLite {
 
     fn print_internal(&self) {
         println!("ZecWalletLite");
-        println!("{}", self.keys);
+        println!("{}", self);
+    }
+}
+
+impl Display for ZecWalletLite {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "Wallet Version: {}", self.version).unwrap();
+        writeln!(f, "{}", self.keys).unwrap();
+        // writeln!(f, "{}", self.blocks).unwrap();
+        writeln!(f, "{}", self.transactions).unwrap();
+        Ok(())
     }
 }
 
