@@ -95,9 +95,14 @@ impl Display for Keys {
                 writeln!(f, "Seed: {}", hex::encode(self.seed)).unwrap();
             }
         }
+        writeln!(f).unwrap();
 
         writeln!(f, "=== ORCHARD ===").unwrap();
         writeln!(f, "Okeys found: {}", self.okeys.len()).unwrap();
+
+        for okey in &self.okeys {
+            writeln!(f, "{}", okey).unwrap();
+        }
 
         writeln!(f, "=== SAPLING ===").unwrap();
         writeln!(f, "Zkeys found: {}", self.zkeys.len()).unwrap();

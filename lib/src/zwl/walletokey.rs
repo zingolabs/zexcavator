@@ -1,6 +1,9 @@
 use byteorder::{LittleEndian, ReadBytesExt};
 use orchard::keys::{FullViewingKey, Scope, SpendingKey};
-use std::io::{self, Read};
+use std::{
+    fmt,
+    io::{self, Read},
+};
 use zcash_encoding::{Optional, Vector};
 use zcash_keys::address::UnifiedAddress;
 
@@ -85,5 +88,43 @@ impl WalletOKey {
             enc_key,
             nonce,
         })
+    }
+}
+
+impl fmt::Display for WalletOKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.keytype {
+            WalletOKeyType::HdKey => {
+                writeln!(f, "Type: HD key").unwrap();
+            }
+            WalletOKeyType::ImportedSpendingKey => {
+                writeln!(f, "Type: Imported spending key").unwrap();
+            }
+            WalletOKeyType::ImportedFullViewKey => {
+                writeln!(f, "Type: Imported full view key").unwrap();
+            }
+            _ => {
+                writeln!(f, "Type: Unknown").unwrap();
+            }
+        }
+
+        match self.locked {
+            true => {
+                writeln!(f, "Status: Encrypted").unwrap();
+            }
+            false => {
+                writeln!(f, "Status: Decrypted").unwrap();
+            }
+        }
+
+        if let Some(sk) = &self.sk {
+            writeln!(f, "{:?}", sk).unwrap();
+        }
+
+        writeln!(f, "{:?}", self.fvk).unwrap();
+
+        writeln!(f, "{:?}", self.unified_address).unwrap();
+
+        Ok(())
     }
 }
