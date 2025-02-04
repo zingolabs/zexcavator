@@ -428,4 +428,10 @@ mod tests {
         let phrase = seed.phrase();
         assert_eq!(phrase, "clerk family rack dragon cannon wait vendor penalty absent country better coast expand true middle stable assist clerk tent phone toilet knee female kitchen");
     }
+
+    #[test]
+    fn test_zwl_transactions() {
+        let wallet = get_wallet();
+        assert_eq!(wallet.transactions.current.len(), 0);
+    }
 }

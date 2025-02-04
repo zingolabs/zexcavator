@@ -722,13 +722,7 @@ impl WalletTxns {
                 wtx.s_notes
                     .iter()
                     .filter(|nd| nd.spent.is_none())
-                    .map(move |nd| {
-                        (
-                            nd.nullifier,
-                            nd.note.value().inner(),
-                            wtx.txid,
-                        )
-                    })
+                    .map(move |nd| (nd.nullifier, nd.note.value().inner(), wtx.txid))
             })
             .collect()
     }
@@ -895,10 +889,8 @@ impl WalletTxns {
         datetime: u64,
     ) -> &'_ mut WalletTx {
         if !self.current.contains_key(txid) {
-            self.current.insert(
-                *txid,
-                WalletTx::new(height, datetime, txid, unconfirmed),
-            );
+            self.current
+                .insert(*txid, WalletTx::new(height, datetime, txid, unconfirmed));
             self.last_txid = Some(*txid);
         }
         let wtx = self.current.get_mut(txid).expect("Txid should be present");
@@ -929,20 +921,12 @@ impl WalletTxns {
     ) -> Option<Position> {
         // Record this Tx as having spent some funds
         {
-            let wtx = self.get_or_create_tx(
-                &txid,
-                height,
-                unconfirmed,
-                timestamp as u64,
-            );
+            let wtx = self.get_or_create_tx(&txid, height, unconfirmed, timestamp as u64);
 
             // Mark the height correctly, in case this was previously a mempool or unconfirmed tx.
             wtx.block = height;
 
-            if !wtx
-                .o_spent_nullifiers
-                .iter().any(|nf| *nf == nullifier)
-            {
+            if !wtx.o_spent_nullifiers.iter().any(|nf| *nf == nullifier) {
                 wtx.o_spent_nullifiers.push(nullifier);
                 wtx.total_orchard_value_spent += value;
             }
@@ -984,20 +968,12 @@ impl WalletTxns {
     ) {
         // Record this Tx as having spent some funds
         {
-            let wtx = self.get_or_create_tx(
-                &txid,
-                height,
-                unconfirmed,
-                timestamp as u64,
-            );
+            let wtx = self.get_or_create_tx(&txid, height, unconfirmed, timestamp as u64);
 
             // Mark the height correctly, in case this was previously a mempool or unconfirmed tx.
             wtx.block = height;
 
-            if !wtx
-                .s_spent_nullifiers
-                .iter().any(|nf| *nf == nullifier)
-            {
+            if !wtx.s_spent_nullifiers.iter().any(|nf| *nf == nullifier) {
                 wtx.s_spent_nullifiers.push(nullifier);
                 wtx.total_sapling_value_spent += value;
             }
@@ -1013,9 +989,9 @@ impl WalletTxns {
                 .get_mut(&source_txid)
                 .expect("Txid should be present");
 
-            if let Some(nd) = wtx.s_notes
-                .iter_mut()
-                .find(|n| n.nullifier == nullifier) { nd.spent = Some((txid, height.into())); }
+            if let Some(nd) = wtx.s_notes.iter_mut().find(|n| n.nullifier == nullifier) {
+                nd.spent = Some((txid, height.into()));
+            }
         }
     }
 
@@ -1249,10 +1225,12 @@ impl WalletTxns {
 
     // Update the memo for a sapling note if it already exists. If the note doesn't exist, then nothing happens.
     pub fn add_memo_to_s_note(&mut self, txid: &TxId, note: Note, memo: Memo) {
-        if let Some(wtx) = self.current.get_mut(txid) { wtx.s_notes
+        if let Some(wtx) = self.current.get_mut(txid) {
+            wtx.s_notes
                 .iter_mut()
                 .find(|n| n.note == note)
-                .map(|n| n.memo = Some(memo)); }
+                .map(|n| n.memo = Some(memo));
+        }
     }
 
     // Update the memo for a orchard note if it already exists. The note has to already exist.
@@ -1266,10 +1244,12 @@ impl WalletTxns {
         // println!("Adding memo to orchard note");
         let note_nullifier = note.nullifier(fvk);
 
-        if let Some(wtx) = self.current.get_mut(txid) { wtx.o_notes
+        if let Some(wtx) = self.current.get_mut(txid) {
+            wtx.o_notes
                 .iter_mut()
                 .find(|n| n.note.nullifier(fvk) == note_nullifier)
-                .map(|n| n.memo = Some(memo)); }
+                .map(|n| n.memo = Some(memo));
+        }
     }
 
     pub fn add_outgoing_metadata(
