@@ -400,9 +400,9 @@ impl Display for ZecWalletLite {
 
         // Blocks
         // TODO: This should be moved into a wrapper struct
-        for block in &self.blocks {
-            writeln!(f, "{}", block).unwrap();
-        }
+        // for block in &self.blocks {
+        //     writeln!(f, "{}", block).unwrap();
+        // }
 
         writeln!(f, "{}", self.transactions).unwrap();
         Ok(())

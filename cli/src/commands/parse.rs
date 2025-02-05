@@ -6,7 +6,7 @@ use crate::prelude::*;
 
 use crate::config::ZexCavatorCliConfig;
 use abscissa_core::{config, Command, FrameworkError, Runnable};
-use zwl_parser::{parser::WalletParserFactory, WalletParser};
+use zwl_parser::parser::WalletParserFactory;
 
 /// `parse` subcommand
 ///
@@ -20,6 +20,10 @@ pub struct ParseCmd {
     /// What wallet file are we parsing?
     #[arg(required = true)]
     wallet_path: Vec<String>,
+
+    /// Enable verbose mode. A flag `-v` or `--verbose` will enable verbose mode.
+    #[arg(short('v'), long("verbose"))]
+    verbose: bool,
 }
 
 impl Runnable for ParseCmd {
@@ -44,6 +48,8 @@ impl config::Override<ZexCavatorCliConfig> for ParseCmd {
         if !self.wallet_path.is_empty() {
             config.file.wallet_file = self.wallet_path.join(" ");
         }
+
+        config.verbose = self.verbose;
 
         Ok(config)
     }

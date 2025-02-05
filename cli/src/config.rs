@@ -12,6 +12,9 @@ use serde::{Deserialize, Serialize};
 pub struct ZexCavatorCliConfig {
     /// An example configuration section
     pub file: ExampleFile,
+
+    /// verbose mode
+    pub verbose: bool,
 }
 
 /// Default configuration settings.
@@ -22,6 +25,7 @@ impl Default for ZexCavatorCliConfig {
     fn default() -> Self {
         Self {
             file: ExampleFile::default(),
+            verbose: false,
         }
     }
 }
