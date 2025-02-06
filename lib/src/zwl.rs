@@ -45,7 +45,7 @@ use crate::{WalletKeyType, WalletParser};
 
 use bip0039::{English, Mnemonic};
 
-use block::BlockData;
+use block::CompactBlockData;
 use keys::Keys;
 // use data::BlockData;
 // use wallet_txns::WalletTxns;
@@ -80,7 +80,7 @@ use std::{
 pub struct ZecWalletLite {
     pub version: u64,
     pub keys: Keys,
-    pub blocks: Vec<BlockData>,
+    pub blocks: Vec<CompactBlockData>,
     pub transactions: WalletTxns,
 }
 
@@ -322,7 +322,7 @@ impl WalletParser for ZecWalletLite {
         // TODO: read old versions of wallet file
         let keys = Keys::read(&mut reader)?;
 
-        let blocks = Vector::read(&mut reader, |r| BlockData::read(r))?;
+        let blocks = Vector::read(&mut reader, |r| CompactBlockData::read(r))?;
         // TODO: read old versions of wallet file
 
         let txns = WalletTxns::read(reader)?;
@@ -400,9 +400,9 @@ impl Display for ZecWalletLite {
 
         // Blocks
         // TODO: This should be moved into a wrapper struct
-        // for block in &self.blocks {
-        //     writeln!(f, "{}", block).unwrap();
-        // }
+        for block in &self.blocks {
+            writeln!(f, "{}", block).unwrap();
+        }
 
         writeln!(f, "{}", self.transactions).unwrap();
         Ok(())

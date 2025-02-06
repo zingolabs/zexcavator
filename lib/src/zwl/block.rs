@@ -9,12 +9,12 @@ use zcash_encoding::Vector;
 use zcash_primitives::merkle_tree::read_commitment_tree;
 
 #[derive(Clone, Debug)]
-pub struct BlockData {
+pub struct CompactBlockData {
     pub ecb: Vec<u8>,
     pub height: u64,
 }
 
-impl BlockData {
+impl CompactBlockData {
     pub fn serialized_version() -> u64 {
         20
     }
@@ -44,15 +44,11 @@ impl BlockData {
     }
 }
 
-impl fmt::Display for BlockData {
+impl fmt::Display for CompactBlockData {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "Block height: {}", self.height).unwrap();
-        writeln!(
-            f,
-            "Encoded compact block: {}",
-            hex::encode(self.ecb.clone())
-        )
-        .unwrap();
+
+        writeln!(f, "ECB size in bytes: {}", self.ecb.len()).unwrap();
         Ok(())
     }
 }
