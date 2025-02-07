@@ -4,8 +4,8 @@ use std::{
     io::{self},
 };
 
+use bridgetree::Position;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use incrementalmerkletree::Position;
 use orchard::keys::FullViewingKey;
 use sapling::{zip32::ExtendedFullViewingKey, IncrementalWitness, Note, Nullifier, PaymentAddress};
 use zcash_encoding::{Optional, Vector};

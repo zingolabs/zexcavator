@@ -1,7 +1,7 @@
 use std::io::{self};
 
+use bridgetree::Position;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use incrementalmerkletree::Position;
 use orchard::{keys::FullViewingKey, note::RandomSeed, value::NoteValue, Address};
 use zcash_encoding::Optional;
 use zcash_primitives::{

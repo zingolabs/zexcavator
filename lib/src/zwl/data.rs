@@ -1,5 +1,8 @@
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use std::io::{self, Read};
+use std::{
+    fmt,
+    io::{self, Read},
+};
 use zcash_encoding::Optional;
 
 // Struct that tracks the latest and historical price of ZEC in the wallet
@@ -16,6 +19,12 @@ pub struct WalletZecPriceInfo {
 
     // Historical prices retry count
     pub historical_prices_retry_count: u64,
+}
+
+impl Default for WalletZecPriceInfo {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl WalletZecPriceInfo {
@@ -71,5 +80,89 @@ impl WalletZecPriceInfo {
         writer.write_u64::<LittleEndian>(self.historical_prices_retry_count)?;
 
         Ok(())
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MemoDownloadOption {
+    NoMemos = 0,
+    WalletMemos,
+    AllMemos,
+}
+
+impl fmt::Display for MemoDownloadOption {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            MemoDownloadOption::NoMemos => write!(f, "NoMemos"),
+            MemoDownloadOption::WalletMemos => write!(f, "WalletMemos"),
+            MemoDownloadOption::AllMemos => write!(f, "AllMemos"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct WalletOptions {
+    pub(crate) download_memos: MemoDownloadOption,
+    pub(crate) spam_threshold: i64,
+}
+
+impl Default for WalletOptions {
+    fn default() -> Self {
+        WalletOptions {
+            download_memos: MemoDownloadOption::WalletMemos,
+            spam_threshold: -1,
+        }
+    }
+}
+
+impl WalletOptions {
+    pub fn serialized_version() -> u64 {
+        2
+    }
+
+    pub fn read<R: ReadBytesExt>(mut reader: R) -> io::Result<Self> {
+        let version = reader.read_u64::<LittleEndian>()?;
+
+        let download_memos = match reader.read_u8()? {
+            0 => MemoDownloadOption::NoMemos,
+            1 => MemoDownloadOption::WalletMemos,
+            2 => MemoDownloadOption::AllMemos,
+            v => {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    format!("Bad download option {}", v),
+                ));
+            }
+        };
+
+        let spam_threshold = if version <= 1 {
+            -1
+        } else {
+            reader.read_i64::<LittleEndian>()?
+        };
+
+        Ok(Self {
+            download_memos,
+            spam_threshold,
+        })
+    }
+
+    pub fn write<W: WriteBytesExt>(&self, mut writer: W) -> io::Result<()> {
+        // Write the version
+        writer.write_u64::<LittleEndian>(Self::serialized_version())?;
+
+        writer.write_u8(self.download_memos as u8)?;
+
+        writer.write_i64::<LittleEndian>(self.spam_threshold)
+    }
+}
+
+impl fmt::Display for WalletOptions {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "download_memos: {}, spam_threshold: {}",
+            self.download_memos, self.spam_threshold
+        )
     }
 }
