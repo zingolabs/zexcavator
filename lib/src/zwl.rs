@@ -542,12 +542,8 @@ impl WalletParser for ZecWalletLite {
             use prost::Message;
 
             let buf = Vector::read(r, |r| r.read_u8())?;
-            TreeState::decode(&buf[..]).map_err(|e| {
-                io::Error::new(
-                    ErrorKind::InvalidData,
-                    format!("Read Error: {}", e),
-                )
-            })
+            TreeState::decode(&buf[..])
+                .map_err(|e| io::Error::new(ErrorKind::InvalidData, format!("Read Error: {}", e)))
         })
         .unwrap(); // TODO: Add proper error handling
 
@@ -632,10 +628,13 @@ impl Display for ZecWalletLite {
         writeln!(f, "{}", self.keys).unwrap();
 
         // Blocks
+
+        writeln!(f, "Blocks found: {}", self.blocks.len()).unwrap();
+
         // TODO: This should be moved into a wrapper struct
-        for block in &self.blocks {
-            writeln!(f, "{}", block).unwrap();
-        }
+        // for block in &self.blocks {
+        //     writeln!(f, "{}", block).unwrap();
+        // }
 
         writeln!(f, "{}", self.transactions).unwrap();
 
