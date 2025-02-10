@@ -1,7 +1,7 @@
 # ZExCavator
 
-⚠️ This project is in active development and is not yet ready for production use.
-Check [the GitHub project](https://github.com/orgs/zingolabs/projects/9) to track progress.
+> ⚠️ This project is in active development and is not yet ready for production use.
+> Check [the GitHub project](https://github.com/orgs/zingolabs/projects/9) to track progress.
 
 **ZExCavator** is a universal Zcash wallet parser designed to read wallet files and extract addresses, keys, and seeds
 in order to facilitate migration and interoperability between different wallet implementations. It builds on top of
