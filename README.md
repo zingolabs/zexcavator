@@ -1,34 +1,39 @@
-# zw-parser (Zcash Wallet Parser)
+# ZExCavator
 
-`zw-parser` is a universal Zcash wallet parser designed to read wallet files and extract addresses, keys, and seeds. The goal is to provide a standardized interface for parsing Zcash wallet files, enabling seamless import and export of wallet data across different implementations.
+⚠️ This project is in active development and is not yet ready for production use.
+Check [the GitHub project](https://github.com/orgs/zingolabs/projects/9) to track progress.
 
-This project is currently in its prototype stage and supports partial parsing of **ZecWallet Lite** and **YWallet** files.
+**ZExCavator** is a universal Zcash wallet parser designed to read wallet files and extract addresses, keys, and seeds
+in order to facilitate migration and interoperability between different wallet implementations. It builds on top of
+ZeWIF (Zcash Extensible Wallet Interchange Format) and is currenlty focused on **zcashd**, **ZecWallet Lite** and **YWallet**,
+though the architecture is extensible and can be extended to support additional wallets in the future.
 
 ---
 
 ## Features
 
-- Parses ZecWallet Lite (version 25) and YWallet files.
+- Parses ZecWallet Lite (version 25) and YWallet files partially.
 - Extracts wallet accounts, seeds, keys, and addresses.
 - Outputs parsed data into a standardized Rust struct for future interoperability.
 
 ---
 
-## How to Run
+## How to Run (WIP)
 
 ```bash
-cargo run
+cargo run -- <filename>
 ```
 
-This command parses the example wallet files included in the project and prints the output to `stdout`. **Note:** The CLI functionality is minimal and not user-interactive at this stage.
+This command parses the example wallet files included in the project and prints the output to `stdout`.
 
 ---
 
 ## Principles
 
-The primary goal of this project is to enable seamless and lossless migration of wallet data across different wallet implementations. By reading a wallet file and exporting it into a standardized Rust struct, `zw-parser` ensures compatibility and ease of future development.
+The primary goal of this project is to enable seamless and lossless migration of wallet data across different wallet implementations.
+By reading a wallet file and exporting it into a standardized Rust struct, **ZExCavator** ensures compatibility and ease of future development.
 
-### Core Structs
+### Core Structs (WIP: Needs to be revisited after documenting issues with zcashd & zecwallet-lite derivation)
 
 #### `Wallet`
 
@@ -64,9 +69,13 @@ pub struct WalletAccount {
 2. **ZecWallet Lite Support**:
 
    - Only supports wallet version 25 (latest).
-   - Parsing is incomplete; seed and keys are extracted, but account birthday is not yet implemented.
+   - Does not support encrypted wallets.
 
-3. **File Documentation**: Refer to the following source files for detailed wallet file structure documentation:
+3. Does not integrate a sync engine:
+
+   - Currently, the parser reads the data present in the wallet file. It does not try to reconstruct/discover missing or lost funds.
+
+4. **File Documentation**: Refer to the following source files for detailed wallet file structure documentation:
 
    - `src/zwl.rs` for ZecWallet Lite.
    - `src/ywallet.rs` for YWallet.
@@ -75,8 +84,11 @@ pub struct WalletAccount {
 
 ## Future Plans
 
+- Add sync engine.
+  - This engine will be used while taking into account 'know quirks' for each wallet.
+- Add proper test vectors!
 - Extend support to additional wallet formats.
-- Fully implement ZecWallet Lite parsing (including account birthdays).
+- Fully implement ZecWallet Lite parsing (including encryption).
 - Add a complete CLI interface for user interaction.
 - Improve error handling and provide detailed parsing reports.
 
@@ -85,4 +97,3 @@ pub struct WalletAccount {
 ## Contributing
 
 Contributions are welcome! Feel free to open issues, suggest features, or submit pull requests.
-
