@@ -1,14 +1,9 @@
 //! `parse` subcommand - example of how to write a subcommand
 
-use std::{f32::consts::E, path::PathBuf, str::FromStr};
-
-/// App-local prelude includes `app_reader()`/`app_writer()`/`app_config()`
-/// accessors along with logging macros. Customize as you see fit.
-use crate::prelude::*;
+use std::{path::PathBuf, str::FromStr};
 
 use crate::config::ZexCavatorCliConfig;
 use abscissa_core::{config, Command, FrameworkError, Runnable};
-use zexcavator::parser::WalletParserFactory;
 
 /// `parse` subcommand
 ///
