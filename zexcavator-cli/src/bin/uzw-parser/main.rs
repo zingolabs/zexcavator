@@ -3,7 +3,7 @@
 #![deny(warnings, missing_docs, trivial_casts, unused_qualifications)]
 #![forbid(unsafe_code)]
 
-use cli::application::APP;
+use zexcavator_cli::application::APP;
 
 /// Boot ZexCavatorCli
 fn main() {

@@ -10,8 +10,10 @@
 //! See the `impl Configurable` below for how to specify the path to the
 //! application's configuration file.
 
+mod export;
 mod parse;
 
+use self::export::ExportCmd;
 use self::parse::ParseCmd;
 use crate::config::ZexCavatorCliConfig;
 use abscissa_core::{config::Override, Command, Configurable, FrameworkError, Runnable};
@@ -26,6 +28,9 @@ pub const CONFIG_FILE: &str = "my_cool_app.toml";
 pub enum ZexCavatorCliCmd {
     /// The `parse` subcommand
     Parse(ParseCmd),
+
+    /// The `export` subcommand
+    Export(ExportCmd),
 }
 
 /// Entry point for the application. It needs to be a struct to allow using subcommands!
@@ -81,10 +86,7 @@ impl Configurable<ZexCavatorCliConfig> for EntryPoint {
     ) -> Result<ZexCavatorCliConfig, FrameworkError> {
         match &self.cmd {
             ZexCavatorCliCmd::Parse(cmd) => cmd.override_config(config),
-            //
-            // If you don't need special overrides for some
-            // subcommands, you can just use a catch all
-            // _ => Ok(config),
+            ZexCavatorCliCmd::Export(cmd) => cmd.override_config(config),
         }
     }
 }

@@ -1,12 +1,14 @@
 //! `parse` subcommand - example of how to write a subcommand
 
+use std::{f32::consts::E, path::PathBuf, str::FromStr};
+
 /// App-local prelude includes `app_reader()`/`app_writer()`/`app_config()`
 /// accessors along with logging macros. Customize as you see fit.
 use crate::prelude::*;
 
 use crate::config::ZexCavatorCliConfig;
 use abscissa_core::{config, Command, FrameworkError, Runnable};
-use zwl_parser::parser::WalletParserFactory;
+use zexcavator::parser::WalletParserFactory;
 
 /// `parse` subcommand
 ///
@@ -16,28 +18,24 @@ use zwl_parser::parser::WalletParserFactory;
 ///
 /// <https://docs.rs/clap/>
 #[derive(clap::Parser, Command, Debug)]
-pub struct ParseCmd {
-    /// What wallet file are we parsing?
-    #[arg(required = true)]
-    wallet_path: Vec<String>,
+pub struct ExportCmd {
+    /// A wallet file. Currently only ZecWallet and YWallet are supported.
+    #[arg(required = true, value_name = "INPUT_FILE")]
+    input_file: String,
 
-    /// Enable verbose mode. A flag `-v` or `--verbose` will enable verbose mode.
-    #[arg(short('v'), long("verbose"))]
-    verbose: bool,
+    /// Where to save the ZeWIF file.
+    #[arg(value_name = "OUTPUT_FILE")]
+    output_file: Option<String>,
 }
 
-impl Runnable for ParseCmd {
+impl Runnable for ExportCmd {
     /// Start the application.
     fn run(&self) {
-        let config = APP.config();
-        let wallet_parser = WalletParserFactory::read(&config.file.wallet_file).unwrap();
-
-        // println!("{:#?}", wallet_parser.parser.get_wallet_name());
-        wallet_parser.parser.print_internal();
+        unimplemented!();
     }
 }
 
-impl config::Override<ZexCavatorCliConfig> for ParseCmd {
+impl config::Override<ZexCavatorCliConfig> for ExportCmd {
     // Process the given command line options, overriding settings from
     // a configuration file using explicit flags taken from command-line
     // arguments.
@@ -45,11 +43,11 @@ impl config::Override<ZexCavatorCliConfig> for ParseCmd {
         &self,
         mut config: ZexCavatorCliConfig,
     ) -> Result<ZexCavatorCliConfig, FrameworkError> {
-        if !self.wallet_path.is_empty() {
-            config.file.wallet_file = self.wallet_path.join(" ");
-        }
+        config.input_file = PathBuf::from_str(&self.input_file).unwrap();
 
-        config.verbose = self.verbose;
+        if let Some(output_file) = &self.output_file {
+            config.output_file = PathBuf::from_str(output_file).unwrap();
+        }
 
         Ok(config)
     }
