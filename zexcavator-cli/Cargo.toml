@@ -8,6 +8,7 @@ zexcavator = { path = "../lib" }
 clap = "4"
 serde = { version = "1", features = ["serde_derive"] }
 thiserror = "1"
+bc-envelope = "0.22.0"
 
 [dependencies.abscissa_core]
 version = "0.8.1"

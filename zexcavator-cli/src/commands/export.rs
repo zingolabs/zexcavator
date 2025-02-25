@@ -2,10 +2,11 @@
 
 use std::{path::PathBuf, str::FromStr};
 
-use crate::config::ZexCavatorCliConfig;
-use abscissa_core::{config, Command, FrameworkError, Runnable};
+use crate::{config::ZexCavatorCliConfig, prelude::APP};
+use abscissa_core::{config, Application, Command, FrameworkError, Runnable};
+use bc_envelope::Envelope;
 
-/// `parse` subcommand
+/// `export` subcommand
 ///
 /// The `Parser` proc macro generates an option parser based on the struct
 /// definition, and is defined in the `clap` crate. See their documentation
@@ -26,7 +27,23 @@ pub struct ExportCmd {
 impl Runnable for ExportCmd {
     /// Start the application.
     fn run(&self) {
-        unimplemented!();
+        let config = APP.config();
+
+        let _output = config.output_file.to_str().unwrap();
+
+        let zewif_extension = Envelope::new("sample_emergency_recovery_phrase")
+            .add_assertion("belongs_to", "example_seed_fp");
+
+        let sample_envelope = Envelope::new("Alice")
+            .add_assertion("Knows", "Bob")
+            .add_attachment(
+                zewif_extension,
+                "org.zingolabs",
+                Some("https://github.com/zingolabs/zexcavator/docs/output-spec.md"),
+            );
+
+        println!("{:}", Envelope::format_flat(&sample_envelope));
+        todo!()
     }
 }
 
