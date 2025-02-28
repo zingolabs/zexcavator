@@ -31,18 +31,19 @@ impl Runnable for ExportCmd {
 
         let _output = config.output_file.to_str().unwrap();
 
-        let zewif_extension = Envelope::new("sample_emergency_recovery_phrase")
-            .add_assertion("belongs_to", "example_seed_fp");
+        let zewif_extension = Envelope::new("example_seed")
+            .add_assertion("generates", "example_emergency_recovery_phrase");
 
         let sample_envelope = Envelope::new("Alice")
             .add_assertion("Knows", "Bob")
             .add_attachment(
                 zewif_extension,
                 "org.zingolabs",
-                Some("https://github.com/zingolabs/zexcavator/docs/output-spec.md"),
+                Some("https://github.com/zingolabs/zexcavator/docs/zewif-extension-spec.md"),
             );
 
         println!("{:}", Envelope::format_flat(&sample_envelope));
+        // println!("{:}", &sample_envelope);
         todo!()
     }
 }
