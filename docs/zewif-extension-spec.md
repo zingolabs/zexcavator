@@ -11,7 +11,7 @@
 ]
 ```
 
-where `<attachment_data>` is an envelope with the following format:
+where `<attachment_data>` is an envelope with the following structure:
 
 ```
 {
@@ -23,3 +23,5 @@ where `<attachment_data>` is an envelope with the following format:
     ]
 }
 ```
+
+Here, \<seed\> an object containing a binary seed from `zcashd`. For more information, see https://github.com/zcash/zcash/issues/5573#issue-1145986602.
