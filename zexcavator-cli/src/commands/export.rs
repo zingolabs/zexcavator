@@ -37,12 +37,13 @@ impl Runnable for ExportCmd {
         let zc_object: Envelope = Envelope::new("wallet").add_assertion("hasSeed", erp_envelope);
 
         // Extension version
-        zc_object.add_assertion(bc_envelope::known_values::VERSION_VALUE, "0.0.1");
+        let zc_extension =
+            zc_object.add_assertion(bc_envelope::known_values::VERSION_VALUE, "0.0.1");
 
         let sample_envelope = Envelope::new("Alice")
             .add_assertion("Knows", "Bob")
             .add_attachment(
-            zc_object,
+            zc_extension,
             "org.zingolabs",
             Some("https://github.com/zingolabs/zexcavator/blob/main/docs/zewif-extension-spec.md"),
         );

@@ -8,7 +8,6 @@
 } [
     'conformsTo': "https://github.com/zingolabs/zexcavator/blob/33c6e476f79093ec3ff976ab8f25b8cbd5ee6f67/docs/zewif-extension-spec.md",
     'vendor': "org.zingolabs"
-    'version': "<semver_version>"
 ]
 ```
 
@@ -17,9 +16,10 @@ where `<attachment_data>` is an envelope with the following format:
 ```
 {
     "wallet": [
-        "<seed>" [
+        "hasSeed": "<seed>" [
             "generates": "<emergency_recovery_phrase>"
         ]
+        'version': "<semver_version>"
     ]
 }
 ```
