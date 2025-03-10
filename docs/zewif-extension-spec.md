@@ -6,7 +6,7 @@
 {
     "<attachment_data>"
 } [
-    'conformsTo': "https://github.com/zingolabs/zexcavator/blob/33c6e476f79093ec3ff976ab8f25b8cbd5ee6f67/docs/zewif-extension-spec.md",
+    'conformsTo': "https://github.com/zingolabs/zexcavator/blob/main/docs/zewif-extension-spec.md",
     'vendor': "org.zingolabs"
 ]
 ```
