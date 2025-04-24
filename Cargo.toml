@@ -1,5 +1,6 @@
 [workspace]
 members = ["zexcavator-cli", "zexcavator-lib", "zexcavator-tui"]
+resolver = "3"
 
 [workspace.dependencies.zingolib]
 git = "https://github.com/zingolabs/zingolib.git"
