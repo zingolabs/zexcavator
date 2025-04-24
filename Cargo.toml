@@ -1,5 +1,35 @@
 [workspace]
 members = ["zexcavator-cli", "zexcavator-lib", "zexcavator-tui"]
+resolver = "3"
+
+[workspace.dependencies]
+abscissa_core = "0.8.2"
+bc-envelope = "0.24.0"
+bip0039 = "0.12.0"
+bridgetree = "0.6.0"
+byteorder = "1.5.0"
+clap = "4"
+hex = "0.4.3"
+http = "1.3.1"
+jubjub = "0.10.0"
+once_cell = "1.2"
+orchard = "0.10.0"
+prost = "0.13.4"
+rusqlite = "0.32.1"
+rustls = "0.23.25"
+sapling = { version = "0.3", default-features = false }
+secp256k1 = "0.27.0"
+serde = "1"
+thiserror = "1"
+tokio = "1.44.2"
+tui-realm-stdlib = "2"
+tuirealm = "2"
+zcash_client_backend = "0.15.0"
+zcash_encoding = "0.2.2"
+zcash_keys = "0.5.0"
+zcash_primitives = "0.20.0"
+zewif-zwl = { git = "https://github.com/zingolabs/zewif-zwl", branch = "zewif-migration" }
+zexcavator-lib = { path = "zexcavator-lib" }
 
 [workspace.dependencies.zingolib]
 git = "https://github.com/zingolabs/zingolib.git"
