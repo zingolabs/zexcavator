@@ -212,6 +212,14 @@ impl WalletParser for YWallet {
     fn print_internal(&self) {
         println!("YWallet: {:#?}", self);
     }
+
+    fn get_wallet_seed(&self) -> [u8; 32] {
+        todo!()
+    }
+
+    fn get_birthday(&self) -> u64 {
+        todo!()
+    }
 }
 
 impl WalletWriter for YWallet {

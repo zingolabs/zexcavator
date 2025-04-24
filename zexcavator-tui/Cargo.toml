@@ -1,0 +1,8 @@
+[package]
+name = "zexcavator-tui"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+tuirealm = "2"
+tui-realm-stdlib = "2"

@@ -5,8 +5,13 @@
 use crate::prelude::*;
 
 use crate::config::ZexCavatorCliConfig;
-use abscissa_core::{config, Command, FrameworkError, Runnable};
-use zexcavator::parser::WalletParserFactory;
+use abscissa_core::{Command, FrameworkError, Runnable, config};
+use zexcavator_lib::parser::WalletParserFactory;
+use zingolib::{
+    config::{ChainType, ZingoConfig},
+    get_latest_block_height, lightclient,
+    wallet::{LightWallet, WalletBase},
+};
 
 /// `parse` subcommand
 ///
@@ -35,6 +40,51 @@ impl Runnable for ParseCmd {
 
         // println!("{:#?}", wallet_parser.parser.get_wallet_name());
         wallet_parser.parser.print_internal();
+
+        // LightClient initialization
+
+        let seed = wallet_parser.parser.get_wallet_seed();
+        let bd = wallet_parser.parser.get_birthday();
+
+        if let Err(e) = rustls::crypto::ring::default_provider().install_default() {
+            eprintln!("Error installing crypto provider: {:?}", e)
+        };
+
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        let mut zc = ZingoConfig::create_mainnet();
+        zc.set_data_dir("wallets/".to_string());
+
+        let config = zc.clone();
+
+        // let latest_block_height: u32 = get_latest_block_height(uri).unwrap().try_into().unwrap();
+
+        let initial_bh: u32 = bd.try_into().unwrap();
+        let lw = LightWallet::new(
+            ChainType::Mainnet,
+            WalletBase::SeedBytes(seed),
+            initial_bh.into(),
+        )
+        .unwrap();
+
+        let mut lc = lightclient::LightClient::create_from_wallet(lw, zc, true).unwrap();
+        // let latest_block =
+        //     get_latest_block_height(config.lightwalletd_uri.read().unwrap().clone()).unwrap();
+
+        rt.block_on(async {
+            println!("Reading from birthday: {}", bd);
+            // println!("Upto block: {}", latest_block);
+            match lc.sync(true).await {
+                Ok(_) => {}
+                Err(e) => {
+                    println!("Error syncing: {}", e);
+                }
+            }
+
+            lc.await_sync().await.unwrap();
+            let balances = lc.do_balance().await;
+
+            println!("Balances: {}", balances);
+        });
     }
 }
 

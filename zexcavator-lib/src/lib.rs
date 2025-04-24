@@ -79,8 +79,9 @@ pub trait WalletParser {
         Self: Sized;
     fn get_wallet_name(&self) -> String;
     fn get_wallet_version(&self) -> u64;
-    // fn get_wallet_seed(&self) -> String;
+    fn get_wallet_seed(&self) -> [u8; 32];
     fn get_wallet_accounts(&self) -> io::Result<Vec<WalletAccount>>;
+    fn get_birthday(&self) -> u64;
     fn print_internal(&self);
 }
 

@@ -69,7 +69,7 @@ use zcash_primitives::{
     },
     legacy::keys::{AccountPrivKey, IncomingViewingKey, NonHardenedChildIndex},
     merkle_tree::{
-        read_address, read_leu64_usize, read_nonempty_frontier_v1, read_position, HashSer,
+        HashSer, read_address, read_leu64_usize, read_nonempty_frontier_v1, read_position,
     },
     zip32::AccountId,
 };
@@ -620,6 +620,14 @@ impl WalletParser for ZecWalletLite {
         println!("ZecWalletLite");
         println!("{}", self);
     }
+
+    fn get_wallet_seed(&self) -> [u8; 32] {
+        return self.keys.seed;
+    }
+
+    fn get_birthday(&self) -> u64 {
+        return self.birthday;
+    }
 }
 
 impl Display for ZecWalletLite {
@@ -687,7 +695,10 @@ mod tests {
         let seed_entropy = wallet.keys.seed;
         let seed = <Mnemonic<English>>::from_entropy(seed_entropy).expect("Invalid seed entropy");
         let phrase = seed.phrase();
-        assert_eq!(phrase, "clerk family rack dragon cannon wait vendor penalty absent country better coast expand true middle stable assist clerk tent phone toilet knee female kitchen");
+        assert_eq!(
+            phrase,
+            "clerk family rack dragon cannon wait vendor penalty absent country better coast expand true middle stable assist clerk tent phone toilet knee female kitchen"
+        );
     }
 
     #[test]

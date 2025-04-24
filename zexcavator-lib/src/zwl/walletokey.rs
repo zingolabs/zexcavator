@@ -93,6 +93,13 @@ impl WalletOKey {
 
 impl fmt::Display for WalletOKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(
+            f,
+            "WalletOKey Version: {}",
+            WalletOKey::serialized_version()
+        )
+        .unwrap();
+
         match self.keytype {
             WalletOKeyType::HdKey => {
                 writeln!(f, "Type: HD key").unwrap();

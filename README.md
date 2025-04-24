@@ -2,7 +2,6 @@
 
 > ⚠️ Parsing has moved to a different repository. Check https://github.com/BlockchainCommons/zmigrate for more information.
 
-> ⚠️ This project is scheduled to start development in April 2025 and is not yet ready for production use.
 > Check [the GitHub project](https://github.com/orgs/zingolabs/projects/9) to track progress.
 
 **ZExCavator** is a tool that recovers (excavates!) lost ZEC.

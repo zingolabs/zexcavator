@@ -84,6 +84,7 @@ impl Keys {
 impl Display for Keys {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, ">> Keys << ").unwrap();
+        writeln!(f, "Version: {}", Keys::serialized_version()).unwrap();
         writeln!(f, "Encrypted: {}", self.encrypted).unwrap();
 
         match self.encrypted {
