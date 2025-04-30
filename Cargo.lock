@@ -7273,8 +7273,11 @@ dependencies = [
 name = "zexcavator-tui"
 version = "0.1.0"
 dependencies = [
+ "rustls",
+ "tokio",
  "tui-realm-stdlib",
  "tuirealm",
+ "zingolib 0.2.0 (git+https://github.com/zingolabs/zingolib.git?branch=dev)",
 ]
 
 [[package]]

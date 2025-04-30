@@ -20,7 +20,6 @@ pub struct Label {
     props: Props,
 }
 
-
 impl Label {
     pub fn text<S>(mut self, s: S) -> Self
     where

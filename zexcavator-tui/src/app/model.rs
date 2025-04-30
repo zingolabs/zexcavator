@@ -9,7 +9,7 @@ use tuirealm::ratatui::layout::{Constraint, Direction, Layout};
 use tuirealm::terminal::{CrosstermTerminalAdapter, TerminalAdapter, TerminalBridge};
 use tuirealm::{Application, AttrValue, Attribute, EventListenerCfg, Update};
 
-use crate::components::{MainMenu, WelcomeComponent};
+use crate::components::{LogViewer, MainMenu, WelcomeComponent, new_log_buffer, start_wallet_sync};
 
 use super::{Id, Msg};
 
@@ -49,16 +49,15 @@ where
                     let chunks = Layout::default()
                         .direction(Direction::Vertical)
                         .margin(1)
-                        .constraints(
-                            [
-                                Constraint::Length(20), // Welcome component
-                                Constraint::Length(10), // Main menu
-                            ]
-                            .as_ref(),
-                        )
+                        .constraints(&[
+                            Constraint::Length(20), // Welcome component
+                            Constraint::Length(10), // Main menu
+                            Constraint::Length(30), // Log viewer
+                        ])
                         .split(f.area());
                     self.app.view(&Id::WelcomeComponent, f, chunks[0]);
                     self.app.view(&Id::MainMenu, f, chunks[1]);
+                    self.app.view(&Id::LogViewer, f, chunks[2]);
                 })
                 .is_ok()
         );
@@ -104,6 +103,19 @@ where
                         "Charmander"
                     ],
                 )),
+                Vec::default()
+            )
+            .is_ok()
+        );
+
+        let log_buffer = new_log_buffer();
+        start_wallet_sync(log_buffer.clone());
+
+        // Mount log viewer
+        assert!(
+            app.mount(
+                Id::LogViewer,
+                Box::new(LogViewer::new(log_buffer)),
                 Vec::default()
             )
             .is_ok()

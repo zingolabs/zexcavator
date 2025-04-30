@@ -10,10 +10,12 @@ use super::Msg;
 // -- modules
 mod input;
 mod label;
+mod log_viewer;
 mod main_menu;
 mod welcome;
 
 // -- export
+pub use log_viewer::{LogViewer, new_log_buffer, start_wallet_sync};
 pub use main_menu::MainMenu;
 pub use welcome::WelcomeComponent;
 

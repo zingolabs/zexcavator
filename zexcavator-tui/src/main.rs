@@ -30,6 +30,7 @@ pub enum Id {
     SeedInput,
     WelcomeComponent,
     MainMenu,
+    LogViewer,
 }
 
 fn main() {
@@ -64,6 +65,10 @@ fn main() {
                         msg = model.update(msg);
                     }
                 }
+            }
+            Ok(_) => {
+                model.redraw = true;
+                model.update(None);
             }
             _ => {}
         }
