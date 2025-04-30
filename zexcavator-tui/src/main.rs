@@ -13,19 +13,23 @@ use app::model::Model;
 #[derive(Debug, PartialEq)]
 pub enum Msg {
     AppClose,
+    Start,
     Clock,
     SeedInputChanged(String),
     SeedInputValidate(String),
     SeedInputBlur,
+    MenuSelected(String),
+    MenuCursorMove(usize),
     None,
 }
 
 // Let's define the component ids for our application
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
 pub enum Id {
-    Clock,
     Label,
     SeedInput,
+    WelcomeComponent,
+    MainMenu,
 }
 
 fn main() {

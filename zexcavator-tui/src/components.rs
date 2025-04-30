@@ -8,14 +8,14 @@ use tuirealm::ratatui::widgets::Block;
 use super::Msg;
 
 // -- modules
-mod clock;
 mod input;
 mod label;
+mod main_menu;
+mod welcome;
 
 // -- export
-pub use clock::Clock;
-pub use input::SeedInput;
-pub use label::Label;
+pub use main_menu::MainMenu;
+pub use welcome::WelcomeComponent;
 
 /// ### get_block
 ///
