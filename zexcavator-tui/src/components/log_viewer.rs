@@ -40,81 +40,81 @@ pub fn new_log_buffer() -> LogBuffer {
 }
 
 pub fn start_wallet_sync(logs: LogBuffer) {
-    std::thread::spawn(move || {
-        let bd = 2715348;
+    // std::thread::spawn(move || {
+    //     let bd = 2715348;
 
-        if let Err(e) = rustls::crypto::ring::default_provider().install_default() {
-            logs.lock()
-                .unwrap()
-                .push(format!("Error installing crypto provider: {:?}", e));
-        }
+    //     if let Err(e) = rustls::crypto::ring::default_provider().install_default() {
+    //         logs.lock()
+    //             .unwrap()
+    //             .push(format!("Error installing crypto provider: {:?}", e));
+    //     }
 
-        let example_phrase = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+    //     let example_phrase = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
 
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        let mut zc = ZingoConfig::create_mainnet();
-        zc.set_data_dir("wallets/".to_string());
+    //     let rt = tokio::runtime::Runtime::new().unwrap();
+    //     let mut zc = ZingoConfig::create_mainnet();
+    //     zc.set_data_dir("wallets/".to_string());
 
-        let initial_bh: u32 = bd.try_into().unwrap();
-        let lw = LightWallet::new(
-            ChainType::Mainnet,
-            WalletBase::MnemonicPhrase(example_phrase.to_owned()),
-            initial_bh.into(),
-        )
-        .unwrap();
+    //     let initial_bh: u32 = bd.try_into().unwrap();
+    //     let lw = LightWallet::new(
+    //         ChainType::Mainnet,
+    //         WalletBase::MnemonicPhrase(example_phrase.to_owned()),
+    //         initial_bh.into(),
+    //     )
+    //     .unwrap();
 
-        let mut lc = lightclient::LightClient::create_from_wallet(lw, zc, true).unwrap();
+    //     let mut lc = lightclient::LightClient::create_from_wallet(lw, zc, true).unwrap();
 
-        rt.block_on(async {
-            logs.lock()
-                .unwrap()
-                .push(format!("Starting sync from birthday: {}", bd));
-            match lc.sync(true).await {
-                Ok(_) => logs.lock().unwrap().push("Sync started".to_string()),
-                Err(e) => logs
-                    .lock()
-                    .unwrap()
-                    .push(format!("Error starting syncing: {}", e)),
-            }
+    //     rt.block_on(async {
+    //         logs.lock()
+    //             .unwrap()
+    //             .push(format!("Starting sync from birthday: {}", bd));
+    //         match lc.sync(true).await {
+    //             Ok(_) => logs.lock().unwrap().push("Sync started".to_string()),
+    //             Err(e) => logs
+    //                 .lock()
+    //                 .unwrap()
+    //                 .push(format!("Error starting syncing: {}", e)),
+    //         }
 
-            loop {
-                sleep(Duration::from_secs(1)).await;
-                match lc.poll_sync() {
-                    PollReport::NoHandle => break,
-                    PollReport::NotReady => (),
-                    PollReport::Ready(result) => match result {
-                        Ok(sync_result) => {
-                            logs.lock()
-                                .unwrap()
-                                .push(format!("Sync result: {}", sync_result));
-                            break;
-                        }
-                        Err(e) => {
-                            logs.lock().unwrap().push(format!("{}", e));
-                            logs.lock().unwrap().push("Restarting sync".to_string());
-                            match lc.sync(true).await {
-                                Ok(_) => logs.lock().unwrap().push("Sync restarted".to_string()),
-                                Err(e) => logs
-                                    .lock()
-                                    .unwrap()
-                                    .push(format!("Error restarting syncing: {}", e)),
-                            }
-                            continue;
-                        }
-                    },
-                };
-            }
+    //         loop {
+    //             sleep(Duration::from_secs(1)).await;
+    //             match lc.poll_sync() {
+    //                 PollReport::NoHandle => break,
+    //                 PollReport::NotReady => (),
+    //                 PollReport::Ready(result) => match result {
+    //                     Ok(sync_result) => {
+    //                         logs.lock()
+    //                             .unwrap()
+    //                             .push(format!("Sync result: {}", sync_result));
+    //                         break;
+    //                     }
+    //                     Err(e) => {
+    //                         logs.lock().unwrap().push(format!("{}", e));
+    //                         logs.lock().unwrap().push("Restarting sync".to_string());
+    //                         match lc.sync(true).await {
+    //                             Ok(_) => logs.lock().unwrap().push("Sync restarted".to_string()),
+    //                             Err(e) => logs
+    //                                 .lock()
+    //                                 .unwrap()
+    //                                 .push(format!("Error restarting syncing: {}", e)),
+    //                         }
+    //                         continue;
+    //                     }
+    //                 },
+    //             };
+    //         }
 
-            match lc.await_sync().await {
-                Ok(_) => logs.lock().unwrap().push("Sync finished".to_string()),
-                Err(e) => logs.lock().unwrap().push(format!("{}", e)),
-            }
-            let balances = lc.do_balance().await;
-            logs.lock()
-                .unwrap()
-                .push(format!("Balances: {:?}", balances));
-        });
-    });
+    //         match lc.await_sync().await {
+    //             Ok(_) => logs.lock().unwrap().push("Sync finished".to_string()),
+    //             Err(e) => logs.lock().unwrap().push(format!("{}", e)),
+    //         }
+    //         let balances = lc.do_balance().await;
+    //         logs.lock()
+    //             .unwrap()
+    //             .push(format!("Balances: {:?}", balances));
+    //     });
+    // });
 }
 
 pub struct LogViewer {
