@@ -2,19 +2,15 @@
 //!
 //! app model
 
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
 
 use tuirealm::event::NoUserEvent;
-use tuirealm::props::{Alignment, Color, TextModifiers};
 use tuirealm::ratatui::layout::{Constraint, Direction, Layout};
 use tuirealm::terminal::{CrosstermTerminalAdapter, TerminalAdapter, TerminalBridge};
-use tuirealm::{
-    Application, AttrValue, Attribute, EventListenerCfg, Sub, SubClause, SubEventClause, Update,
-};
+use tuirealm::{Application, AttrValue, Attribute, EventListenerCfg, Update};
 
-use crate::components::SeedInput;
+use crate::components::{MainMenu, WelcomeComponent};
 
-use super::components::{Clock, Label};
 use super::{Id, Msg};
 
 pub struct Model<T>
@@ -55,16 +51,14 @@ where
                         .margin(1)
                         .constraints(
                             [
-                                Constraint::Length(3), // Clock
-                                Constraint::Length(1), // Label
-                                Constraint::Length(3), // Seed input
+                                Constraint::Length(20), // Welcome component
+                                Constraint::Length(10), // Main menu
                             ]
                             .as_ref(),
                         )
                         .split(f.area());
-                    self.app.view(&Id::Clock, f, chunks[0]);
-                    self.app.view(&Id::Label, f, chunks[1]);
-                    self.app.view(&Id::SeedInput, f, chunks[2]);
+                    self.app.view(&Id::WelcomeComponent, f, chunks[0]);
+                    self.app.view(&Id::MainMenu, f, chunks[1]);
                 })
                 .is_ok()
         );
@@ -82,50 +76,41 @@ where
                 .poll_timeout(Duration::from_millis(10))
                 .tick_interval(Duration::from_secs(1)),
         );
-        // Mount components
-        assert!(
-            app.mount(
-                Id::Label,
-                Box::new(
-                    Label::default()
-                        .text("Waiting for a Msg...")
-                        .alignment(Alignment::Left)
-                        .background(Color::Reset)
-                        .foreground(Color::LightYellow)
-                        .modifiers(TextModifiers::BOLD),
-                ),
-                Vec::default(),
-            )
-            .is_ok()
-        );
-        // Mount clock, subscribe to tick
-        assert!(
-            app.mount(
-                Id::Clock,
-                Box::new(
-                    Clock::new(SystemTime::now())
-                        .alignment(Alignment::Center)
-                        .background(Color::Reset)
-                        .foreground(Color::Cyan)
-                        .modifiers(TextModifiers::BOLD)
-                ),
-                vec![Sub::new(SubEventClause::Tick, SubClause::Always)]
-            )
-            .is_ok()
-        );
 
-        // Mount Seed Input
+        // Mount components:
+        // Mount welcome screen!
         assert!(
             app.mount(
-                Id::SeedInput,
-                Box::new(SeedInput::default()),
+                Id::WelcomeComponent,
+                Box::new(WelcomeComponent),
                 Vec::default()
             )
             .is_ok()
         );
 
-        // Active Seed Input
-        assert!(app.active(&Id::SeedInput).is_ok());
+        // Mount main menu
+        assert!(
+            app.mount(
+                Id::MainMenu,
+                Box::new(MainMenu::new(
+                    "Select the wallet to recover",
+                    vec![
+                        "Zecwallet",
+                        "zcashd",
+                        "Ledger",
+                        "Trezor",
+                        "Porygon-Z",
+                        "Ekans",
+                        "Charmander"
+                    ],
+                )),
+                Vec::default()
+            )
+            .is_ok()
+        );
+
+        // Active main menu
+        assert!(app.active(&Id::MainMenu).is_ok());
 
         app
     }
@@ -163,6 +148,25 @@ where
                 }
                 Msg::None => None,
                 Msg::SeedInputValidate(s) => todo!(),
+                Msg::Start => todo!(),
+                Msg::MenuCursorMove(_) => None,
+                Msg::MenuSelected(selection) => {
+                    // TODO: Menu items should be declared as enum
+                    match selection.as_str() {
+                        "Charmander" | "Ekans" | "Porygon-Z" => {
+                            // Pokemon selected!
+                            self.quit = true;
+                        }
+                        "Zecwallet" => {
+                            // Open recovery flow for zecwallet
+                        }
+                        "zcashd" => {
+                            // Open recovery flow for zcashd
+                        }
+                        _ => {}
+                    }
+                    None
+                }
             }
         } else {
             None

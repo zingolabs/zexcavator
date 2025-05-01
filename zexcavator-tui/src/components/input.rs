@@ -14,6 +14,16 @@ pub struct SeedInput {
     component: Input,
 }
 
+impl SeedInput {
+    pub fn new(initial_text: String) -> Self {
+        Self {
+            component: Input::default()
+                .input_type(tuirealm::props::InputType::Text)
+                .value(initial_text),
+        }
+    }
+}
+
 impl Component<Msg, NoUserEvent> for SeedInput {
     fn on(&mut self, ev: Event<NoUserEvent>) -> Option<Msg> {
         let cmd = match ev {
