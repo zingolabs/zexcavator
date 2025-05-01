@@ -9,23 +9,39 @@ use tuirealm::props::{AttrValue, Attribute};
 
 use crate::Msg;
 
-pub struct MainMenu {
-    options: Vec<String>,
+/// TODO: Maybe use `strum` here?
+pub trait MenuOptions {
+    fn all() -> Vec<Self>
+    where
+        Self: Sized;
+
+    fn label(&self) -> &'static str;
+
+    fn from_label(label: &str) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        Self::all().into_iter().find(|opt| opt.label() == label)
+    }
+}
+
+pub struct Menu<T: MenuOptions + Clone> {
+    options: Vec<T>,
     cursor_position: usize,
     title: String,
 }
 
-impl MainMenu {
-    pub fn new(title: &str, options: Vec<&'static str>) -> Self {
+impl<T: MenuOptions + Clone> Menu<T> {
+    pub fn new(title: &str) -> Self {
         Self {
             title: title.to_string(),
-            options: options.iter().map(|s| s.to_string()).collect(),
+            options: T::all(),
             cursor_position: 0,
         }
     }
 }
 
-impl MockComponent for MainMenu {
+impl<T: MenuOptions + Clone> MockComponent for Menu<T> {
     fn view(&mut self, frame: &mut tuirealm::Frame, area: tuirealm::ratatui::layout::Rect) {
         use tuirealm::ratatui::text::{Line, Span, Text};
         use tuirealm::ratatui::widgets::{Block, Borders, Paragraph};
@@ -34,16 +50,16 @@ impl MockComponent for MainMenu {
             .options
             .iter()
             .enumerate()
-            .map(|(i, label)| {
+            .map(|(i, option)| {
                 if i == self.cursor_position {
                     Line::from(Span::styled(
-                        format!("> {}", label),
+                        format!("> {}", option.label()),
                         tuirealm::props::Style::default()
                             .fg(tuirealm::props::Color::Yellow)
                             .add_modifier(TextModifiers::REVERSED),
                     ))
                 } else {
-                    Line::from(Span::raw(format!("  {}", label)))
+                    Line::from(Span::raw(format!("  {}", option.label())))
                 }
             })
             .collect();
@@ -69,7 +85,7 @@ impl MockComponent for MainMenu {
     }
 }
 
-impl Component<Msg, NoUserEvent> for MainMenu {
+impl<T: MenuOptions + Clone> Component<Msg, NoUserEvent> for Menu<T> {
     fn on(&mut self, ev: Event<NoUserEvent>) -> Option<Msg> {
         match ev {
             Event::Keyboard(key) => match key.code {
@@ -85,9 +101,10 @@ impl Component<Msg, NoUserEvent> for MainMenu {
                     self.cursor_position = (self.cursor_position + 1) % self.options.len();
                     Some(Msg::MenuCursorMove(self.cursor_position))
                 }
-                Key::Enter => Some(Msg::MenuSelected(
-                    self.options[self.cursor_position].clone(),
-                )),
+                Key::Enter => {
+                    let selected = self.options[self.cursor_position].clone();
+                    Some(Msg::MenuSelected(selected.label().to_string()))
+                }
                 Key::Esc => Some(Msg::AppClose),
                 _ => None,
             },

@@ -6,3 +6,7 @@ edition = "2024"
 [dependencies]
 tuirealm = { workspace = true }
 tui-realm-stdlib = { workspace = true }
+rustls = { workspace = true }
+tokio = { workspace = true }
+zingolib = { workspace = true }
+anyhow = "1.0.98"
