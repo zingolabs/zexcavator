@@ -5,19 +5,15 @@
 use tuirealm::props::{Alignment, Borders, Color, Style};
 use tuirealm::ratatui::widgets::Block;
 
+
 use super::Msg;
 
 // -- modules
-mod input;
-mod label;
-mod log_viewer;
-mod main_menu;
-mod welcome;
-
-// -- export
-pub use log_viewer::{LogViewer, new_log_buffer, start_wallet_sync};
-pub use main_menu::MainMenu;
-pub use welcome::WelcomeComponent;
+pub mod input;
+pub mod label;
+pub mod log_viewer;
+pub mod menu;
+pub mod welcome;
 
 /// ### get_block
 ///
@@ -32,4 +28,8 @@ pub(crate) fn get_block<'a>(props: Borders, title: (String, Alignment), focus: b
         .border_type(props.modifiers)
         .title(title.0)
         .title_alignment(title.1)
+}
+
+pub trait HandleMessage<T> {
+    fn handle_message(msg: Msg, model: &mut T) -> Option<Msg>;
 }

@@ -90,9 +90,16 @@ pub fn start_wallet_sync(logs: LogBuffer) {
                             break;
                         }
                         Err(e) => {
-                            logs.lock()
-                                .unwrap()
-                                .push(format!("Sync task failed: {}", e));
+                            logs.lock().unwrap().push(format!("{}", e));
+                            logs.lock().unwrap().push("Restarting sync".to_string());
+                            match lc.sync(true).await {
+                                Ok(_) => logs.lock().unwrap().push("Sync restarted".to_string()),
+                                Err(e) => logs
+                                    .lock()
+                                    .unwrap()
+                                    .push(format!("Error restarting syncing: {}", e)),
+                            }
+                            continue;
                         }
                     },
                 };
@@ -100,10 +107,12 @@ pub fn start_wallet_sync(logs: LogBuffer) {
 
             match lc.await_sync().await {
                 Ok(_) => logs.lock().unwrap().push("Sync finished".to_string()),
-                Err(e) => logs.lock().unwrap().push(format!("Sync failed: {}", e)),
+                Err(e) => logs.lock().unwrap().push(format!("{}", e)),
             }
             let balances = lc.do_balance().await;
-            logs.lock().unwrap().push(format!("Balances: {}", balances));
+            logs.lock()
+                .unwrap()
+                .push(format!("Balances: {:?}", balances));
         });
     });
 }
@@ -115,6 +124,12 @@ pub struct LogViewer {
 impl LogViewer {
     pub fn new(logs: LogBuffer) -> Self {
         Self { logs }
+    }
+}
+
+impl Default for LogViewer {
+    fn default() -> Self {
+        Self::new(new_log_buffer())
     }
 }
 

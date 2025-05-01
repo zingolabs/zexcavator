@@ -7,6 +7,7 @@ use tuirealm::{AttrValue, Attribute, Update};
 // -- internal
 mod app;
 mod components;
+mod views;
 use app::model::Model;
 
 // Let's define the messages handled by our app. NOTE: it must derive `PartialEq`
@@ -14,13 +15,20 @@ use app::model::Model;
 pub enum Msg {
     AppClose,
     Start,
-    Clock,
     SeedInputChanged(String),
     SeedInputValidate(String),
     SeedInputBlur,
     MenuSelected(String),
     MenuCursorMove(usize),
     None,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum NavigationMsg {
+    MainMenu,
+    Syncing,
+    ZecwalletInput,
+    ZcashdInput,
 }
 
 // Let's define the component ids for our application
@@ -30,6 +38,8 @@ pub enum Id {
     SeedInput,
     WelcomeComponent,
     MainMenu,
+    ZecwalletView,
+    ZecwalletMenu,
     LogViewer,
 }
 

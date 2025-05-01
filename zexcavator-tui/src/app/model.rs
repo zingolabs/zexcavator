@@ -5,13 +5,25 @@
 use std::time::Duration;
 
 use tuirealm::event::NoUserEvent;
-use tuirealm::ratatui::layout::{Constraint, Direction, Layout};
 use tuirealm::terminal::{CrosstermTerminalAdapter, TerminalAdapter, TerminalBridge};
 use tuirealm::{Application, AttrValue, Attribute, EventListenerCfg, Update};
 
-use crate::components::{LogViewer, MainMenu, WelcomeComponent, new_log_buffer, start_wallet_sync};
+use crate::components::HandleMessage;
+use crate::components::menu::MenuOptions;
+use crate::views::main_menu::{MainMenu, MainMenuOption};
+use crate::views::zecwallet::{self, ZecwalletMenu, ZecwalletMenuOption};
+use crate::views::{Mountable, main_menu};
 
 use super::{Id, Msg};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Screen {
+    MainMenu,
+    Syncing,
+    ZecwalletInput,
+    ZcashdInput,
+    LedgerInput,
+}
 
 pub struct Model<T>
 where
@@ -25,6 +37,8 @@ where
     pub redraw: bool,
     /// Used to draw to terminal
     pub terminal: TerminalBridge<T>,
+    /// Active screen
+    pub screen: Screen,
 }
 
 impl Default for Model<CrosstermTerminalAdapter> {
@@ -33,6 +47,7 @@ impl Default for Model<CrosstermTerminalAdapter> {
             app: Self::init_app(),
             quit: false,
             redraw: true,
+            screen: Screen::MainMenu,
             terminal: TerminalBridge::init_crossterm().expect("Cannot initialize terminal"),
         }
     }
@@ -43,21 +58,18 @@ where
     T: TerminalAdapter,
 {
     pub fn view(&mut self) {
+        let _screen = self.screen;
+        let app = &mut self.app;
         assert!(
             self.terminal
                 .draw(|f| {
-                    let chunks = Layout::default()
-                        .direction(Direction::Vertical)
-                        .margin(1)
-                        .constraints(&[
-                            Constraint::Length(20), // Welcome component
-                            Constraint::Length(10), // Main menu
-                            Constraint::Length(30), // Log viewer
-                        ])
-                        .split(f.area());
-                    self.app.view(&Id::WelcomeComponent, f, chunks[0]);
-                    self.app.view(&Id::MainMenu, f, chunks[1]);
-                    self.app.view(&Id::LogViewer, f, chunks[2]);
+                    match self.screen {
+                        Screen::MainMenu => main_menu::render(app, f),
+                        Screen::Syncing => todo!(),
+                        Screen::ZecwalletInput => zecwallet::render(app, f),
+                        Screen::ZcashdInput => todo!(),
+                        Screen::LedgerInput => todo!(),
+                    }
                 })
                 .is_ok()
         );
@@ -77,49 +89,12 @@ where
         );
 
         // Mount components:
-        // Mount welcome screen!
-        assert!(
-            app.mount(
-                Id::WelcomeComponent,
-                Box::new(WelcomeComponent),
-                Vec::default()
-            )
-            .is_ok()
-        );
 
         // Mount main menu
-        assert!(
-            app.mount(
-                Id::MainMenu,
-                Box::new(MainMenu::new(
-                    "Select the wallet to recover",
-                    vec![
-                        "Zecwallet",
-                        "zcashd",
-                        "Ledger",
-                        "Trezor",
-                        "Porygon-Z",
-                        "Ekans",
-                        "Charmander"
-                    ],
-                )),
-                Vec::default()
-            )
-            .is_ok()
-        );
+        assert!(MainMenu::mount(&mut app).is_ok());
 
-        let log_buffer = new_log_buffer();
-        start_wallet_sync(log_buffer.clone());
-
-        // Mount log viewer
-        assert!(
-            app.mount(
-                Id::LogViewer,
-                Box::new(LogViewer::new(log_buffer)),
-                Vec::default()
-            )
-            .is_ok()
-        );
+        // Mount Zecwallet view
+        assert!(ZecwalletMenu::mount(&mut app).is_ok());
 
         // Active main menu
         assert!(app.active(&Id::MainMenu).is_ok());
@@ -129,7 +104,6 @@ where
 }
 
 // Let's implement Update for model
-
 impl<T> Update<Msg> for Model<T>
 where
     T: TerminalAdapter,
@@ -144,7 +118,6 @@ where
                     self.quit = true; // Terminate
                     None
                 }
-                Msg::Clock => None,
                 Msg::SeedInputBlur => None,
                 Msg::SeedInputChanged(s) => {
                     assert!(
@@ -160,28 +133,73 @@ where
                 }
                 Msg::None => None,
                 Msg::SeedInputValidate(s) => todo!(),
-                Msg::Start => todo!(),
-                Msg::MenuCursorMove(_) => None,
-                Msg::MenuSelected(selection) => {
-                    // TODO: Menu items should be declared as enum
-                    match selection.as_str() {
-                        "Charmander" | "Ekans" | "Porygon-Z" => {
-                            // Pokemon selected!
-                            self.quit = true;
-                        }
-                        "Zecwallet" => {
-                            // Open recovery flow for zecwallet
-                        }
-                        "zcashd" => {
-                            // Open recovery flow for zcashd
-                        }
-                        _ => {}
-                    }
+                Msg::Start => {
+                    self.screen = Screen::MainMenu;
                     None
+                }
+                Msg::MenuCursorMove(_) => None,
+                Msg::MenuSelected(label) => {
+                    if let Some(selection) = MainMenuOption::from_label(&label) {
+                        MainMenu::handle_message(Msg::MenuSelected(label), self)
+                    } else if let Some(item) = ZecwalletMenuOption::from_label(&label) {
+                        ZecwalletMenu::handle_message(Msg::MenuSelected(label), self)
+                    } else {
+                        None
+                    }
                 }
             }
         } else {
             None
         }
+    }
+}
+
+pub trait HasScreenAndQuit {
+    fn navigate_to(&mut self, screen: Screen);
+    fn set_quit(&mut self, quit: bool);
+}
+
+impl<T: TerminalAdapter> HasScreenAndQuit for Model<T> {
+    fn navigate_to(&mut self, screen: Screen) {
+        // Blur current active screen
+        match self.screen {
+            Screen::MainMenu => {
+                let _ = self.app.active(&Id::MainMenu);
+            }
+            Screen::ZecwalletInput => {
+                let _ = self.app.active(&Id::ZecwalletMenu);
+            }
+            Screen::ZcashdInput => {
+                todo!()
+            }
+            Screen::Syncing => {
+                let _ = self.app.active(&Id::LogViewer);
+            }
+            Screen::LedgerInput => todo!(),
+        }
+
+        // Update screen
+        self.screen = screen;
+
+        // Activate new screen
+        match self.screen {
+            Screen::MainMenu => {
+                let _ = self.app.active(&Id::MainMenu);
+            }
+            Screen::ZecwalletInput => {
+                let _ = self.app.active(&Id::ZecwalletMenu);
+            }
+            Screen::ZcashdInput => {
+                todo!()
+            }
+            Screen::Syncing => {
+                let _ = self.app.active(&Id::LogViewer);
+            }
+            Screen::LedgerInput => todo!(),
+        }
+    }
+
+    fn set_quit(&mut self, quit: bool) {
+        self.quit = quit;
     }
 }
