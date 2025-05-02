@@ -34,7 +34,7 @@ impl MockComponent for WelcomeComponent {
                 Line::from(Span::styled(
                     l,
                     Style::default()
-                        .fg(Color::Green)
+                        .fg(Color::Rgb(22, 0xC5, 0x5B))
                         .add_modifier(TextModifiers::BOLD),
                 ))
             })

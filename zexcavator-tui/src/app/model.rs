@@ -9,10 +9,12 @@ use tuirealm::terminal::{CrosstermTerminalAdapter, TerminalAdapter, TerminalBrid
 use tuirealm::{Application, AttrValue, Attribute, EventListenerCfg, Update};
 
 use crate::components::HandleMessage;
+use crate::components::log_viewer::{LogViewer, new_log_buffer};
 use crate::components::menu::MenuOptions;
 use crate::views::main_menu::{MainMenu, MainMenuOption};
-use crate::views::zecwallet::{self, ZecwalletMenu, ZecwalletMenuOption};
-use crate::views::{Mountable, main_menu};
+use crate::views::zecwallet::from_path::ZecwalletFromPath;
+use crate::views::zecwallet::{ZecwalletMenu, ZecwalletMenuOption};
+use crate::views::{Mountable, Renderable, main_menu};
 
 use super::{Id, Msg};
 
@@ -21,6 +23,7 @@ pub enum Screen {
     MainMenu,
     Syncing,
     ZecwalletInput,
+    ZecwalletFromPath,
     ZcashdInput,
     LedgerInput,
 }
@@ -39,16 +42,31 @@ where
     pub terminal: TerminalBridge<T>,
     /// Active screen
     pub screen: Screen,
+    pub zecwallet_from_path: ZecwalletFromPath,
 }
 
 impl Default for Model<CrosstermTerminalAdapter> {
     fn default() -> Self {
+        let log_buffer = new_log_buffer();
+
+        let mut app = Self::init_app();
+
+        assert!(
+            app.mount(
+                Id::LogViewer,
+                Box::new(LogViewer::new(log_buffer.clone())),
+                Vec::default()
+            )
+            .is_ok()
+        );
+
         Self {
-            app: Self::init_app(),
+            app,
             quit: false,
             redraw: true,
             screen: Screen::MainMenu,
             terminal: TerminalBridge::init_crossterm().expect("Cannot initialize terminal"),
+            zecwallet_from_path: ZecwalletFromPath::new_with_log(log_buffer),
         }
     }
 }
@@ -66,7 +84,8 @@ where
                     match self.screen {
                         Screen::MainMenu => main_menu::render(app, f),
                         Screen::Syncing => todo!(),
-                        Screen::ZecwalletInput => zecwallet::render(app, f),
+                        Screen::ZecwalletInput => ZecwalletMenu::render(app, f),
+                        Screen::ZecwalletFromPath => ZecwalletFromPath::render(app, f),
                         Screen::ZcashdInput => todo!(),
                         Screen::LedgerInput => todo!(),
                     }
@@ -96,6 +115,13 @@ where
         // Mount Zecwallet view
         assert!(ZecwalletMenu::mount(&mut app).is_ok());
 
+        let log_buffer = new_log_buffer();
+
+        // Create the screen and give it the buffer
+        ZecwalletFromPath::new_with_log(log_buffer.clone());
+
+        assert!(ZecwalletFromPath::mount(&mut app).is_ok());
+
         // Active main menu
         assert!(app.active(&Id::MainMenu).is_ok());
 
@@ -123,7 +149,7 @@ where
                     assert!(
                         self.app
                             .attr(
-                                &Id::SeedInput,
+                                &Id::ZecwalletFromPath,
                                 Attribute::Text,
                                 AttrValue::String(format!("LetterCounter has now value: {}", s))
                             )
@@ -132,7 +158,11 @@ where
                     None
                 }
                 Msg::None => None,
-                Msg::SeedInputValidate(s) => todo!(),
+                Msg::SeedInputValidate(path) => {
+                    // User entered the path and pressed Enter
+                    self.zecwallet_from_path.start_sync(path);
+                    None
+                }
                 Msg::Start => {
                     self.screen = Screen::MainMenu;
                     None
@@ -176,6 +206,9 @@ impl<T: TerminalAdapter> HasScreenAndQuit for Model<T> {
                 let _ = self.app.active(&Id::LogViewer);
             }
             Screen::LedgerInput => todo!(),
+            Screen::ZecwalletFromPath => {
+                let _ = self.app.active(&Id::ZecwalletFromPath);
+            }
         }
 
         // Update screen
@@ -191,6 +224,9 @@ impl<T: TerminalAdapter> HasScreenAndQuit for Model<T> {
             }
             Screen::ZcashdInput => {
                 todo!()
+            }
+            Screen::ZecwalletFromPath => {
+                let _ = self.app.active(&Id::ZecwalletFromPath);
             }
             Screen::Syncing => {
                 let _ = self.app.active(&Id::LogViewer);

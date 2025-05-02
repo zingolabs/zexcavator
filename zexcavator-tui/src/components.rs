@@ -5,7 +5,6 @@
 use tuirealm::props::{Alignment, Borders, Color, Style};
 use tuirealm::ratatui::widgets::Block;
 
-
 use super::Msg;
 
 // -- modules
@@ -32,4 +31,8 @@ pub(crate) fn get_block<'a>(props: Borders, title: (String, Alignment), focus: b
 
 pub trait HandleMessage<T> {
     fn handle_message(msg: Msg, model: &mut T) -> Option<Msg>;
+}
+
+pub trait Focusable {
+    fn on_focus(&mut self);
 }
