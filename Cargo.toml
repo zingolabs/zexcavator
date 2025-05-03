@@ -30,8 +30,14 @@ zcash_keys = "0.5.0"
 zcash_primitives = "0.20.0"
 zewif-zwl = { git = "https://github.com/zingolabs/zewif-zwl", branch = "zewif-migration" }
 zexcavator-lib = { path = "zexcavator-lib" }
+anyhow = "1.0.98"
 
 [workspace.dependencies.zingolib]
 git = "https://github.com/zingolabs/zingolib.git"
 branch = "dev"
 package = "zingolib"
+
+[workspace.dependencies.pepper-sync]
+git = "https://github.com/zingolabs/zingolib.git"
+branch = "dev"
+package = "pepper-sync"

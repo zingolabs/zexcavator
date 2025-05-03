@@ -345,7 +345,7 @@ impl Utxo {
     pub fn write<W: WriteBytesExt>(&self, mut writer: W) -> io::Result<()> {
         writer.write_u64::<LittleEndian>(Self::serialized_version())?;
 
-        writer.write_u32::<LittleEndian>(self.address.as_bytes().len() as u32)?;
+        writer.write_u32::<LittleEndian>(self.address.len() as u32)?;
         writer.write_all(self.address.as_bytes())?;
 
         writer.write_all(self.txid.as_ref())?;
@@ -479,7 +479,7 @@ impl OutgoingTxMetadata {
 
     pub fn write<W: WriteBytesExt>(&self, mut writer: W) -> io::Result<()> {
         // Strings are written as len + utf8
-        writer.write_u64::<LittleEndian>(self.address.as_bytes().len() as u64)?;
+        writer.write_u64::<LittleEndian>(self.address.len() as u64)?;
         writer.write_all(self.address.as_bytes())?;
 
         writer.write_u64::<LittleEndian>(self.value)?;
@@ -1094,24 +1094,21 @@ impl WalletTxns {
         // Update the block height, in case this was a mempool or unconfirmed tx.
         wtx.block = height;
 
-        match wtx.s_notes.iter_mut().find(|n| n.note == note) {
-            None => {
-                let nd = SaplingNoteData {
-                    extfvk: extfvk.clone(),
-                    diversifier: *to.diversifier(),
-                    note,
-                    witnesses: WitnessCache::empty(),
-                    nullifier: Nullifier([0u8; 32]),
-                    spent: None,
-                    unconfirmed_spent: None,
-                    memo: None,
-                    is_change,
-                    have_spending_key: false,
-                };
+        if wtx.s_notes.iter_mut().find(|n| n.note == note).is_none() {
+            let nd = SaplingNoteData {
+                extfvk: extfvk.clone(),
+                diversifier: *to.diversifier(),
+                note,
+                witnesses: WitnessCache::empty(),
+                nullifier: Nullifier([0u8; 32]),
+                spent: None,
+                unconfirmed_spent: None,
+                memo: None,
+                is_change,
+                have_spending_key: false,
+            };
 
-                wtx.s_notes.push(nd);
-            }
-            Some(_) => {}
+            wtx.s_notes.push(nd);
         }
     }
 

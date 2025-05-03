@@ -75,11 +75,11 @@ pub fn start_wallet_sync(logs: LogBuffer, path: PathBuf) {
                 match lc.poll_sync() {
                     PollReport::NoHandle => {
                         // logs.lock().unwrap().push("No handle".to_string());
-                        ()
+                        
                     }
                     PollReport::NotReady => {
                         // logs.lock().unwrap().push("Not ready".to_string());
-                        ()
+                        
                     }
                     PollReport::Ready(result) => match result {
                         Ok(sync_result) => {

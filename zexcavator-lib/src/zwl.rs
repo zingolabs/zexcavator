@@ -622,11 +622,11 @@ impl WalletParser for ZecWalletLite {
     }
 
     fn get_wallet_seed(&self) -> [u8; 32] {
-        return self.keys.seed;
+        self.keys.seed
     }
 
     fn get_birthday(&self) -> u64 {
-        return self.birthday;
+        self.birthday
     }
 }
 

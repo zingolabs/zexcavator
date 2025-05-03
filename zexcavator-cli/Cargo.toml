@@ -10,11 +10,12 @@ serde = { workspace = true, features = ["serde_derive"] }
 thiserror = { workspace = true }
 bc-envelope = { workspace = true }
 tokio = { workspace = true }
-http = { workspace = true }
+http.workspace = true
 zingolib = { workspace = true }
+pepper-sync = { workspace = true }
 rustls = { workspace = true }
 zewif-zwl = { workspace = true }
-abscissa_core= { workspace = true }
+abscissa_core = { workspace = true }
 
 [dev-dependencies]
 abscissa_core = { workspace = true, features = ["testing"] }

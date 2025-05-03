@@ -5,7 +5,7 @@ use tuirealm::{Application, Frame, NoUserEvent};
 
 use crate::components::Focusable;
 use crate::components::input::SeedInput;
-use crate::components::log_viewer::{LogBuffer, new_log_buffer, start_wallet_sync};
+use crate::components::log_viewer::{LogBuffer, start_wallet_sync};
 use crate::views::Renderable;
 use crate::{Id, Msg};
 

@@ -9,7 +9,7 @@ tui-realm-stdlib = { workspace = true }
 rustls = { workspace = true }
 tokio = { workspace = true }
 zingolib = { workspace = true }
-anyhow = "1.0.98"
+pepper-sync = { workspace = true }
+anyhow = { workspace = true }
 http.workspace = true
-pepper-sync = { git = "https://github.com/zingolabs/zingolib.git", branch = "dev", package = "pepper-sync" }
 zexcavator-lib = { workspace = true }
