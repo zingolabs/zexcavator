@@ -7,9 +7,15 @@ edition = "2024"
 byteorder = { workspace = true }
 zcash_primitives = { workspace = true, features = ["transparent-inputs"] }
 zcash_encoding = { workspace = true }
-zcash_keys = { workspace = true, features = ["transparent-inputs", "sapling", "orchard"] }
-zcash_client_backend = { workspace = true, features = ["transparent-inputs", "orchard"] }
-orchard = { workspace = true }
+zcash_keys = { workspace = true, features = [
+    "transparent-inputs",
+    "sapling",
+    "orchard",
+] }
+zcash_client_backend = { workspace = true, features = [
+    "transparent-inputs",
+    "orchard",
+] }
 sapling = { package = "sapling-crypto", version = "0.3", default-features = false }
 secp256k1 = { workspace = true }
 bip0039 = { workspace = true }
@@ -18,5 +24,8 @@ jubjub = { workspace = true }
 rusqlite = { workspace = true }
 bridgetree = { workspace = true }
 prost = { workspace = true }
+incrementalmerkletree = "0.3.1"
+orchard_old = { package = "orchard", version = "=0.3.0" }
+orchard_new = { package = "orchard", version = "0.10.1" }
 
 # zingolib = { workspace = true }

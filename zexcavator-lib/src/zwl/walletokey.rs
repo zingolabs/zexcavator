@@ -1,11 +1,12 @@
+use std::{fmt, io};
+
 use byteorder::{LittleEndian, ReadBytesExt};
-use orchard::keys::{FullViewingKey, Scope, SpendingKey};
-use std::{
-    fmt,
-    io::{self, Read},
-};
+use orchard_old::keys::{FullViewingKey, Scope, SpendingKey};
 use zcash_encoding::{Optional, Vector};
 use zcash_keys::address::UnifiedAddress;
+
+use orchard_new::Address as NewAddress;
+use orchard_old::Address as OldAddress;
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum WalletOKeyType {
@@ -14,6 +15,7 @@ pub enum WalletOKeyType {
     ImportedFullViewKey = 2,
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug)]
 pub struct WalletOKey {
     pub locked: bool,
@@ -36,7 +38,7 @@ impl WalletOKey {
         1
     }
 
-    pub fn read<R: Read>(mut reader: R) -> io::Result<Self> {
+    pub fn read<R: ReadBytesExt>(mut reader: R) -> io::Result<Self> {
         let version = reader.read_u8()?;
         assert!(version <= Self::serialized_version());
 
@@ -68,8 +70,10 @@ impl WalletOKey {
         })?;
 
         // Derive unified address (orchard only) from fvk
-        let address = fvk.address_at(0u64, Scope::External);
-        let unified_address = UnifiedAddress::from_receivers(Some(address), None, None)
+        let old_address: orchard_old::Address = fvk.address_at(0u64, Scope::External);
+
+        let new_address = NewAddress::from_old(old_address);
+        let unified_address = UnifiedAddress::from_receivers(Some(new_address), None, None)
             .expect("Failed to construct unified address");
 
         // read "possible" encrypted key
@@ -91,15 +95,9 @@ impl WalletOKey {
     }
 }
 
+#[allow(unreachable_patterns)]
 impl fmt::Display for WalletOKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(
-            f,
-            "WalletOKey Version: {}",
-            WalletOKey::serialized_version()
-        )
-        .unwrap();
-
         match self.keytype {
             WalletOKeyType::HdKey => {
                 writeln!(f, "Type: HD key").unwrap();
@@ -133,5 +131,15 @@ impl fmt::Display for WalletOKey {
         writeln!(f, "{:?}", self.unified_address).unwrap();
 
         Ok(())
+    }
+}
+
+pub trait MyFrom<T> {
+    fn from_old(old: T) -> Self;
+}
+
+impl MyFrom<OldAddress> for NewAddress {
+    fn from_old(old: OldAddress) -> Self {
+        Self::from_raw_address_bytes(&old.to_raw_address_bytes()).unwrap()
     }
 }

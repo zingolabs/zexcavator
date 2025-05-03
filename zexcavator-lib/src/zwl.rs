@@ -46,13 +46,16 @@ use crate::{WalletKeyType, WalletParser};
 use bip0039::{English, Mnemonic};
 
 use block::CompactBlockData;
-use bridgetree::{Address, BridgeTree, Checkpoint, Hashable, Level, MerkleBridge, Position};
 use data::{WalletOptions, WalletZecPriceInfo};
+use incrementalmerkletree::{
+    Hashable, Position,
+    bridgetree::{AuthFragment, BridgeTree, Checkpoint, Leaf, MerkleBridge, NonEmptyFrontier},
+};
 use keys::Keys;
 // use data::BlockData;
 // use wallet_txns::WalletTxns;
 
-use orchard::{keys::SpendingKey, zip32::ChildIndex};
+use orchard_old::{keys::SpendingKey, tree::MerkleHashOrchard};
 use sapling::zip32::ExtendedSpendingKey;
 use transactions::WalletTxns;
 use zcash_client_backend::{encoding::encode_transparent_address, proto::service::TreeState};
@@ -68,22 +71,26 @@ use zcash_primitives::{
         B58_PUBKEY_ADDRESS_PREFIX, B58_SCRIPT_ADDRESS_PREFIX, HRP_SAPLING_PAYMENT_ADDRESS,
     },
     legacy::keys::{AccountPrivKey, IncomingViewingKey, NonHardenedChildIndex},
-    merkle_tree::{
-        HashSer, read_address, read_leu64_usize, read_nonempty_frontier_v1, read_position,
-    },
-    zip32::AccountId,
+    zip32::{AccountId, ChildIndex},
 };
 
 use byteorder::{LittleEndian, ReadBytesExt};
 use std::{
-    collections::{BTreeMap, BTreeSet},
+    collections::BTreeMap,
     fmt::Display,
     fs::File,
     io::{self, BufReader, ErrorKind},
 };
+
+use orchard_new::Address as NewAddress;
+
+use walletokey::MyFrom;
+
+use orchard_data::{HashSer, MERKLE_DEPTH, SER_V1};
+
 // use zcash_encoding::Vector;
 #[derive(Debug, Clone)]
-pub struct ZecWalletLite {
+pub struct ZwlWallet {
     pub version: u64,
     pub keys: Keys,
     pub blocks: Vec<CompactBlockData>,
@@ -92,10 +99,11 @@ pub struct ZecWalletLite {
     pub wallet_options: WalletOptions,
     pub birthday: u64,
     pub verified_tree: Option<TreeState>,
+    pub orchard_witnesses: Option<BridgeTree<MerkleHashOrchard, MERKLE_DEPTH>>,
     pub price_info: WalletZecPriceInfo,
 }
 
-impl ZecWalletLite {
+impl ZwlWallet {
     fn serialized_version() -> u64 {
         25
     }
@@ -241,12 +249,19 @@ impl ZecWalletLite {
             let sk = SpendingKey::from_zip32_seed(
                 &seed,
                 133,
-                AccountId::try_from(hdkey_num).expect("invalid account id"),
+                AccountId::try_from(hdkey_num)
+                    .expect("invalid account id")
+                    .into(),
             )
             .expect("invalid zip32 seed");
-            let fvk = orchard::keys::FullViewingKey::from(&sk);
-            let oaddr = fvk.address_at(0u64, orchard::keys::Scope::External);
-            let o_address = UnifiedAddress::from_receivers(Some(oaddr), None, None)
+            let fvk = orchard_old::keys::FullViewingKey::from(&sk);
+            let oaddr = fvk.address_at(0u64, orchard_old::keys::Scope::External);
+
+            let old_address: orchard_old::Address =
+                fvk.address_at(0u64, orchard_old::keys::Scope::External);
+
+            let new_address = NewAddress::from_old(old_address);
+            let o_address = UnifiedAddress::from_receivers(Some(new_address), None, None)
                 .expect("Invalud unified address");
 
             let okeys = crate::WalletOKey {
@@ -306,7 +321,7 @@ impl ZecWalletLite {
         }
 
         Ok(crate::Wallet {
-            wallet_name: "ZecWalletLite".to_string(),
+            wallet_name: "ZwlWallet".to_string(),
             version: 25,
             accounts,
         })
@@ -338,25 +353,23 @@ impl ZecWalletLite {
     /// such data the returned identifiers will *not* correspond to block heights. As such, checkpoint
     /// ids should always be treated as opaque, totally ordered identifiers without additional
     /// semantics.
-    #[allow(clippy::needless_borrows_for_generic_args)]
     #[allow(clippy::redundant_closure)]
     pub fn read_tree<H: Hashable + HashSer + Ord + Clone, R: ReadBytesExt>(
         mut reader: R,
-    ) -> io::Result<BridgeTree<H, u32, 32>> {
+    ) -> io::Result<BridgeTree<MerkleHashOrchard, 32>> {
         let _version = reader.read_u64::<LittleEndian>()?;
 
-        // TODO: Add tree version check
-        let prior_bridges = Vector::read(&mut reader, |r| ZecWalletLite::read_bridge_v1(r))?;
-        let current_bridge = Optional::read(&mut reader, |r| ZecWalletLite::read_bridge_v1(r))?;
-        let saved = Vector::read_collected(&mut reader, |mut r| {
-            Ok((read_position(&mut r)?, read_leu64_usize(&mut r)?))
+        let prior_bridges = Vector::read(&mut reader, |r| Self::read_bridge(r))?;
+        let current_bridge = Optional::read(&mut reader, |r| Self::read_bridge(r))?;
+        let saved: BTreeMap<Position, usize> = Vector::read_collected(&mut reader, |mut r| {
+            Ok((
+                Self::read_position(&mut r)?,
+                Self::read_leu64_usize(&mut r)?,
+            ))
         })?;
 
-        let fake_checkpoint_id = 0u32;
-        let checkpoints = Vector::read_collected(&mut reader, |r| {
-            ZecWalletLite::read_checkpoint_v2(r, fake_checkpoint_id)
-        })?;
-        let max_checkpoints = read_leu64_usize(&mut reader)?;
+        let checkpoints = Vector::read_collected(&mut reader, |r| Self::read_checkpoint_v2(r))?;
+        let max_checkpoints = Self::read_leu64_usize(&mut reader)?;
 
         BridgeTree::from_parts(
             prior_bridges,
@@ -376,91 +389,55 @@ impl ZecWalletLite {
         })
     }
 
-    #[allow(clippy::needless_borrows_for_generic_args)]
+    pub fn read_bridge<H: HashSer + Ord + Clone, R: ReadBytesExt>(
+        mut reader: R,
+    ) -> io::Result<MerkleBridge<H>> {
+        match reader.read_u8()? {
+            SER_V1 => ZwlWallet::read_bridge_v1(&mut reader),
+            flag => Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!("Unrecognized serialization version: {:?}", flag),
+            )),
+        }
+    }
+
     pub fn read_bridge_v1<H: HashSer + Ord + Clone, R: ReadBytesExt>(
         mut reader: R,
     ) -> io::Result<MerkleBridge<H>> {
-        fn levels_required(pos: Position) -> impl Iterator<Item = Level> {
-            (0u8..64).filter_map(move |i| {
-                if u64::from(pos) == 0 || u64::from(pos) & (1 << i) == 0 {
-                    Some(Level::from(i))
-                } else {
-                    None
-                }
-            })
-        }
-
-        let prior_position = Optional::read(&mut reader, read_position)?;
-
-        let fragments = Vector::read(&mut reader, |mut r| {
-            let fragment_position = read_position(&mut r)?;
-            let (pos, levels_observed, values) = ZecWalletLite::read_auth_fragment_v1(r)?;
-
-            if fragment_position == pos {
-                Ok((pos, levels_observed, values))
-            } else {
-                Err(io::Error::new(
-                    io::ErrorKind::InvalidData,
-                    format!(
-                        "Auth fragment position mismatch: {:?} != {:?}",
-                        fragment_position, pos
-                    ),
-                ))
-            }
-        })?;
-
-        let frontier = read_nonempty_frontier_v1(&mut reader)?;
-        let mut tracking = BTreeSet::new();
-        let mut ommers = BTreeMap::new();
-        for (pos, levels_observed, values) in fragments.into_iter() {
-            // get the list of levels at which we expect to find future ommers for the position being
-            // tracked
-            let levels = levels_required(pos)
-                .take(levels_observed + 1)
-                .collect::<Vec<_>>();
-
-            // track the currently-incomplete parent of the tracked position at max height (the one
-            // we're currently building)
-            tracking.insert(Address::above_position(*levels.last().unwrap(), pos));
-
-            for (level, ommer_value) in levels
-                .into_iter()
-                .rev()
-                .skip(1)
-                .zip(values.into_iter().rev())
-            {
-                let ommer_address = Address::above_position(level, pos).sibling();
-                ommers.insert(ommer_address, ommer_value);
-            }
-        }
+        let prior_position = Optional::read(&mut reader, ZwlWallet::read_position)?;
+        let auth_fragments = Vector::read(&mut reader, |mut r| {
+            Ok((
+                Self::read_position(&mut r)?,
+                ZwlWallet::read_auth_fragment_v1(r)?,
+            ))
+        })?
+        .into_iter()
+        .collect();
+        let frontier = Self::read_nonempty_frontier_v1(&mut reader)?;
 
         Ok(MerkleBridge::from_parts(
             prior_position,
-            tracking,
-            ommers,
+            auth_fragments,
             frontier,
         ))
     }
 
-    #[allow(clippy::needless_borrows_for_generic_args)]
-    pub fn read_bridge_v2<H: HashSer + Ord + Clone, R: ReadBytesExt>(
-        mut reader: R,
-    ) -> io::Result<MerkleBridge<H>> {
-        let prior_position = Optional::read(&mut reader, read_position)?;
-        let tracking = Vector::read_collected(&mut reader, |r| read_address(r))?;
-        let ommers = Vector::read_collected(&mut reader, |mut r| {
-            let addr = read_address(&mut r)?;
-            let value = H::read(&mut r)?;
-            Ok((addr, value))
-        })?;
-        let frontier = read_nonempty_frontier_v1(&mut reader)?;
-
-        Ok(MerkleBridge::from_parts(
-            prior_position,
-            tracking,
-            ommers,
-            frontier,
-        ))
+    pub fn read_position<R: ReadBytesExt>(mut reader: R) -> io::Result<Position> {
+        Self::read_leu64_usize(&mut reader).map(Position::from)
+    }
+    /// Reads a usize value encoded as a u64 in little-endian order. Since usize
+    /// is platform-dependent, we consistently represent it as u64 in serialized
+    /// formats.
+    pub fn read_leu64_usize<R: ReadBytesExt>(mut reader: R) -> io::Result<usize> {
+        reader.read_u64::<LittleEndian>()?.try_into().map_err(|e| {
+            io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!(
+                    "usize could not be decoded from a 64-bit value on this platform: {:?}",
+                    e
+                ),
+            )
+        })
     }
 
     /// Reads part of the information required to part of a construct a `bridgetree` version `0.3.0`
@@ -469,12 +446,12 @@ impl ZecWalletLite {
     #[allow(clippy::redundant_closure)]
     pub fn read_auth_fragment_v1<H: HashSer, R: ReadBytesExt>(
         mut reader: R,
-    ) -> io::Result<(bridgetree::Position, usize, Vec<H>)> {
-        let position = read_position(&mut reader)?;
-        let alts_observed = read_leu64_usize(&mut reader)?;
+    ) -> io::Result<AuthFragment<H>> {
+        let position = Self::read_position(&mut reader)?;
+        let alts_observed = Self::read_leu64_usize(&mut reader)?;
         let values = Vector::read(&mut reader, |r| H::read(r))?;
 
-        Ok((position, alts_observed, values))
+        Ok(AuthFragment::from_parts(position, alts_observed, values))
     }
 
     /// Reads a [`bridgetree::Checkpoint`] as encoded from the `incrementalmerkletree` version `0.3.0`
@@ -484,30 +461,44 @@ impl ZecWalletLite {
     /// ordinary circumstances, the checkpoint ID will be the block height at which the checkpoint was
     /// created, but since we don't have any source for this information, we require the caller to
     /// provide it; any unique identifier will do so long as the identifiers are ordered correctly.
-    #[allow(clippy::needless_borrows_for_generic_args)]
-    pub fn read_checkpoint_v2<R: ReadBytesExt>(
-        mut reader: R,
-        checkpoint_id: u32,
-    ) -> io::Result<Checkpoint<u32>> {
-        let bridges_len = read_leu64_usize(&mut reader)?;
-        let _ = reader.read_u8()? == 1; // legacy is_marked flag
-        let marked = Vector::read_collected(&mut reader, |r| read_position(r))?;
-        let forgotten = Vector::read_collected(&mut reader, |mut r| {
-            let pos = read_position(&mut r)?;
-            let _ = read_leu64_usize(&mut r)?;
-            Ok(pos)
-        })?;
-
+    pub fn read_checkpoint_v2<R: ReadBytesExt>(mut reader: R) -> io::Result<Checkpoint> {
         Ok(Checkpoint::from_parts(
-            checkpoint_id,
-            bridges_len,
-            marked,
-            forgotten,
+            Self::read_leu64_usize(&mut reader)?,
+            reader.read_u8()? == 1,
+            Vector::read_collected(&mut reader, |r| Self::read_position(r))?,
+            Vector::read_collected(&mut reader, |mut r| {
+                Ok((
+                    ZwlWallet::read_position(&mut r)?,
+                    Self::read_leu64_usize(&mut r)?,
+                ))
+            })?,
         ))
+    }
+
+    #[allow(clippy::redundant_closure)]
+    pub fn read_nonempty_frontier_v1<H: HashSer + Clone, R: ReadBytesExt>(
+        mut reader: R,
+    ) -> io::Result<NonEmptyFrontier<H>> {
+        let position = Self::read_position(&mut reader)?;
+        let left = H::read(&mut reader)?;
+        let right = Optional::read(&mut reader, H::read)?;
+
+        let leaf = right.map_or_else(
+            || Leaf::Left(left.clone()),
+            |r| Leaf::Right(left.clone(), r),
+        );
+        let ommers = Vector::read(&mut reader, |r| H::read(r))?;
+
+        NonEmptyFrontier::from_parts(position, leaf, ommers).map_err(|err| {
+            io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!("Parsing resulted in an invalid Merkle frontier: {:?}", err),
+            )
+        })
     }
 }
 
-impl WalletParser for ZecWalletLite {
+impl WalletParser for ZwlWallet {
     fn read(filename: &str) -> io::Result<Self> {
         let file = File::open(filename)
             .map_err(|e| format!("Can't open file {}", e))
@@ -532,7 +523,7 @@ impl WalletParser for ZecWalletLite {
 
         let txns = WalletTxns::read(&mut reader)?;
 
-        let chain_name = ZecWalletLite::read_string(&mut reader)?;
+        let chain_name = ZwlWallet::read_string(&mut reader)?;
 
         let wallet_options = WalletOptions::read(&mut reader)?;
 
@@ -549,7 +540,12 @@ impl WalletParser for ZecWalletLite {
 
         let price_info = WalletZecPriceInfo::read(&mut reader)?;
 
-        // TODO: orchard witnesses
+        // Read the orchard tree
+        let orchard_witnesses = if version <= 24 {
+            None
+        } else {
+            Optional::read(reader, |r| Self::read_tree::<MerkleHashOrchard, _>(r))?
+        };
 
         Ok(Self {
             version,
@@ -560,12 +556,13 @@ impl WalletParser for ZecWalletLite {
             wallet_options,
             birthday,
             verified_tree,
+            orchard_witnesses,
             price_info,
         })
     }
 
     fn get_wallet_name(&self) -> String {
-        "ZecWalletLite".to_string()
+        "ZwlWallet".to_string()
     }
 
     fn get_wallet_version(&self) -> u64 {
@@ -630,7 +627,7 @@ impl WalletParser for ZecWalletLite {
     }
 }
 
-impl Display for ZecWalletLite {
+impl Display for ZwlWallet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "Wallet Version: {}", self.version).unwrap();
         writeln!(f, "{}", self.keys).unwrap();
@@ -677,8 +674,8 @@ mod tests {
     use super::*;
     use bip0039::{English, Mnemonic};
 
-    fn get_wallet() -> ZecWalletLite {
-        ZecWalletLite::read("../zecwallet-light-wallet.dat")
+    fn get_wallet() -> ZwlWallet {
+        ZwlWallet::read("../zecwallet-light-wallet.dat")
             .map_err(|e| format!("Error parsing wallet {}", e))
             .unwrap()
     }

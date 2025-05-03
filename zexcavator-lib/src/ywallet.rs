@@ -138,13 +138,15 @@ impl YWallet {
                     crate::WalletKeyType::Imported
                 };
 
-                Ok(Some(WalletOKey {
-                    sk,
-                    fvk,
-                    key_type,
-                    index,
-                    address,
-                }))
+                // FIXME
+                // Ok(Some(WalletOKey {
+                //     sk,
+                //     fvk,
+                //     key_type,
+                //     index,
+                //     address,
+                // }))
+                Ok(None)
             }
             Err(_) => Ok(None),
         }

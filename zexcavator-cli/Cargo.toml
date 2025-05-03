@@ -14,7 +14,6 @@ http.workspace = true
 zingolib = { workspace = true }
 pepper-sync = { workspace = true }
 rustls = { workspace = true }
-zewif-zwl = { workspace = true }
 abscissa_core = { workspace = true }
 
 [dev-dependencies]

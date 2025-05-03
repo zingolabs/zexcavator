@@ -4,23 +4,21 @@ use std::{
     io::{self},
 };
 
-use bridgetree::Position;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use orchard::keys::FullViewingKey;
-use sapling::{zip32::ExtendedFullViewingKey, IncrementalWitness, Note, Nullifier, PaymentAddress};
+use incrementalmerkletree::Position;
+use orchard_old::keys::FullViewingKey;
+use sapling::{IncrementalWitness, Note, Nullifier, PaymentAddress, zip32::ExtendedFullViewingKey};
 use zcash_encoding::{Optional, Vector};
 use zcash_primitives::{
     consensus::BlockHeight,
     memo::{Memo, MemoBytes},
     transaction::{
-        components::{OutPoint, TxOut},
         TxId,
+        components::{OutPoint, TxOut},
     },
 };
 
-use super::{
-    data::WalletZecPriceInfo, orchard_data::OrchardNoteData, sapling_data::SaplingNoteData,
-};
+use super::{orchard_data::OrchardNoteData, sapling_data::SaplingNoteData};
 
 pub const MAX_REORG: usize = 100;
 
@@ -43,7 +41,7 @@ pub struct WalletTx {
     pub s_spent_nullifiers: Vec<sapling::Nullifier>,
 
     // List of all orchard nullifiers spent in this Tx.
-    pub o_spent_nullifiers: Vec<orchard::note::Nullifier>,
+    pub o_spent_nullifiers: Vec<orchard_old::note::Nullifier>,
 
     // List of all notes received in this tx. Some of these might be change notes.
     pub s_notes: Vec<SaplingNoteData>,
@@ -73,6 +71,7 @@ pub struct WalletTx {
     pub zec_price: Option<f64>,
 }
 
+#[allow(dead_code)]
 impl WalletTx {
     pub fn serialized_version() -> u64 {
         23
@@ -82,21 +81,6 @@ impl WalletTx {
         let mut txid_bytes = [0u8; 32];
         txid_bytes.copy_from_slice(txid);
         TxId::from_bytes(txid_bytes)
-    }
-
-    pub fn get_price(datetime: u64, price: &WalletZecPriceInfo) -> Option<f64> {
-        match price.zec_price {
-            None => None,
-            Some((t, p)) => {
-                // If the price was fetched within 24 hours of this Tx, we use the "current" price
-                // else, we mark it as None, for the historical price fetcher to get
-                if (t as i64 - datetime as i64).abs() < 24 * 60 * 60 {
-                    Some(p)
-                } else {
-                    None
-                }
-            }
-        }
     }
 
     pub fn new(height: BlockHeight, datetime: u64, txid: &TxId, unconfirmed: bool) -> Self {
@@ -185,7 +169,7 @@ impl WalletTx {
             Vector::read(&mut reader, |r| {
                 let mut rho_bytes = [0u8; 32];
                 r.read_exact(&mut rho_bytes)?;
-                Ok(orchard::note::Nullifier::from_bytes(&rho_bytes).unwrap())
+                Ok(orchard_old::note::Nullifier::from_bytes(&rho_bytes).unwrap())
             })?
         };
 
@@ -273,6 +257,7 @@ pub struct Utxo {
     pub unconfirmed_spent: Option<(TxId, u32)>,
 }
 
+#[allow(dead_code)]
 impl Utxo {
     pub fn serialized_version() -> u64 {
         3
@@ -374,11 +359,12 @@ impl Utxo {
 }
 
 #[derive(Clone, Debug)]
-pub(crate) struct WitnessCache {
-    pub(crate) witnesses: Vec<IncrementalWitness>,
-    pub(crate) top_height: u64,
+pub struct WitnessCache {
+    pub witnesses: Vec<IncrementalWitness>,
+    pub top_height: u64,
 }
 
+#[allow(dead_code)]
 impl WitnessCache {
     pub fn new(witnesses: Vec<IncrementalWitness>, top_height: u64) -> Self {
         Self {
@@ -490,6 +476,7 @@ impl OutgoingTxMetadata {
 /// List of all transactions in a wallet.
 /// Note that the parent is expected to hold a RwLock, so we will assume that all accesses to
 /// this struct are threadsafe/locked properly.
+#[allow(dead_code)]
 #[derive(Clone, Debug)]
 pub struct WalletTxns {
     pub(crate) current: HashMap<TxId, WalletTx>,
@@ -502,6 +489,7 @@ impl Default for WalletTxns {
     }
 }
 
+#[allow(dead_code)]
 impl WalletTxns {
     pub fn serialized_version() -> u64 {
         21
@@ -727,7 +715,7 @@ impl WalletTxns {
             .collect()
     }
 
-    pub fn get_unspent_o_nullifiers(&self) -> Vec<(orchard::note::Nullifier, u64, TxId)> {
+    pub fn get_unspent_o_nullifiers(&self) -> Vec<(orchard_old::note::Nullifier, u64, TxId)> {
         self.current
             .iter()
             .flat_map(|(_, wtx)| {
@@ -825,7 +813,7 @@ impl WalletTxns {
     pub fn mark_txid_o_nf_spent(
         &mut self,
         txid: &TxId,
-        nullifier: &orchard::note::Nullifier,
+        nullifier: &orchard_old::note::Nullifier,
         spent_txid: &TxId,
         spent_at_height: BlockHeight,
     ) -> u64 {
@@ -915,7 +903,7 @@ impl WalletTxns {
         height: BlockHeight,
         unconfirmed: bool,
         timestamp: u32,
-        nullifier: orchard::note::Nullifier,
+        nullifier: orchard_old::note::Nullifier,
         value: u64,
         source_txid: TxId,
     ) -> Option<Position> {
@@ -1094,7 +1082,7 @@ impl WalletTxns {
         // Update the block height, in case this was a mempool or unconfirmed tx.
         wtx.block = height;
 
-        if wtx.s_notes.iter_mut().find(|n| n.note == note).is_none() {
+        if !wtx.s_notes.iter_mut().any(|n| n.note == note) {
             let nd = SaplingNoteData {
                 extfvk: extfvk.clone(),
                 diversifier: *to.diversifier(),
@@ -1118,7 +1106,7 @@ impl WalletTxns {
         height: BlockHeight,
         unconfirmed: bool,
         timestamp: u64,
-        note: orchard::Note,
+        note: orchard_old::Note,
         created_at: (u64, usize, u32),
         fvk: &FullViewingKey,
         have_spending_key: bool,
@@ -1235,7 +1223,7 @@ impl WalletTxns {
         &mut self,
         txid: &TxId,
         fvk: &FullViewingKey,
-        note: orchard::Note,
+        note: orchard_old::Note,
         memo: Memo,
     ) {
         // println!("Adding memo to orchard note");

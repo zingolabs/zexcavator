@@ -1,7 +1,7 @@
 use std::error::Error;
 
 use bip0039::{English, Mnemonic};
-use orchard::keys::{FullViewingKey, SpendingKey};
+use orchard_new::keys::{FullViewingKey, SpendingKey};
 use rusqlite::Connection;
 use sapling::zip32::{ExtendedFullViewingKey, ExtendedSpendingKey};
 use secp256k1::SecretKey;
@@ -185,7 +185,7 @@ pub fn get_account_o_keys(
         let o = fvk
             .clone()
             .unwrap()
-            .address_at(index.unwrap(), orchard::keys::Scope::External);
+            .address_at(index.unwrap(), orchard_new::keys::Scope::External);
         let ua = UnifiedAddress::from_receivers(Some(o), None, None).expect("Invalid oaddrs");
 
         ua.encode(&MainNetwork)
