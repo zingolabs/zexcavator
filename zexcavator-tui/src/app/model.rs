@@ -25,7 +25,6 @@ pub enum Screen {
     ZecwalletInput,
     ZecwalletFromPath,
     ZcashdInput,
-    LedgerInput,
 }
 
 pub struct Model<T>
@@ -87,7 +86,6 @@ where
                         Screen::ZecwalletInput => ZecwalletMenu::render(app, f),
                         Screen::ZecwalletFromPath => ZecwalletFromPath::render(app, f),
                         Screen::ZcashdInput => todo!(),
-                        Screen::LedgerInput => todo!(),
                     }
                 })
                 .is_ok()
@@ -169,12 +167,15 @@ where
                 }
                 Msg::MenuCursorMove(_) => None,
                 Msg::MenuSelected(label) => {
-                    if let Some(selection) = MainMenuOption::from_label(&label) {
-                        MainMenu::handle_message(Msg::MenuSelected(label), self)
-                    } else if let Some(item) = ZecwalletMenuOption::from_label(&label) {
-                        ZecwalletMenu::handle_message(Msg::MenuSelected(label), self)
-                    } else {
-                        None
+                    match (
+                        MainMenuOption::from_label(&label),
+                        ZecwalletMenuOption::from_label(&label),
+                    ) {
+                        (Some(_), _) => MainMenu::handle_message(Msg::MenuSelected(label), self),
+                        (_, Some(_)) => {
+                            ZecwalletMenu::handle_message(Msg::MenuSelected(label), self)
+                        }
+                        _ => None,
                     }
                 }
             }
@@ -205,7 +206,6 @@ impl<T: TerminalAdapter> HasScreenAndQuit for Model<T> {
             Screen::Syncing => {
                 let _ = self.app.active(&Id::LogViewer);
             }
-            Screen::LedgerInput => todo!(),
             Screen::ZecwalletFromPath => {
                 let _ = self.app.active(&Id::ZecwalletFromPath);
             }
@@ -231,7 +231,6 @@ impl<T: TerminalAdapter> HasScreenAndQuit for Model<T> {
             Screen::Syncing => {
                 let _ = self.app.active(&Id::LogViewer);
             }
-            Screen::LedgerInput => todo!(),
         }
     }
 
