@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use anyhow::Result;
 use tuirealm::ratatui::layout::{Constraint, Direction, Layout};
 use tuirealm::{Application, Frame, NoUserEvent};
 
@@ -17,14 +18,16 @@ pub struct ZecwalletFromPath {
 
 impl ZecwalletFromPath {
     pub fn start_sync(&mut self, path: String) {
-        // self.path = Some(path);
-
-        // Start the wallet sync with that input
         start_wallet_sync(self.log_buffer.clone(), PathBuf::from(path));
     }
 
     pub fn new_with_log(log_buffer: LogBuffer) -> Self {
         Self { log_buffer }
+    }
+
+    pub fn validate_path(path: PathBuf) -> Result<()> {
+        path.canonicalize()?;
+        Ok(())
     }
 }
 

@@ -2,6 +2,8 @@
 //!
 //! app model
 
+use std::path::PathBuf;
+use std::str::FromStr;
 use std::time::Duration;
 
 use tuirealm::event::NoUserEvent;
@@ -157,8 +159,13 @@ where
                 }
                 Msg::None => None,
                 Msg::SeedInputValidate(path) => {
-                    // User entered the path and pressed Enter
-                    self.zecwallet_from_path.start_sync(path);
+                    match ZecwalletFromPath::validate_path(PathBuf::from_str(&path).unwrap()) {
+                        Err(_) => None::<Msg>,
+                        Ok(_) => {
+                            self.zecwallet_from_path.start_sync(path);
+                            return None;
+                        }
+                    };
                     None
                 }
                 Msg::Start => {
