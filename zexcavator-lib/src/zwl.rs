@@ -544,7 +544,7 @@ impl WalletParser for ZwlWallet {
         let orchard_witnesses = if version <= 24 {
             None
         } else {
-            Optional::read(reader, |r| Self::read_tree::<MerkleHashOrchard, _>(r))?
+            Optional::read(reader, Self::read_tree::<MerkleHashOrchard, _>)?
         };
 
         Ok(Self {

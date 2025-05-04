@@ -1,3 +1,4 @@
+pub mod from_mnemonic;
 pub mod from_path;
 
 use tuirealm::ratatui::layout::{Constraint, Direction, Layout};
@@ -72,10 +73,10 @@ where
             Msg::MenuSelected(option) => {
                 if let Some(menu_item) = ZecwalletMenuOption::from_label(&option) {
                     match menu_item {
+                        ZecwalletMenuOption::Path => model.navigate_to(Screen::ZecwalletFromPath),
                         ZecwalletMenuOption::Mnemonic => {
-                            model.navigate_to(Screen::ZecwalletFromPath)
+                            model.navigate_to(Screen::ZecwalletFromMnemonic)
                         }
-                        ZecwalletMenuOption::Path => model.navigate_to(Screen::ZecwalletInput),
                         ZecwalletMenuOption::Seed => model.navigate_to(Screen::ZecwalletInput),
                     }
                 }
