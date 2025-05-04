@@ -1,19 +1,58 @@
 use std::io::{self};
 
-use bridgetree::Position;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use orchard::{keys::FullViewingKey, note::RandomSeed, value::NoteValue, Address};
+use incrementalmerkletree::Position;
+use orchard_old::{
+    Address, keys::FullViewingKey, note::RandomSeed, tree::MerkleHashOrchard, value::NoteValue,
+};
 use zcash_encoding::Optional;
 use zcash_primitives::{
     memo::{Memo, MemoBytes},
     transaction::TxId,
 };
 
+pub const MERKLE_DEPTH: u8 = 32;
+
+pub const SER_V1: u8 = 1;
+
+/// A hashable node within a Merkle tree.
+#[allow(dead_code)]
+pub trait HashSer {
+    /// Parses a node from the given byte source.
+    fn read<R: ReadBytesExt>(reader: R) -> io::Result<Self>
+    where
+        Self: Sized;
+
+    /// Serializes this node.
+    fn write<W: WriteBytesExt>(&self, writer: W) -> io::Result<()>;
+}
+
+impl HashSer for MerkleHashOrchard {
+    fn read<R: ReadBytesExt>(mut reader: R) -> io::Result<Self>
+    where
+        Self: Sized,
+    {
+        let mut repr = [0u8; 32];
+        reader.read_exact(&mut repr)?;
+        <Option<_>>::from(Self::from_bytes(&repr)).ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "Non-canonical encoding of Pallas base field value.",
+            )
+        })
+    }
+
+    fn write<W: WriteBytesExt>(&self, mut writer: W) -> io::Result<()> {
+        writer.write_all(&self.to_bytes())
+    }
+}
+
+#[allow(dead_code)]
 #[derive(Clone, Debug)]
 pub struct OrchardNoteData {
     pub(super) fvk: FullViewingKey,
 
-    pub note: orchard::Note,
+    pub note: orchard_old::Note,
 
     // (Block number, tx_num, output_num)
     pub created_at: (u64, usize, u32),
@@ -52,12 +91,12 @@ impl OrchardNoteData {
         let note_value = reader.read_u64::<LittleEndian>()?;
         let mut rho_bytes = [0u8; 32];
         reader.read_exact(&mut rho_bytes)?;
-        let note_rho = orchard::note::Rho::from_bytes(&rho_bytes).unwrap();
+        let note_rho = orchard_old::note::Nullifier::from_bytes(&rho_bytes).unwrap();
         let mut note_rseed_bytes = [0u8; 32];
         reader.read_exact(&mut note_rseed_bytes)?;
         let note_rseed = RandomSeed::from_bytes(note_rseed_bytes, &note_rho).unwrap();
 
-        let note = orchard::Note::from_parts(
+        let note = orchard_old::Note::from_parts(
             note_address,
             NoteValue::from_raw(note_value),
             note_rho,
@@ -67,7 +106,7 @@ impl OrchardNoteData {
 
         let witness_position = Optional::read(&mut reader, |r| {
             let pos = r.read_u64::<LittleEndian>()?;
-            Ok(Position::from(pos))
+            Ok(Position::from(pos as usize))
         })?;
 
         let spent = Optional::read(&mut reader, |r| {
@@ -119,6 +158,7 @@ impl OrchardNoteData {
         })
     }
 
+    #[allow(dead_code)]
     pub fn write<W: WriteBytesExt>(&self, mut writer: W) -> io::Result<()> {
         // Write a version number first, so we can later upgrade this if needed.
         writer.write_u64::<LittleEndian>(Self::serialized_version())?;

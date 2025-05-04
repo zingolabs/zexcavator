@@ -6,11 +6,13 @@ use crate::prelude::*;
 
 use crate::config::ZexCavatorCliConfig;
 use abscissa_core::{Command, FrameworkError, Runnable, config};
+use http::Uri;
+use pepper_sync::sync::{SyncConfig, TransparentAddressDiscovery};
 use zexcavator_lib::parser::WalletParserFactory;
 use zingolib::{
-    config::{ChainType, ZingoConfig},
-    get_latest_block_height, lightclient,
-    wallet::{LightWallet, WalletBase},
+    config::{ChainType, load_clientconfig},
+    lightclient,
+    wallet::{LightWallet, WalletBase, WalletSettings},
 };
 
 /// `parse` subcommand
@@ -51,18 +53,33 @@ impl Runnable for ParseCmd {
         };
 
         let rt = tokio::runtime::Runtime::new().unwrap();
-        let mut zc = ZingoConfig::create_mainnet();
-        zc.set_data_dir("wallets/".to_string());
-
-        let config = zc.clone();
-
-        // let latest_block_height: u32 = get_latest_block_height(uri).unwrap().try_into().unwrap();
+        let zc = match load_clientconfig(
+            Uri::from_static("https://na.zec.rocks:443"),
+            None,
+            ChainType::Mainnet,
+            WalletSettings {
+                sync_config: SyncConfig {
+                    transparent_address_discovery: TransparentAddressDiscovery::recovery(),
+                },
+            },
+        ) {
+            Ok(zc) => zc,
+            Err(e) => {
+                eprintln!("Error loading client config: {}", e);
+                return;
+            }
+        };
 
         let initial_bh: u32 = bd.try_into().unwrap();
         let lw = LightWallet::new(
             ChainType::Mainnet,
             WalletBase::SeedBytes(seed),
             initial_bh.into(),
+            WalletSettings {
+                sync_config: SyncConfig {
+                    transparent_address_discovery: TransparentAddressDiscovery::recovery(),
+                },
+            },
         )
         .unwrap();
 
@@ -73,7 +90,7 @@ impl Runnable for ParseCmd {
         rt.block_on(async {
             println!("Reading from birthday: {}", bd);
             // println!("Upto block: {}", latest_block);
-            match lc.sync(true).await {
+            match lc.sync().await {
                 Ok(_) => {}
                 Err(e) => {
                     println!("Error syncing: {}", e);

@@ -5,7 +5,7 @@ pub mod zwl;
 
 use std::io;
 
-use orchard::keys::{FullViewingKey, SpendingKey};
+use orchard_old::keys::{FullViewingKey, SpendingKey};
 use sapling::zip32::{ExtendedFullViewingKey, ExtendedSpendingKey};
 // use zcash_keys::keys::UnifiedFullViewingKey;
 use zcash_primitives::consensus::BlockHeight;

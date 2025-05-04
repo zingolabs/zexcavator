@@ -1,4 +1,4 @@
-use crate::{ywallet::YWallet, zwl::ZecWalletLite, WalletParser};
+use crate::{WalletParser, ywallet::YWallet, zwl::ZwlWallet};
 
 pub struct WalletParserFactory {
     pub parser: Box<dyn WalletParser>,
@@ -15,7 +15,7 @@ impl WalletParserFactory {
         } else if filename.ends_with(".dat") {
             Ok(WalletParserFactory {
                 filename: filename.to_string(),
-                parser: Box::new(ZecWalletLite::read(filename).unwrap()),
+                parser: Box::new(ZwlWallet::read(filename).unwrap()),
             })
         } else {
             Err("Unknown wallet format")

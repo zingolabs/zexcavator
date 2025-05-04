@@ -9,4 +9,7 @@ tui-realm-stdlib = { workspace = true }
 rustls = { workspace = true }
 tokio = { workspace = true }
 zingolib = { workspace = true }
-anyhow = "1.0.98"
+pepper-sync = { workspace = true }
+anyhow = { workspace = true }
+http.workspace = true
+zexcavator-lib = { workspace = true }

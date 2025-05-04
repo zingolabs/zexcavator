@@ -15,7 +15,6 @@ pub enum MainMenuOption {
     Zcashd,
     Ledger,
     Trezor,
-    Charmander,
     Exit,
 }
 
@@ -26,7 +25,6 @@ impl MenuOptions for MainMenuOption {
             Self::Zcashd,
             Self::Ledger,
             Self::Trezor,
-            Self::Charmander,
             Self::Exit,
         ]
     }
@@ -37,7 +35,6 @@ impl MenuOptions for MainMenuOption {
             Self::Zcashd => "zcashd",
             Self::Ledger => "Ledger",
             Self::Trezor => "Trezor",
-            Self::Charmander => "Charmander",
             Self::Exit => "Exit",
         }
     }
@@ -91,10 +88,9 @@ where
                     match menu_item {
                         MainMenuOption::Zecwallet => model.navigate_to(Screen::ZecwalletInput),
                         MainMenuOption::Zcashd => model.navigate_to(Screen::ZcashdInput),
-                        MainMenuOption::Ledger => model.navigate_to(Screen::LedgerInput),
-                        MainMenuOption::Trezor
-                        | MainMenuOption::Charmander
-                        | MainMenuOption::Exit => model.set_quit(true),
+                        MainMenuOption::Ledger | MainMenuOption::Trezor | MainMenuOption::Exit => {
+                            model.set_quit(true)
+                        }
                     }
                 }
                 None

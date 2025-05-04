@@ -40,6 +40,7 @@ pub enum Id {
     MainMenu,
     ZecwalletView,
     ZecwalletMenu,
+    ZecwalletFromPath,
     LogViewer,
 }
 
