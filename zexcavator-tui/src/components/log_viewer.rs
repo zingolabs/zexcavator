@@ -1,4 +1,5 @@
 use bip0039::Mnemonic;
+use pepper_sync::sync_status;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use zexcavator_lib::parser::WalletParserFactory;
@@ -75,16 +76,29 @@ pub fn start_wallet_sync(logs: LogBuffer, path: PathBuf) {
                 sleep(Duration::from_secs(1)).await;
                 match lc.poll_sync() {
                     PollReport::NoHandle => {
-                        // logs.lock().unwrap().push("No handle".to_string());
+                        logs.lock().unwrap().push("No handle".to_string());
                     }
                     PollReport::NotReady => {
-                        // logs.lock().unwrap().push("Not ready".to_string());
+                        let wallet_guard = lc.wallet.lock().await;
+                        match sync_status(&*wallet_guard).await {
+                            Ok(status) => {
+                                logs.lock().unwrap().push(format!("{}", status));
+                            }
+                            Err(e) => {
+                                logs.lock().unwrap().push(format!("{}", e));
+                                continue;
+                            }
+                        };
                     }
                     PollReport::Ready(result) => match result {
                         Ok(sync_result) => {
                             logs.lock()
                                 .unwrap()
                                 .push(format!("Sync result: {:?}", sync_result));
+                            let balances = lc.do_balance().await;
+                            logs.lock()
+                                .unwrap()
+                                .push(format!("Balances: {:?}", balances));
                             break;
                         }
                         Err(e) => {
@@ -104,10 +118,6 @@ pub fn start_wallet_sync(logs: LogBuffer, path: PathBuf) {
                 Ok(_) => logs.lock().unwrap().push("Sync finished".to_string()),
                 Err(e) => logs.lock().unwrap().push(format!("{}", e)),
             }
-            let balances = lc.do_balance().await;
-            logs.lock()
-                .unwrap()
-                .push(format!("Balances: {:?}", balances));
         });
     });
 }
@@ -170,16 +180,29 @@ pub fn start_wallet_sync_from_mnemonic(logs: LogBuffer, mnemonic: Mnemonic, birt
                 sleep(Duration::from_secs(1)).await;
                 match lc.poll_sync() {
                     PollReport::NoHandle => {
-                        // logs.lock().unwrap().push("No handle".to_string());
+                        logs.lock().unwrap().push("No handle".to_string());
                     }
                     PollReport::NotReady => {
-                        // logs.lock().unwrap().push("Not ready".to_string());
+                        let wallet_guard = lc.wallet.lock().await;
+                        match sync_status(&*wallet_guard).await {
+                            Ok(status) => {
+                                logs.lock().unwrap().push(format!("{}", status));
+                            }
+                            Err(e) => {
+                                logs.lock().unwrap().push(format!("{}", e));
+                                continue;
+                            }
+                        };
                     }
                     PollReport::Ready(result) => match result {
                         Ok(sync_result) => {
                             logs.lock()
                                 .unwrap()
                                 .push(format!("Sync result: {:?}", sync_result));
+                            let balances = lc.do_balance().await;
+                            logs.lock()
+                                .unwrap()
+                                .push(format!("Balances: {:?}", balances));
                             break;
                         }
                         Err(e) => {
@@ -199,10 +222,6 @@ pub fn start_wallet_sync_from_mnemonic(logs: LogBuffer, mnemonic: Mnemonic, birt
                 Ok(_) => logs.lock().unwrap().push("Sync finished".to_string()),
                 Err(e) => logs.lock().unwrap().push(format!("{}", e)),
             }
-            let balances = lc.do_balance().await;
-            logs.lock()
-                .unwrap()
-                .push(format!("Balances: {:?}", balances));
         });
     });
 }
