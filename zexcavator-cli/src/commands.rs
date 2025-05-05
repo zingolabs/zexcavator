@@ -16,7 +16,7 @@ mod parse;
 use self::export::ExportCmd;
 use self::parse::ParseCmd;
 use crate::config::ZexCavatorCliConfig;
-use abscissa_core::{config::Override, Command, Configurable, FrameworkError, Runnable};
+use abscissa_core::{Command, Configurable, FrameworkError, Runnable, config::Override};
 use std::path::PathBuf;
 
 /// ZexCavatorCli Configuration Filename
