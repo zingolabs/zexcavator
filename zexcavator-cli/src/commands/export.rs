@@ -3,7 +3,7 @@
 use std::{path::PathBuf, str::FromStr};
 
 use crate::{config::ZexCavatorCliConfig, prelude::APP};
-use abscissa_core::{config, Application, Command, FrameworkError, Runnable};
+use abscissa_core::{Application, Command, FrameworkError, Runnable, config};
 use bc_envelope::Envelope;
 
 /// `export` subcommand
