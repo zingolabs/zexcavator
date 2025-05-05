@@ -1,6 +1,7 @@
-use bip0039::Mnemonic;
+use bip0039::{English, Mnemonic};
 use pepper_sync::sync_status;
 use std::path::PathBuf;
+use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 use zexcavator_lib::parser::WalletParserFactory;
 
@@ -122,7 +123,7 @@ pub fn start_wallet_sync(logs: LogBuffer, path: PathBuf) {
     });
 }
 
-pub fn start_wallet_sync_from_mnemonic(logs: LogBuffer, mnemonic: Mnemonic, birthday: u32) {
+pub fn start_wallet_sync_from_mnemonic(logs: LogBuffer, mnemonic_str: String, birthday: u32) {
     std::thread::spawn(move || {
         if let Err(e) = rustls::crypto::ring::default_provider().install_default() {
             logs.lock()
@@ -149,6 +150,8 @@ pub fn start_wallet_sync_from_mnemonic(logs: LogBuffer, mnemonic: Mnemonic, birt
                 return;
             }
         };
+
+        let mnemonic = Mnemonic::<English>::from_str(&mnemonic_str).unwrap();
 
         let lw = LightWallet::new(
             ChainType::Mainnet,

@@ -20,8 +20,10 @@ pub enum Msg {
     MnemonicInputChanged(String),
     MnemonicInputValidate,
     MnemonicInputBlur,
+    FromMnemonicSubmit,
     BirthdayInputChanged(String),
     BirthdayInputBlur,
+    FromMnemonicSubmitBlur,
     SeedInputBlur,
     MenuSelected(String),
     MenuCursorMove(usize),
@@ -49,6 +51,7 @@ pub enum Id {
     ZecwalletMenu,
     ZecwalletFromPath,
     ZecwalletFromMnemonic,
+    ZecwalletFromPathButton,
     LogViewerPath,
     LogViewerSeed,
 }

@@ -208,14 +208,7 @@ where
                 Msg::MnemonicInputChanged(s) => {
                     assert!(
                         self.app
-                            .attr(
-                                &Id::MnemonicInput,
-                                Attribute::Text,
-                                AttrValue::String(format!(
-                                    "ZecwalletFromMnemonic has now value: {}",
-                                    s
-                                ))
-                            )
+                            .attr(&Id::MnemonicInput, Attribute::Text, AttrValue::String(s))
                             .is_ok()
                     );
                     None
@@ -251,23 +244,54 @@ where
                     assert!(self.app.active(&Id::BirthdayInput).is_ok());
                     None
                 }
-                Msg::BirthdayInputChanged(s) => {
+                Msg::BirthdayInputChanged(birthday) => {
                     assert!(
                         self.app
                             .attr(
-                                &Id::MnemonicInput,
+                                &Id::BirthdayInput,
                                 Attribute::Text,
-                                AttrValue::String(format!(
-                                    "ZecwalletFromMnemonic has now value: {}",
-                                    s
-                                ))
+                                AttrValue::String(birthday)
                             )
                             .is_ok()
                     );
                     None
                 }
                 Msg::BirthdayInputBlur => {
+                    assert!(self.app.active(&Id::ZecwalletFromPathButton).is_ok());
+                    None
+                }
+                Msg::FromMnemonicSubmitBlur => {
                     assert!(self.app.active(&Id::MnemonicInput).is_ok());
+                    None
+                }
+                Msg::FromMnemonicSubmit => {
+                    let mnemonic = self
+                        .app
+                        .query(&Id::MnemonicInput, Attribute::Text)
+                        .unwrap()
+                        .unwrap()
+                        .as_string()
+                        .unwrap()
+                        .to_string();
+                    let birthday_str = self.app.query(&Id::BirthdayInput, Attribute::Text);
+
+                    let birthday = birthday_str
+                        .unwrap()
+                        .unwrap()
+                        .as_string()
+                        .unwrap()
+                        .trim()
+                        .parse()
+                        .unwrap();
+                    match ZecwalletFromMnemonic::validate_input(mnemonic.clone()) {
+                        Err(_) => None::<Msg>,
+                        Ok(_) => {
+                            self.zecwallet_from_mnemonic.start_sync(mnemonic, birthday);
+
+                            return None;
+                        }
+                    };
+
                     None
                 }
             }

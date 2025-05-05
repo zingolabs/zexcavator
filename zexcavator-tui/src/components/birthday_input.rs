@@ -62,12 +62,9 @@ impl Component<Msg, NoUserEvent> for BirthdayInput {
         };
 
         match cmd {
-            CmdResult::Submit(State::One(StateValue::String(s))) => {
-                // Some(Msg::MnemonicInputValidate(s))
-                None
-            }
-            CmdResult::Changed(State::One(StateValue::String(s))) => {
-                Some(Msg::MnemonicInputChanged(s))
+            CmdResult::Submit(State::One(StateValue::String(_s))) => None,
+            CmdResult::Changed(State::One(StateValue::String(birthday))) => {
+                Some(Msg::BirthdayInputChanged(birthday))
             }
             _ => None,
         }
