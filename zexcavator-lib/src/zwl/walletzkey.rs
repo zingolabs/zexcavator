@@ -2,8 +2,8 @@ use std::fmt;
 use std::io::{self, ErrorKind, Read};
 
 use byteorder::{LittleEndian, ReadBytesExt};
-use sapling::zip32::{ExtendedFullViewingKey, ExtendedSpendingKey};
 use sapling::PaymentAddress;
+use sapling::zip32::{ExtendedFullViewingKey, ExtendedSpendingKey};
 use zcash_encoding::{Optional, Vector};
 
 #[derive(PartialEq, Debug, Clone)]

@@ -9,7 +9,6 @@ use tuirealm::{State, StateValue};
 
 use crate::Msg;
 
-
 #[derive(MockComponent, Default)]
 pub struct SeedInput {
     component: Input,

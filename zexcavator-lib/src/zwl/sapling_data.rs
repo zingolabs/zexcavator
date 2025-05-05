@@ -1,7 +1,7 @@
 use std::io::{self};
 
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use sapling::{value::NoteValue, zip32::ExtendedFullViewingKey, Diversifier, Rseed};
+use sapling::{Diversifier, Rseed, value::NoteValue, zip32::ExtendedFullViewingKey};
 use zcash_encoding::{Optional, Vector};
 use zcash_primitives::{
     memo::{Memo, MemoBytes},

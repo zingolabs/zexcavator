@@ -1,4 +1,3 @@
-
 use anyhow::Result;
 use tuirealm::ratatui::layout::{Constraint, Direction, Layout};
 use tuirealm::{Application, Frame, NoUserEvent};
