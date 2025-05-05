@@ -1,3 +1,5 @@
+use bip0039::Mnemonic;
+use pepper_sync::sync_status;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use zexcavator_lib::parser::WalletParserFactory;
@@ -74,12 +76,114 @@ pub fn start_wallet_sync(logs: LogBuffer, path: PathBuf) {
                 sleep(Duration::from_secs(1)).await;
                 match lc.poll_sync() {
                     PollReport::NoHandle => {
-                        // logs.lock().unwrap().push("No handle".to_string());
-                        
+                        logs.lock().unwrap().push("No handle".to_string());
                     }
                     PollReport::NotReady => {
-                        // logs.lock().unwrap().push("Not ready".to_string());
-                        
+                        let wallet_guard = lc.wallet.lock().await;
+                        match sync_status(&*wallet_guard).await {
+                            Ok(status) => {
+                                logs.lock().unwrap().push(format!("{}", status));
+                            }
+                            Err(e) => {
+                                logs.lock().unwrap().push(format!("{}", e));
+                                continue;
+                            }
+                        };
+                    }
+                    PollReport::Ready(result) => match result {
+                        Ok(sync_result) => {
+                            logs.lock()
+                                .unwrap()
+                                .push(format!("Sync result: {:?}", sync_result));
+                            let balances = lc.do_balance().await;
+                            logs.lock()
+                                .unwrap()
+                                .push(format!("Balances: {:?}", balances));
+                            break;
+                        }
+                        Err(e) => {
+                            logs.lock().unwrap().push(format!("{}", e));
+                            logs.lock().unwrap().push("Restarting sync".to_string());
+                            match lc.sync().await {
+                                Ok(_) => logs.lock().unwrap().push("Sync resumed".to_string()),
+                                Err(e) => logs.lock().unwrap().push(format!("{}", e)),
+                            }
+                            continue;
+                        }
+                    },
+                };
+            }
+
+            match lc.await_sync().await {
+                Ok(_) => logs.lock().unwrap().push("Sync finished".to_string()),
+                Err(e) => logs.lock().unwrap().push(format!("{}", e)),
+            }
+        });
+    });
+}
+
+pub fn start_wallet_sync_from_mnemonic(logs: LogBuffer, mnemonic: Mnemonic, birthday: u32) {
+    std::thread::spawn(move || {
+        if let Err(e) = rustls::crypto::ring::default_provider().install_default() {
+            logs.lock()
+                .unwrap()
+                .push(format!("Error installing crypto provider: {:?}", e));
+        }
+
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        let zc = match load_clientconfig(
+            Uri::from_static("https://na.zec.rocks:443"),
+            None,
+            ChainType::Mainnet,
+            WalletSettings {
+                sync_config: SyncConfig {
+                    transparent_address_discovery: TransparentAddressDiscovery::recovery(),
+                },
+            },
+        ) {
+            Ok(zc) => zc,
+            Err(e) => {
+                logs.lock()
+                    .unwrap()
+                    .push(format!("Error loading client config: {}", e));
+                return;
+            }
+        };
+
+        let lw = LightWallet::new(
+            ChainType::Mainnet,
+            WalletBase::Mnemonic(mnemonic),
+            birthday.into(),
+            WalletSettings {
+                sync_config: SyncConfig {
+                    transparent_address_discovery: TransparentAddressDiscovery::recovery(),
+                },
+            },
+        )
+        .unwrap();
+
+        let mut lc = lightclient::LightClient::create_from_wallet(lw, zc, true).unwrap();
+
+        rt.block_on(async {
+            logs.lock()
+                .unwrap()
+                .push(format!("Starting sync from birthday: {}", birthday));
+            match lc.sync().await {
+                Ok(_) => logs.lock().unwrap().push("Sync started".to_string()),
+                Err(e) => logs
+                    .lock()
+                    .unwrap()
+                    .push(format!("Error starting syncing: {}", e)),
+            }
+
+            loop {
+                sleep(Duration::from_secs(1)).await;
+                match lc.poll_sync() {
+                    PollReport::NoHandle => {
+                        logs.lock().unwrap().push("No handle".to_string());
+                    }
+                    PollReport::NotReady => {
+                        logs.lock().unwrap().push("Not ready".to_string());
                     }
                     PollReport::Ready(result) => match result {
                         Ok(sync_result) => {

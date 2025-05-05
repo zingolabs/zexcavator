@@ -504,7 +504,7 @@ dependencies = [
  "bitflags",
  "cexpr",
  "clang-sys",
- "itertools 0.12.1",
+ "itertools 0.11.0",
  "lazy_static",
  "lazycell",
  "log",
@@ -730,7 +730,7 @@ dependencies = [
 [[package]]
 name = "build_utils"
 version = "0.1.0"
-source = "git+https://github.com/zingolabs/zingolib.git?branch=dev#fb32e81a229ec660fe0feb8dfb1370efae852a9d"
+source = "git+https://github.com/zingolabs/zingolib.git?branch=dev#f16f70b3ad7bf2a416d82a74a9a17b08c474e7e2"
 
 [[package]]
 name = "bumpalo"
@@ -2342,27 +2342,9 @@ dependencies = [
 
 [[package]]
 name = "itertools"
-version = "0.12.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba291022dbbd398a455acf126c1e341954079855bc60dfdda641363bd6922569"
-dependencies = [
- "either",
-]
-
-[[package]]
-name = "itertools"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "413ee7dfc52ee1a4949ceeb7dbc8a33f2d6c088194d9f922fb8318faf1f01186"
-dependencies = [
- "either",
-]
-
-[[package]]
-name = "itertools"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
 dependencies = [
  "either",
 ]
@@ -3098,7 +3080,7 @@ dependencies = [
 [[package]]
 name = "pepper-sync"
 version = "0.1.0"
-source = "git+https://github.com/zingolabs/zingolib.git?branch=dev#fb32e81a229ec660fe0feb8dfb1370efae852a9d"
+source = "git+https://github.com/zingolabs/zingolib.git?branch=dev#f16f70b3ad7bf2a416d82a74a9a17b08c474e7e2"
 dependencies = [
  "bip32 0.6.0-pre.1",
  "byteorder",
@@ -3406,7 +3388,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be769465445e8c1474e9c5dac2018218498557af32d9ed057325ec9a41ae81bf"
 dependencies = [
  "heck",
- "itertools 0.14.0",
+ "itertools 0.11.0",
  "log",
  "multimap",
  "once_cell",
@@ -3426,7 +3408,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a56d757972c98b346a9b766e3f02746cde6dd1cd1d1d563472929fdd74bec4d"
 dependencies = [
  "anyhow",
- "itertools 0.14.0",
+ "itertools 0.11.0",
  "proc-macro2",
  "quote",
  "syn 2.0.101",
@@ -6150,6 +6132,7 @@ name = "zexcavator-tui"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bip0039",
  "http",
  "pepper-sync",
  "rustls",
@@ -6163,7 +6146,7 @@ dependencies = [
 [[package]]
 name = "zingo-memo"
 version = "0.1.0"
-source = "git+https://github.com/zingolabs/zingolib.git?branch=dev#fb32e81a229ec660fe0feb8dfb1370efae852a9d"
+source = "git+https://github.com/zingolabs/zingolib.git?branch=dev#f16f70b3ad7bf2a416d82a74a9a17b08c474e7e2"
 dependencies = [
  "zcash_address 0.7.0",
  "zcash_client_backend 0.18.0",
@@ -6175,7 +6158,7 @@ dependencies = [
 [[package]]
 name = "zingo-netutils"
 version = "0.1.0"
-source = "git+https://github.com/zingolabs/zingolib.git?branch=dev#fb32e81a229ec660fe0feb8dfb1370efae852a9d"
+source = "git+https://github.com/zingolabs/zingolib.git?branch=dev#f16f70b3ad7bf2a416d82a74a9a17b08c474e7e2"
 dependencies = [
  "http",
  "http-body",
@@ -6195,7 +6178,7 @@ dependencies = [
 [[package]]
 name = "zingo-status"
 version = "0.1.0"
-source = "git+https://github.com/zingolabs/zingolib.git?branch=dev#fb32e81a229ec660fe0feb8dfb1370efae852a9d"
+source = "git+https://github.com/zingolabs/zingolib.git?branch=dev#f16f70b3ad7bf2a416d82a74a9a17b08c474e7e2"
 dependencies = [
  "byteorder",
  "zcash_primitives 0.22.0",
@@ -6204,7 +6187,7 @@ dependencies = [
 [[package]]
 name = "zingolib"
 version = "0.2.0"
-source = "git+https://github.com/zingolabs/zingolib.git?branch=dev#fb32e81a229ec660fe0feb8dfb1370efae852a9d"
+source = "git+https://github.com/zingolabs/zingolib.git?branch=dev#f16f70b3ad7bf2a416d82a74a9a17b08c474e7e2"
 dependencies = [
  "append-only-vec",
  "bech32 0.11.0",
