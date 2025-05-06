@@ -17,6 +17,13 @@ pub enum Msg {
     Start,
     SeedInputChanged(String),
     SeedInputValidate(String),
+    MnemonicInputChanged(String),
+    MnemonicInputValidate,
+    MnemonicInputBlur,
+    FromMnemonicSubmit,
+    BirthdayInputChanged(String),
+    BirthdayInputBlur,
+    FromMnemonicSubmitBlur,
     SeedInputBlur,
     MenuSelected(String),
     MenuCursorMove(usize),
@@ -36,12 +43,17 @@ pub enum NavigationMsg {
 pub enum Id {
     Label,
     SeedInput,
+    MnemonicInput,
+    BirthdayInput,
     WelcomeComponent,
     MainMenu,
     ZecwalletView,
     ZecwalletMenu,
     ZecwalletFromPath,
-    LogViewer,
+    ZecwalletFromMnemonic,
+    ZecwalletFromPathButton,
+    LogViewerPath,
+    LogViewerSeed,
 }
 
 fn main() {

@@ -54,7 +54,7 @@ impl Renderable for ZecwalletFromPath {
             .constraints([Constraint::Percentage(20), Constraint::Percentage(80)])
             .split(f.area());
         app.view(&Id::ZecwalletFromPath, f, chunks[0]);
-        app.view(&Id::LogViewer, f, chunks[1]);
+        app.view(&Id::LogViewerPath, f, chunks[1]);
     }
 }
 

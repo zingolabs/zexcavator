@@ -1,6 +1,7 @@
-use bip0039::Mnemonic;
+use bip0039::{English, Mnemonic};
 use pepper_sync::sync_status;
 use std::path::PathBuf;
+use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 use zexcavator_lib::parser::WalletParserFactory;
 
@@ -72,8 +73,10 @@ pub fn start_wallet_sync(logs: LogBuffer, path: PathBuf) {
                     .push(format!("Error starting syncing: {}", e)),
             }
 
+            let mut interval = tokio::time::interval(Duration::from_secs(1));
+            interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
             loop {
-                sleep(Duration::from_secs(1)).await;
+                interval.tick().await;
                 match lc.poll_sync() {
                     PollReport::NoHandle => {
                         logs.lock().unwrap().push("No handle".to_string());
@@ -122,7 +125,7 @@ pub fn start_wallet_sync(logs: LogBuffer, path: PathBuf) {
     });
 }
 
-pub fn start_wallet_sync_from_mnemonic(logs: LogBuffer, mnemonic: Mnemonic, birthday: u32) {
+pub fn start_wallet_sync_from_mnemonic(logs: LogBuffer, mnemonic_str: String, birthday: u32) {
     std::thread::spawn(move || {
         if let Err(e) = rustls::crypto::ring::default_provider().install_default() {
             logs.lock()
@@ -150,6 +153,8 @@ pub fn start_wallet_sync_from_mnemonic(logs: LogBuffer, mnemonic: Mnemonic, birt
             }
         };
 
+        let mnemonic = Mnemonic::<English>::from_str(&mnemonic_str).unwrap();
+
         let lw = LightWallet::new(
             ChainType::Mainnet,
             WalletBase::Mnemonic(mnemonic),
@@ -176,20 +181,35 @@ pub fn start_wallet_sync_from_mnemonic(logs: LogBuffer, mnemonic: Mnemonic, birt
                     .push(format!("Error starting syncing: {}", e)),
             }
 
+            let mut interval = tokio::time::interval(Duration::from_secs(1));
+            interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
             loop {
-                sleep(Duration::from_secs(1)).await;
+                interval.tick().await;
                 match lc.poll_sync() {
                     PollReport::NoHandle => {
                         logs.lock().unwrap().push("No handle".to_string());
                     }
                     PollReport::NotReady => {
-                        logs.lock().unwrap().push("Not ready".to_string());
+                        let wallet_guard = lc.wallet.lock().await;
+                        match sync_status(&*wallet_guard).await {
+                            Ok(status) => {
+                                logs.lock().unwrap().push(format!("{}", status));
+                            }
+                            Err(e) => {
+                                logs.lock().unwrap().push(format!("{}", e));
+                                continue;
+                            }
+                        };
                     }
                     PollReport::Ready(result) => match result {
                         Ok(sync_result) => {
                             logs.lock()
                                 .unwrap()
                                 .push(format!("Sync result: {:?}", sync_result));
+                            let balances = lc.do_balance().await;
+                            logs.lock()
+                                .unwrap()
+                                .push(format!("Balances: {:?}", balances));
                             break;
                         }
                         Err(e) => {
@@ -209,10 +229,6 @@ pub fn start_wallet_sync_from_mnemonic(logs: LogBuffer, mnemonic: Mnemonic, birt
                 Ok(_) => logs.lock().unwrap().push("Sync finished".to_string()),
                 Err(e) => logs.lock().unwrap().push(format!("{}", e)),
             }
-            let balances = lc.do_balance().await;
-            logs.lock()
-                .unwrap()
-                .push(format!("Balances: {:?}", balances));
         });
     });
 }
