@@ -18,7 +18,10 @@ pub struct ZecwalletFromPath {
 
 impl ZecwalletFromPath {
     pub fn start_sync(&mut self, path: String) {
-        start_wallet_sync(self.log_buffer.clone(), PathBuf::from(path));
+        tokio::spawn(start_wallet_sync(
+            self.log_buffer.clone(),
+            PathBuf::from(path),
+        ));
     }
 
     pub fn new_with_log(log_buffer: LogBuffer) -> Self {

@@ -20,7 +20,11 @@ pub struct ZecwalletFromMnemonic {
 
 impl ZecwalletFromMnemonic {
     pub fn start_sync(&mut self, mnemonic: String, birthday: u32) {
-        start_wallet_sync_from_mnemonic(self.log_buffer.clone(), mnemonic, birthday);
+        tokio::spawn(start_wallet_sync_from_mnemonic(
+            self.log_buffer.clone(),
+            mnemonic,
+            birthday,
+        ));
     }
 
     pub fn new_with_log(log_buffer: LogBuffer) -> Self {
