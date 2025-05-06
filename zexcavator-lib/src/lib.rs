@@ -72,7 +72,7 @@ pub struct Wallet {
     pub accounts: Vec<WalletAccount>,
 }
 
-pub trait WalletParser {
+pub trait WalletParser: Send {
     /// Read the wallet contents from disk
     fn read(filename: &str) -> io::Result<Self>
     where

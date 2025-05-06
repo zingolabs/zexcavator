@@ -56,7 +56,8 @@ pub enum Id {
     LogViewerSeed,
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     // Setup model
     let mut model = Model::default();
     // Enter alternate screen
