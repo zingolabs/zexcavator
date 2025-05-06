@@ -73,8 +73,10 @@ pub fn start_wallet_sync(logs: LogBuffer, path: PathBuf) {
                     .push(format!("Error starting syncing: {}", e)),
             }
 
+            let mut interval = tokio::time::interval(Duration::from_secs(1));
+            interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
             loop {
-                sleep(Duration::from_secs(1)).await;
+                interval.tick().await;
                 match lc.poll_sync() {
                     PollReport::NoHandle => {
                         logs.lock().unwrap().push("No handle".to_string());
@@ -179,8 +181,10 @@ pub fn start_wallet_sync_from_mnemonic(logs: LogBuffer, mnemonic_str: String, bi
                     .push(format!("Error starting syncing: {}", e)),
             }
 
+            let mut interval = tokio::time::interval(Duration::from_secs(1));
+            interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
             loop {
-                sleep(Duration::from_secs(1)).await;
+                interval.tick().await;
                 match lc.poll_sync() {
                     PollReport::NoHandle => {
                         logs.lock().unwrap().push("No handle".to_string());
