@@ -3,6 +3,7 @@ use tuirealm::{Application, Frame, NoUserEvent};
 use crate::{Id, Msg};
 
 pub mod main_menu;
+pub mod sync;
 pub mod zecwallet;
 
 pub trait Mountable {
