@@ -4,11 +4,11 @@ use bip0039::{English, Mnemonic};
 use tui_realm_stdlib::Input;
 use tuirealm::command::{Cmd, CmdResult, Direction, Position};
 use tuirealm::event::KeyModifiers;
+use tuirealm::{Attribute, State, StateValue};
 use tuirealm::{
     Component, Event, MockComponent, NoUserEvent,
     event::{Key, KeyEvent},
 };
-use tuirealm::{State, StateValue};
 
 use crate::Msg;
 
@@ -26,7 +26,7 @@ impl MnemonicInput {
         }
     }
 
-    pub fn validate_input(mnemonic: String) -> bool {
+    pub fn validate_input(&self, mnemonic: String) -> bool {
         Mnemonic::<English>::from_str(&mnemonic).is_ok()
     }
 }
@@ -64,7 +64,15 @@ impl Component<Msg, NoUserEvent> for MnemonicInput {
             Event::Keyboard(KeyEvent { code: Key::Esc, .. }) => return Some(Msg::AppClose),
             Event::Keyboard(KeyEvent {
                 code: Key::Enter, ..
-            }) => self.perform(Cmd::Submit),
+            }) => match self.validate_input(
+                self.component
+                    .query(Attribute::Text)
+                    .unwrap()
+                    .unwrap_string(),
+            ) {
+                true => self.perform(Cmd::Submit),
+                false => CmdResult::None,
+            },
             _ => CmdResult::None,
         };
 

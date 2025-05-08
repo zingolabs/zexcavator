@@ -6,7 +6,7 @@ pub struct WalletParserFactory {
 }
 
 impl WalletParserFactory {
-    pub fn read(filename: &str) -> Result<Self, &str> {
+    pub fn read(filename: &str) -> Result<Self, String> {
         if filename.ends_with(".db") {
             Ok(WalletParserFactory {
                 filename: filename.to_string(),
@@ -18,7 +18,7 @@ impl WalletParserFactory {
                 parser: Box::new(ZwlWallet::read(filename).unwrap()),
             })
         } else {
-            Err("Unknown wallet format")
+            Err(format!("Unknown wallet format for file: {}", filename))
         }
     }
 }

@@ -8,6 +8,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use tuirealm::event::NoUserEvent;
+use tuirealm::props::{PropPayload, PropValue};
 use tuirealm::terminal::{CrosstermTerminalAdapter, TerminalAdapter, TerminalBridge};
 use tuirealm::{Application, AttrValue, Attribute, EventListenerCfg, Update};
 
@@ -143,6 +144,13 @@ where
     T: TerminalAdapter,
 {
     fn update(&mut self, msg: Option<Msg>) -> Option<Msg> {
+        let progress = *self.sync_view.get_progress().lock().unwrap();
+        let _ = self.app.attr(
+            &Id::ProgressBar,
+            Attribute::Value,
+            AttrValue::Payload(PropPayload::One(PropValue::F32(progress))),
+        );
+        self.redraw = true;
         if let Some(msg) = msg {
             // Set redraw
             self.redraw = true;
@@ -152,14 +160,13 @@ where
                     self.quit = true; // Terminate
                     None
                 }
-                Msg::SeedInputBlur => None,
                 Msg::SeedInputChanged(s) => {
                     assert!(
                         self.app
                             .attr(
                                 &Id::ZecwalletFromPath,
                                 Attribute::Text,
-                                AttrValue::String(format!("LetterCounter has now value: {}", s))
+                                AttrValue::String(s)
                             )
                             .is_ok()
                     );
@@ -204,6 +211,10 @@ where
                     assert!(self.app.active(&Id::BirthdayInput).is_ok());
                     None
                 }
+                Msg::FromPathInputBlur => {
+                    assert!(self.app.active(&Id::ZecwalletFromPathButton).is_ok());
+                    None
+                }
                 Msg::BirthdayInputChanged(birthday) => {
                     assert!(
                         self.app
@@ -221,7 +232,11 @@ where
                     None
                 }
                 Msg::FromMnemonicSubmitBlur => {
-                    assert!(self.app.active(&Id::MnemonicInput).is_ok());
+                    assert!(self.app.active(&Id::ZecwalletFromPath).is_ok());
+                    None
+                }
+                Msg::FromPathSubmitBlur => {
+                    assert!(self.app.active(&Id::ZecwalletFromPath).is_ok());
                     None
                 }
 
@@ -250,7 +265,7 @@ where
                 Msg::FromPathSubmit => {
                     let path: String = self
                         .app
-                        .query(&Id::ZecwalletFromPath, Attribute::Value)
+                        .query(&Id::ZecwalletFromPath, Attribute::Text)
                         .ok()
                         .unwrap()
                         .unwrap()

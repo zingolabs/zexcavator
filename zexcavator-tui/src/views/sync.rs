@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 use std::str::FromStr;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use bip0039::{English, Mnemonic};
@@ -15,6 +16,7 @@ use zingolib::lightclient::{self};
 use zingolib::wallet::{LightWallet, WalletBase, WalletSettings};
 
 use crate::components::log_viewer::LogBuffer;
+use crate::components::sync_bar::SyncBar;
 use crate::{Id, Msg};
 
 use super::{Mountable, Renderable};
@@ -22,11 +24,20 @@ use super::{Mountable, Renderable};
 #[derive(Debug, Clone)]
 pub struct SyncView {
     log_buffer: LogBuffer,
+    // Progress between 0.0 and 1.0
+    pub progress: Arc<Mutex<f32>>,
 }
 
 impl SyncView {
     pub fn new_with_log(log_buffer: LogBuffer) -> Self {
-        Self { log_buffer }
+        Self {
+            log_buffer,
+            progress: Arc::new(Mutex::new(0.0)),
+        }
+    }
+
+    pub fn get_progress(&self) -> Arc<Mutex<f32>> {
+        Arc::clone(&self.progress)
     }
 
     pub async fn start_wallet_sync_from_path(&self, path: PathBuf) {
@@ -109,6 +120,8 @@ impl SyncView {
                     let wallet_guard = lc.wallet.lock().await;
                     match sync_status(&*wallet_guard).await {
                         Ok(status) => {
+                            *self.progress.lock().unwrap() =
+                                status.percentage_total_outputs_scanned;
                             self.log_buffer.lock().unwrap().push(format!("{}", status));
                         }
                         Err(e) => {
@@ -243,6 +256,8 @@ impl SyncView {
                     match sync_status(&*wallet_guard).await {
                         Ok(status) => {
                             self.log_buffer.lock().unwrap().push(format!("{}", status));
+                            *self.progress.lock().unwrap() =
+                                status.percentage_total_outputs_scanned;
                         }
                         Err(e) => {
                             self.log_buffer.lock().unwrap().push(format!("{}", e));
@@ -295,7 +310,15 @@ impl SyncView {
 }
 
 impl Mountable for SyncView {
-    fn mount(_app: &mut Application<Id, Msg, tuirealm::event::NoUserEvent>) -> anyhow::Result<()> {
+    fn mount(app: &mut Application<Id, Msg, tuirealm::event::NoUserEvent>) -> anyhow::Result<()> {
+        assert!(
+            app.mount(
+                Id::ProgressBar,
+                Box::new(SyncBar::default()),
+                Vec::default()
+            )
+            .is_ok()
+        );
         Ok(())
     }
 }
@@ -305,8 +328,9 @@ impl Renderable for SyncView {
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .margin(1)
-            .constraints([Constraint::Percentage(100)])
+            .constraints([Constraint::Length(3), Constraint::Percentage(80)])
             .split(f.area());
-        app.view(&Id::SyncLog, f, chunks[0]);
+        app.view(&Id::ProgressBar, f, chunks[0]);
+        app.view(&Id::SyncLog, f, chunks[1]);
     }
 }

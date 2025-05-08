@@ -22,8 +22,9 @@ pub enum Msg {
     StartSync(SyncSource),
     BirthdayInputChanged(String),
     BirthdayInputBlur,
+    FromPathSubmitBlur,
     FromMnemonicSubmitBlur,
-    SeedInputBlur,
+    FromPathInputBlur,
     MenuSelected(String),
     MenuCursorMove(usize),
     FromMnemonicSubmit,
@@ -43,7 +44,6 @@ pub enum NavigationMsg {
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
 pub enum Id {
     Label,
-    SeedInput,
     MnemonicInput,
     BirthdayInput,
     WelcomeComponent,
@@ -53,7 +53,9 @@ pub enum Id {
     ZecwalletFromPath,
     ZecwalletFromMnemonic,
     ZecwalletFromPathButton,
+    ZecwalletFromMnemonicButton,
     SyncLog,
+    ProgressBar,
 }
 
 #[tokio::main]

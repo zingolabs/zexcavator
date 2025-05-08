@@ -40,7 +40,7 @@ impl Mountable for ZecwalletFromMnemonic {
         // Mount submit button
         assert!(
             app.mount(
-                Id::ZecwalletFromPathButton,
+                Id::ZecwalletFromMnemonicButton,
                 Box::new(SubmitButton),
                 Vec::default()
             )

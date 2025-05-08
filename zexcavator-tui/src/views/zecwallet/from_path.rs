@@ -1,10 +1,14 @@
 use std::path::PathBuf;
 
 use anyhow::Result;
-use tuirealm::ratatui::layout::{Constraint, Direction, Layout};
-use tuirealm::{Application, Frame, NoUserEvent};
+use tuirealm::event::Key;
+use tuirealm::props::BorderSides;
+use tuirealm::ratatui::layout::{Constraint, Direction, Layout, Rect};
+use tuirealm::ratatui::text::Text;
+use tuirealm::ratatui::widgets::{Block, Paragraph};
+use tuirealm::{Application, Component, Event, Frame, MockComponent, NoUserEvent};
 
-use crate::components::input::SeedInput;
+use crate::components::input::PathInput;
 use crate::views::Renderable;
 use crate::{Id, Msg};
 
@@ -26,7 +30,17 @@ impl Mountable for ZecwalletFromPath {
         assert!(
             app.mount(
                 Id::ZecwalletFromPath,
-                Box::new(SeedInput::new(String::new())),
+                Box::new(PathInput::new(String::new())),
+                Vec::default()
+            )
+            .is_ok()
+        );
+
+        // Mount submit button
+        assert!(
+            app.mount(
+                Id::ZecwalletFromPathButton,
+                Box::new(SubmitButton),
                 Vec::default()
             )
             .is_ok()
@@ -40,8 +54,50 @@ impl Renderable for ZecwalletFromPath {
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .margin(1)
-            .constraints([Constraint::Percentage(20)])
+            .constraints([Constraint::Percentage(20), Constraint::Length(3)])
             .split(f.area());
         app.view(&Id::ZecwalletFromPath, f, chunks[0]);
+        app.view(&Id::ZecwalletFromPathButton, f, chunks[1]);
+    }
+}
+
+pub struct SubmitButton;
+
+impl MockComponent for SubmitButton {
+    fn view(&mut self, frame: &mut Frame, area: Rect) {
+        let button = Paragraph::new(Text::raw("Submit"))
+            .alignment(tuirealm::props::Alignment::Center)
+            .block(Block::default().borders(BorderSides::all()));
+        frame.render_widget(button, area);
+    }
+
+    fn query(&self, attr: tuirealm::Attribute) -> Option<tuirealm::AttrValue> {
+        todo!()
+    }
+
+    fn attr(&mut self, attr: tuirealm::Attribute, value: tuirealm::AttrValue) {}
+
+    fn state(&self) -> tuirealm::State {
+        todo!()
+    }
+
+    fn perform(&mut self, cmd: tuirealm::command::Cmd) -> tuirealm::command::CmdResult {
+        todo!()
+    }
+}
+
+impl Component<Msg, NoUserEvent> for SubmitButton {
+    fn on(&mut self, ev: Event<NoUserEvent>) -> Option<Msg> {
+        if let Event::Keyboard(key) = ev {
+            match key.code {
+                Key::Enter => {
+                    return Some(Msg::FromPathSubmit);
+                }
+                Key::Tab => return Some(Msg::FromMnemonicSubmitBlur),
+                Key::Esc => return Some(Msg::AppClose),
+                _ => (),
+            }
+        }
+        None
     }
 }
