@@ -1,226 +1,20 @@
-use bip0039::{English, Mnemonic};
-use pepper_sync::sync_status;
 use std::path::PathBuf;
-use std::str::FromStr;
 use std::sync::{Arc, Mutex};
-use zexcavator_lib::parser::WalletParserFactory;
-
-use std::time::Duration;
+use tuirealm::event::Key;
 
 pub type LogBuffer = Arc<Mutex<Vec<String>>>;
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum SyncSource {
+    WalletFile(PathBuf),
+    Mnemonic {
+        mnemonic: String,
+        birthday: Option<u32>,
+    },
+}
+
 pub fn new_log_buffer() -> LogBuffer {
     Arc::new(Mutex::new(Vec::new()))
-}
-
-pub async fn start_wallet_sync(logs: LogBuffer, path: PathBuf) {
-    let wallet_parser = WalletParserFactory::read(path.to_str().unwrap()).unwrap();
-
-    let seed = wallet_parser.parser.get_wallet_seed();
-    let bd = wallet_parser.parser.get_birthday();
-
-    if let Err(e) = rustls::crypto::ring::default_provider().install_default() {
-        logs.lock()
-            .unwrap()
-            .push(format!("Error installing crypto provider: {:?}", e));
-    }
-
-    let zc = match load_clientconfig(
-        Uri::from_static("https://na.zec.rocks:443"),
-        None,
-        ChainType::Mainnet,
-        WalletSettings {
-            sync_config: SyncConfig {
-                transparent_address_discovery: TransparentAddressDiscovery::recovery(),
-            },
-        },
-    ) {
-        Ok(zc) => zc,
-        Err(e) => {
-            logs.lock()
-                .unwrap()
-                .push(format!("Error loading client config: {}", e));
-            return;
-        }
-    };
-
-    let initial_bh: u32 = bd.try_into().unwrap();
-    let lw = LightWallet::new(
-        ChainType::Mainnet,
-        WalletBase::SeedBytes(seed),
-        initial_bh.into(),
-        WalletSettings {
-            sync_config: SyncConfig {
-                transparent_address_discovery: TransparentAddressDiscovery::recovery(),
-            },
-        },
-    )
-    .unwrap();
-
-    let mut lc = lightclient::LightClient::create_from_wallet(lw, zc, true).unwrap();
-
-    logs.lock()
-        .unwrap()
-        .push(format!("Starting sync from birthday: {}", bd));
-    match lc.sync().await {
-        Ok(_) => logs.lock().unwrap().push("Sync started".to_string()),
-        Err(e) => logs
-            .lock()
-            .unwrap()
-            .push(format!("Error starting syncing: {}", e)),
-    }
-
-    let mut interval = tokio::time::interval(Duration::from_secs(1));
-    interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
-    loop {
-        interval.tick().await;
-        match lc.poll_sync() {
-            PollReport::NoHandle => {
-                logs.lock().unwrap().push("No handle".to_string());
-            }
-            PollReport::NotReady => {
-                let wallet_guard = lc.wallet.lock().await;
-                match sync_status(&*wallet_guard).await {
-                    Ok(status) => {
-                        logs.lock().unwrap().push(format!("{}", status));
-                    }
-                    Err(e) => {
-                        logs.lock().unwrap().push(format!("{}", e));
-                        continue;
-                    }
-                };
-            }
-            PollReport::Ready(result) => match result {
-                Ok(sync_result) => {
-                    logs.lock()
-                        .unwrap()
-                        .push(format!("Sync result: {:?}", sync_result));
-                    let balances = lc.do_balance().await;
-                    logs.lock()
-                        .unwrap()
-                        .push(format!("Balances: {:?}", balances));
-                    break;
-                }
-                Err(e) => {
-                    logs.lock().unwrap().push(format!("{}", e));
-                    logs.lock().unwrap().push("Restarting sync".to_string());
-                    match lc.sync().await {
-                        Ok(_) => logs.lock().unwrap().push("Sync resumed".to_string()),
-                        Err(e) => logs.lock().unwrap().push(format!("{}", e)),
-                    }
-                    continue;
-                }
-            },
-        };
-    }
-
-    match lc.await_sync().await {
-        Ok(_) => logs.lock().unwrap().push("Sync finished".to_string()),
-        Err(e) => logs.lock().unwrap().push(format!("{}", e)),
-    }
-}
-
-pub async fn start_wallet_sync_from_mnemonic(logs: LogBuffer, mnemonic_str: String, birthday: u32) {
-    if let Err(e) = rustls::crypto::ring::default_provider().install_default() {
-        logs.lock()
-            .unwrap()
-            .push(format!("Error installing crypto provider: {:?}", e));
-    }
-
-    let zc = match load_clientconfig(
-        Uri::from_static("https://na.zec.rocks:443"),
-        None,
-        ChainType::Mainnet,
-        WalletSettings {
-            sync_config: SyncConfig {
-                transparent_address_discovery: TransparentAddressDiscovery::recovery(),
-            },
-        },
-    ) {
-        Ok(zc) => zc,
-        Err(e) => {
-            logs.lock()
-                .unwrap()
-                .push(format!("Error loading client config: {}", e));
-            return;
-        }
-    };
-
-    let mnemonic = Mnemonic::<English>::from_str(&mnemonic_str).unwrap();
-
-    let lw = LightWallet::new(
-        ChainType::Mainnet,
-        WalletBase::Mnemonic(mnemonic),
-        birthday.into(),
-        WalletSettings {
-            sync_config: SyncConfig {
-                transparent_address_discovery: TransparentAddressDiscovery::recovery(),
-            },
-        },
-    )
-    .unwrap();
-
-    let mut lc = lightclient::LightClient::create_from_wallet(lw, zc, true).unwrap();
-
-    logs.lock()
-        .unwrap()
-        .push(format!("Starting sync from birthday: {}", birthday));
-    match lc.sync().await {
-        Ok(_) => logs.lock().unwrap().push("Sync started".to_string()),
-        Err(e) => logs
-            .lock()
-            .unwrap()
-            .push(format!("Error starting syncing: {}", e)),
-    }
-
-    let mut interval = tokio::time::interval(Duration::from_secs(1));
-    interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
-    loop {
-        interval.tick().await;
-        match lc.poll_sync() {
-            PollReport::NoHandle => {
-                logs.lock().unwrap().push("No handle".to_string());
-            }
-            PollReport::NotReady => {
-                let wallet_guard = lc.wallet.lock().await;
-                match sync_status(&*wallet_guard).await {
-                    Ok(status) => {
-                        logs.lock().unwrap().push(format!("{}", status));
-                    }
-                    Err(e) => {
-                        logs.lock().unwrap().push(format!("{}", e));
-                        continue;
-                    }
-                };
-            }
-            PollReport::Ready(result) => match result {
-                Ok(sync_result) => {
-                    logs.lock()
-                        .unwrap()
-                        .push(format!("Sync result: {:?}", sync_result));
-                    let balances = lc.do_balance().await;
-                    logs.lock()
-                        .unwrap()
-                        .push(format!("Balances: {:?}", balances));
-                    break;
-                }
-                Err(e) => {
-                    logs.lock().unwrap().push(format!("{}", e));
-                    logs.lock().unwrap().push("Restarting sync".to_string());
-                    match lc.sync().await {
-                        Ok(_) => logs.lock().unwrap().push("Sync resumed".to_string()),
-                        Err(e) => logs.lock().unwrap().push(format!("{}", e)),
-                    }
-                    continue;
-                }
-            },
-        };
-    }
-
-    match lc.await_sync().await {
-        Ok(_) => logs.lock().unwrap().push("Sync finished".to_string()),
-        Err(e) => logs.lock().unwrap().push(format!("{}", e)),
-    }
 }
 
 pub struct LogViewer {
@@ -233,21 +27,9 @@ impl LogViewer {
     }
 }
 
-impl Default for LogViewer {
-    fn default() -> Self {
-        Self::new(new_log_buffer())
-    }
-}
-
-use http::Uri;
-use pepper_sync::sync::{SyncConfig, TransparentAddressDiscovery};
 use tuirealm::ratatui::layout::Rect;
 use tuirealm::ratatui::widgets::Wrap;
 use tuirealm::{Component, Event, Frame, MockComponent, NoUserEvent};
-use zingolib::config::{ChainType, load_clientconfig};
-use zingolib::data::PollReport;
-use zingolib::lightclient;
-use zingolib::wallet::{LightWallet, WalletBase, WalletSettings};
 
 use crate::Msg;
 
@@ -278,9 +60,7 @@ impl MockComponent for LogViewer {
         todo!()
     }
 
-    fn attr(&mut self, attr: tuirealm::Attribute, value: tuirealm::AttrValue) {
-        todo!()
-    }
+    fn attr(&mut self, attr: tuirealm::Attribute, value: tuirealm::AttrValue) {}
 
     fn state(&self) -> tuirealm::State {
         todo!()
@@ -289,12 +69,15 @@ impl MockComponent for LogViewer {
     fn perform(&mut self, cmd: tuirealm::command::Cmd) -> tuirealm::command::CmdResult {
         todo!()
     }
-
-    // Other trait methods (attr, state, etc.) as no-ops
 }
 
 impl Component<Msg, NoUserEvent> for LogViewer {
-    fn on(&mut self, _ev: Event<NoUserEvent>) -> Option<Msg> {
-        None // Tick drives redraw
+    fn on(&mut self, ev: Event<NoUserEvent>) -> Option<Msg> {
+        if let Event::Keyboard(key) = ev {
+            if key.code == Key::Esc {
+                return Some(Msg::AppClose);
+            }
+        }
+        None
     }
 }

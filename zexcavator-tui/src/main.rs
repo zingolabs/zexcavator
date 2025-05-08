@@ -2,6 +2,7 @@
 //!
 //! `Demo` shows how to use tui-realm in a real case
 
+use components::log_viewer::SyncSource;
 use tuirealm::application::PollStrategy;
 use tuirealm::{AttrValue, Attribute, Update};
 // -- internal
@@ -10,7 +11,6 @@ mod components;
 mod views;
 use app::model::Model;
 
-// Let's define the messages handled by our app. NOTE: it must derive `PartialEq`
 #[derive(Debug, PartialEq)]
 pub enum Msg {
     AppClose,
@@ -18,15 +18,17 @@ pub enum Msg {
     SeedInputChanged(String),
     SeedInputValidate(String),
     MnemonicInputChanged(String),
-    MnemonicInputValidate,
     MnemonicInputBlur,
-    FromMnemonicSubmit,
+    StartSync(SyncSource),
     BirthdayInputChanged(String),
     BirthdayInputBlur,
+    FromPathSubmitBlur,
     FromMnemonicSubmitBlur,
-    SeedInputBlur,
+    FromPathInputBlur,
     MenuSelected(String),
     MenuCursorMove(usize),
+    FromMnemonicSubmit,
+    FromPathSubmit,
     None,
 }
 
@@ -42,7 +44,6 @@ pub enum NavigationMsg {
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
 pub enum Id {
     Label,
-    SeedInput,
     MnemonicInput,
     BirthdayInput,
     WelcomeComponent,
@@ -52,8 +53,9 @@ pub enum Id {
     ZecwalletFromPath,
     ZecwalletFromMnemonic,
     ZecwalletFromPathButton,
-    LogViewerPath,
-    LogViewerSeed,
+    ZecwalletFromMnemonicButton,
+    SyncLog,
+    ProgressBar,
 }
 
 #[tokio::main]
@@ -94,7 +96,6 @@ async fn main() {
                 model.redraw = true;
                 model.update(None);
             }
-            _ => {}
         }
         // Redraw
         if model.redraw {
