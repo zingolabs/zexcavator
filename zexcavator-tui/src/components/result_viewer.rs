@@ -1,44 +1,28 @@
-use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
 use tuirealm::event::Key;
 
-pub type LogBuffer = Arc<Mutex<Vec<String>>>;
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum SyncSource {
-    WalletFile(PathBuf),
-    Mnemonic {
-        mnemonic: String,
-        birthday: Option<u32>,
-    },
+pub struct ResultViewer {
+    output: Vec<String>,
 }
 
-pub fn new_log_buffer() -> LogBuffer {
-    Arc::new(Mutex::new(Vec::new()))
-}
-
-pub struct LogViewer {
-    logs: LogBuffer,
-}
-
-impl LogViewer {
-    pub fn new(logs: LogBuffer) -> Self {
-        Self { logs }
+impl ResultViewer {
+    pub fn new(output: Vec<String>) -> Self {
+        Self { output }
     }
 }
 
+use tuirealm::props::{PropPayload, PropValue};
 use tuirealm::ratatui::layout::Rect;
 use tuirealm::ratatui::widgets::Wrap;
 use tuirealm::{Component, Event, Frame, MockComponent, NoUserEvent};
 
 use crate::Msg;
 
-impl MockComponent for LogViewer {
+impl MockComponent for ResultViewer {
     fn view(&mut self, frame: &mut Frame, area: Rect) {
         use tuirealm::ratatui::text::{Line, Span, Text};
         use tuirealm::ratatui::widgets::{Block, Borders, Paragraph};
 
-        let log_lines = self.logs.lock().unwrap();
+        let log_lines = self.output.clone();
         let text = Text::from(
             log_lines
                 .iter()
@@ -60,7 +44,16 @@ impl MockComponent for LogViewer {
         todo!()
     }
 
-    fn attr(&mut self, attr: tuirealm::Attribute, value: tuirealm::AttrValue) {}
+    fn attr(&mut self, attr: tuirealm::Attribute, value: tuirealm::AttrValue) {
+        match attr {
+            tuirealm::Attribute::Value => {
+                if let tuirealm::AttrValue::Payload(PropPayload::One(PropValue::Str(msg))) = value {
+                    self.output.push(msg);
+                }
+            }
+            _ => (),
+        }
+    }
 
     fn state(&self) -> tuirealm::State {
         todo!()
@@ -71,7 +64,7 @@ impl MockComponent for LogViewer {
     }
 }
 
-impl Component<Msg, NoUserEvent> for LogViewer {
+impl Component<Msg, NoUserEvent> for ResultViewer {
     fn on(&mut self, ev: Event<NoUserEvent>) -> Option<Msg> {
         if let Event::Keyboard(key) = ev {
             if key.code == Key::Esc {

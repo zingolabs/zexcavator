@@ -40,7 +40,6 @@ pub struct ZecwalletMenu;
 
 impl Mountable for ZecwalletMenu {
     fn mount(app: &mut Application<Id, Msg, tuirealm::event::NoUserEvent>) -> anyhow::Result<()> {
-        // Mount logo
         assert!(
             app.mount(
                 Id::ZecwalletMenu,

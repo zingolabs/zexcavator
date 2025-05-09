@@ -2,6 +2,7 @@
 //!
 //! `Demo` shows how to use tui-realm in a real case
 
+use components::log_viewer::SyncSource;
 use tuirealm::application::PollStrategy;
 use tuirealm::{AttrValue, Attribute, Update};
 // -- internal
@@ -9,8 +10,8 @@ mod app;
 mod components;
 mod views;
 use app::model::Model;
+use zingolib::lightclient::PoolBalances;
 
-// Let's define the messages handled by our app. NOTE: it must derive `PartialEq`
 #[derive(Debug, PartialEq)]
 pub enum Msg {
     AppClose,
@@ -18,15 +19,21 @@ pub enum Msg {
     SeedInputChanged(String),
     SeedInputValidate(String),
     MnemonicInputChanged(String),
-    MnemonicInputValidate,
     MnemonicInputBlur,
-    FromMnemonicSubmit,
+    StartSync(SyncSource),
     BirthdayInputChanged(String),
     BirthdayInputBlur,
+    FromPathSubmitBlur,
     FromMnemonicSubmitBlur,
-    SeedInputBlur,
+    FromPathInputBlur,
     MenuSelected(String),
     MenuCursorMove(usize),
+    FromMnemonicSubmit,
+    FromPathSubmit,
+    GoToResult,
+    InitializeLightClient,
+    BalanceReady(PoolBalances),
+    FetchBalance,
     None,
 }
 
@@ -42,7 +49,6 @@ pub enum NavigationMsg {
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
 pub enum Id {
     Label,
-    SeedInput,
     MnemonicInput,
     BirthdayInput,
     WelcomeComponent,
@@ -52,8 +58,11 @@ pub enum Id {
     ZecwalletFromPath,
     ZecwalletFromMnemonic,
     ZecwalletFromPathButton,
-    LogViewerPath,
-    LogViewerSeed,
+    ZecwalletFromMnemonicButton,
+    SyncLog,
+    ProgressBar,
+    ExportMenu,
+    ResultViewer,
 }
 
 #[tokio::main]
@@ -84,9 +93,9 @@ async fn main() {
                 // NOTE: redraw if at least one msg has been processed
                 model.redraw = true;
                 for msg in messages.into_iter() {
-                    let mut msg = Some(msg);
-                    while msg.is_some() {
-                        msg = model.update(msg);
+                    let mut current = Some(msg);
+                    while let Some(next) = current {
+                        current = model.update(Some(next));
                     }
                 }
             }
@@ -94,7 +103,6 @@ async fn main() {
                 model.redraw = true;
                 model.update(None);
             }
-            _ => {}
         }
         // Redraw
         if model.redraw {
