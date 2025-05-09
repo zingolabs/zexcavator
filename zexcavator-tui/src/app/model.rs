@@ -2,20 +2,24 @@
 //!
 //! app model
 
+use std::fmt::format;
 use std::path::PathBuf;
 use std::str::FromStr;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+use tokio::sync::mpsc::Sender;
 use tuirealm::event::NoUserEvent;
 use tuirealm::props::{PropPayload, PropValue};
 use tuirealm::terminal::{CrosstermTerminalAdapter, TerminalAdapter, TerminalBridge};
 use tuirealm::{Application, AttrValue, Attribute, EventListenerCfg, Update};
+use zingolib::lightclient::{LightClient, PoolBalances};
 
 use crate::components::HandleMessage;
 use crate::components::log_viewer::{LogViewer, SyncSource, new_log_buffer};
 use crate::components::menu::MenuOptions;
 use crate::views::main_menu::{MainMenu, MainMenuOption};
+use crate::views::result::ExportMenu;
 use crate::views::sync::SyncView;
 use crate::views::zecwallet::from_mnemonic::ZecwalletFromMnemonic;
 use crate::views::zecwallet::from_path::ZecwalletFromPath;
@@ -32,6 +36,7 @@ pub enum Screen {
     ZecwalletFromPath,
     ZecwalletFromMnemonic,
     ZcashdInput,
+    Result,
 }
 
 pub struct Model<T>
@@ -49,11 +54,16 @@ where
     /// Active screen
     pub screen: Screen,
     pub sync_view: Arc<SyncView>,
+    pub light_client: Arc<Mutex<Option<LightClient>>>,
+    pub export_menu: Arc<ExportMenu>,
+    pub tx: Sender<Msg>,
 }
 
 impl Default for Model<CrosstermTerminalAdapter> {
     fn default() -> Self {
         let log_buffer_path = new_log_buffer();
+        let light_client = Arc::new(Mutex::new(None));
+        let export_menu = Arc::new(ExportMenu::new(Arc::clone(&light_client)));
 
         let mut app = Self::init_app();
 
@@ -66,13 +76,21 @@ impl Default for Model<CrosstermTerminalAdapter> {
             .is_ok()
         );
 
+        let (tx, mut rx) = tokio::sync::mpsc::channel::<Msg>(16);
+
         Self {
             app,
             quit: false,
             redraw: true,
             screen: Screen::MainMenu,
             terminal: TerminalBridge::init_crossterm().expect("Cannot initialize terminal"),
-            sync_view: Arc::new(SyncView::new_with_log(log_buffer_path)),
+            sync_view: Arc::new(SyncView::new_with_log(
+                log_buffer_path,
+                Arc::clone(&light_client),
+            )),
+            light_client,
+            export_menu,
+            tx,
         }
     }
 }
@@ -94,6 +112,7 @@ where
                         Screen::ZecwalletFromPath => ZecwalletFromPath::render(app, f),
                         Screen::ZecwalletFromMnemonic => ZecwalletFromMnemonic::render(app, f),
                         Screen::ZcashdInput => todo!(),
+                        Screen::Result => ExportMenu::render(app, f),
                     }
                 })
                 .is_ok()
@@ -121,15 +140,18 @@ where
         // Mount Zecwallet view
         assert!(ZecwalletMenu::mount(&mut app).is_ok());
 
-        let log_buffer = new_log_buffer();
+        // let log_buffer = new_log_buffer();
 
         assert!(ZecwalletFromPath::mount(&mut app).is_ok());
 
         assert!(ZecwalletFromMnemonic::mount(&mut app).is_ok());
 
-        SyncView::new_with_log(log_buffer);
+        // SyncView::new_with_log(log_buffer);
 
         assert!(SyncView::mount(&mut app).is_ok());
+
+        // // Mount result view
+        assert!(ExportMenu::mount(&mut app).is_ok());
 
         // Focus main menu
         assert!(app.active(&Id::MainMenu).is_ok());
@@ -138,19 +160,33 @@ where
     }
 }
 
-// Let's implement Update for model
+// Update loop
 impl<T> Update<Msg> for Model<T>
 where
     T: TerminalAdapter,
 {
     fn update(&mut self, msg: Option<Msg>) -> Option<Msg> {
-        let progress = *self.sync_view.get_progress().lock().unwrap();
-        let _ = self.app.attr(
-            &Id::ProgressBar,
-            Attribute::Value,
-            AttrValue::Payload(PropPayload::One(PropValue::F32(progress))),
-        );
-        self.redraw = true;
+        match self.screen {
+            Screen::Syncing => {
+                let progress = *self.sync_view.get_progress().lock().unwrap();
+                let _ = self.app.attr(
+                    &Id::ProgressBar,
+                    Attribute::Value,
+                    AttrValue::Payload(PropPayload::One(PropValue::F32(progress))),
+                );
+                self.redraw = true;
+            }
+            _ => (),
+        }
+
+        if *self.sync_view.sync_complete.lock().unwrap() {
+            self.navigate_to(Screen::Result);
+            *self.sync_view.sync_complete.lock().unwrap() = false;
+            self.redraw = true;
+
+            // FIXME: NOT DISPATCHING MESSAGE
+            return Some(Msg::FetchBalance);
+        }
         if let Some(msg) = msg {
             // Set redraw
             self.redraw = true;
@@ -228,18 +264,17 @@ where
                     None
                 }
                 Msg::BirthdayInputBlur => {
-                    assert!(self.app.active(&Id::ZecwalletFromPathButton).is_ok());
+                    assert!(self.app.active(&Id::ZecwalletFromMnemonicButton).is_ok());
                     None
                 }
                 Msg::FromMnemonicSubmitBlur => {
-                    assert!(self.app.active(&Id::ZecwalletFromPath).is_ok());
+                    assert!(self.app.active(&Id::MnemonicInput).is_ok());
                     None
                 }
                 Msg::FromPathSubmitBlur => {
                     assert!(self.app.active(&Id::ZecwalletFromPath).is_ok());
                     None
                 }
-
                 Msg::FromMnemonicSubmit => {
                     let mnemonic: String = self
                         .app
@@ -300,6 +335,41 @@ where
 
                     None
                 }
+                Msg::GoToResult => {
+                    self.navigate_to(Screen::Result);
+                    None
+                }
+                Msg::InitializeLightClient => None,
+                Msg::FetchBalance => {
+                    let lc = Arc::clone(&self.light_client);
+                    let tx = self.tx.clone();
+
+                    tokio::spawn(async move {
+                        let lc_owned = {
+                            let mut guard = lc.lock().unwrap();
+                            guard.take()
+                        };
+
+                        if let Some(lc) = lc_owned {
+                            let balance = lc.do_balance().await;
+                            let _ = tx.send(Msg::BalanceReady(balance)).await;
+                        } else {
+                            let _ = tx.send(Msg::None).await;
+                        }
+                    });
+
+                    None
+                }
+                Msg::BalanceReady(balance) => {
+                    let balance_str = format!("{:?}", balance);
+                    let _ = self.app.attr(
+                        &Id::ResultViewer,
+                        Attribute::Text,
+                        AttrValue::Payload(PropPayload::One(PropValue::Str(balance_str))),
+                    );
+                    self.redraw = true;
+                    None
+                }
             }
         } else {
             None
@@ -314,7 +384,9 @@ pub trait HasScreenAndQuit {
 
 impl<T: TerminalAdapter> HasScreenAndQuit for Model<T> {
     fn navigate_to(&mut self, screen: Screen) {
-        // Blur current active screen
+        // Update screen
+        self.screen = screen;
+        // Focus new screen
         match self.screen {
             Screen::MainMenu => {
                 let _ = self.app.active(&Id::MainMenu);
@@ -326,39 +398,16 @@ impl<T: TerminalAdapter> HasScreenAndQuit for Model<T> {
                 todo!()
             }
             Screen::Syncing => {
-                todo!()
+                let _ = self.app.active(&Id::SyncLog);
             }
             Screen::ZecwalletFromPath => {
-                let _ = self.app.active(&Id::ZecwalletFromPath);
-            }
-            Screen::ZecwalletFromMnemonic => {
-                let _ = self.app.active(&Id::ZecwalletFromMnemonic);
-            }
-        }
-
-        // Update screen
-        self.screen = screen;
-
-        // Activate new screen
-        match self.screen {
-            Screen::MainMenu => {
-                let _ = self.app.active(&Id::MainMenu);
-            }
-            Screen::ZecwalletInput => {
-                let _ = self.app.active(&Id::ZecwalletMenu);
-            }
-            Screen::ZcashdInput => {
-                todo!()
-            }
-            Screen::ZecwalletFromPath => {
-                // TODO: It should be more clear that this refers to the input inside the ZecwalletFromPath view.
                 let _ = self.app.active(&Id::ZecwalletFromPath);
             }
             Screen::ZecwalletFromMnemonic => {
                 let _ = self.app.active(&Id::MnemonicInput);
             }
-            Screen::Syncing => {
-                let _ = self.app.active(&Id::SyncLog);
+            Screen::Result => {
+                let _ = self.app.active(&Id::ExportMenu);
             }
         }
     }

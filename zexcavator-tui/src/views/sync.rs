@@ -12,7 +12,7 @@ use tuirealm::{Application, Frame, NoUserEvent};
 use zexcavator_lib::parser::WalletParserFactory;
 use zingolib::config::{ChainType, load_clientconfig};
 use zingolib::data::PollReport;
-use zingolib::lightclient::{self};
+use zingolib::lightclient::{self, LightClient};
 use zingolib::wallet::{LightWallet, WalletBase, WalletSettings};
 
 use crate::components::log_viewer::LogBuffer;
@@ -26,13 +26,20 @@ pub struct SyncView {
     log_buffer: LogBuffer,
     // Progress between 0.0 and 1.0
     pub progress: Arc<Mutex<f32>>,
+    pub sync_complete: Arc<Mutex<bool>>,
+    pub light_client: Arc<Mutex<Option<LightClient>>>,
 }
 
 impl SyncView {
-    pub fn new_with_log(log_buffer: LogBuffer) -> Self {
+    pub fn new_with_log(
+        log_buffer: LogBuffer,
+        light_client: Arc<Mutex<Option<LightClient>>>,
+    ) -> Self {
         Self {
             log_buffer,
             progress: Arc::new(Mutex::new(0.0)),
+            sync_complete: Arc::new(Mutex::new(false)),
+            light_client,
         }
     }
 
@@ -136,11 +143,14 @@ impl SyncView {
                             .lock()
                             .unwrap()
                             .push(format!("Sync result: {:?}", sync_result));
-                        let balances = lc.do_balance().await;
-                        self.log_buffer
-                            .lock()
-                            .unwrap()
-                            .push(format!("Balances: {:?}", balances));
+                        // let balances = lc.do_balance().await;
+                        // self.log_buffer
+                        //     .lock()
+                        //     .unwrap()
+                        //     .push(format!("Balances: {:?}", balances));
+                        // *self.light_client.lock().unwrap() = Some(lc);
+                        *self.sync_complete.lock().unwrap() = true;
+
                         break;
                     }
                     Err(e) => {
@@ -164,11 +174,13 @@ impl SyncView {
         }
 
         match lc.await_sync().await {
-            Ok(_) => self
-                .log_buffer
-                .lock()
-                .unwrap()
-                .push("Sync finished".to_string()),
+            Ok(_) => {
+                self.log_buffer
+                    .lock()
+                    .unwrap()
+                    .push("Sync finished".to_string());
+                *self.light_client.lock().unwrap() = Some(lc);
+            }
             Err(e) => self.log_buffer.lock().unwrap().push(format!("{}", e)),
         }
     }
@@ -271,11 +283,14 @@ impl SyncView {
                             .lock()
                             .unwrap()
                             .push(format!("Sync result: {:?}", sync_result));
-                        let balances = lc.do_balance().await;
-                        self.log_buffer
-                            .lock()
-                            .unwrap()
-                            .push(format!("Balances: {:?}", balances));
+                        // let balances = lc.do_balance().await;
+                        // self.log_buffer
+                        //     .lock()
+                        //     .unwrap()
+                        //     .push(format!("Balances: {:?}", balances));
+                        // *self.light_client.lock().unwrap() = Some(lc);
+                        *self.sync_complete.lock().unwrap() = true;
+
                         break;
                     }
                     Err(e) => {
@@ -299,11 +314,13 @@ impl SyncView {
         }
 
         match lc.await_sync().await {
-            Ok(_) => self
-                .log_buffer
-                .lock()
-                .unwrap()
-                .push("Sync finished".to_string()),
+            Ok(_) => {
+                self.log_buffer
+                    .lock()
+                    .unwrap()
+                    .push("Sync finished".to_string());
+                *self.light_client.lock().unwrap() = Some(lc);
+            }
             Err(e) => self.log_buffer.lock().unwrap().push(format!("{}", e)),
         }
     }
