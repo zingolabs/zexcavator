@@ -83,6 +83,16 @@ impl SyncView {
 
         let mut light_client = lightclient::LightClient::create_from_wallet(lw, zc, true).unwrap();
 
+        let mnemonic = {
+            let wallet_guard = light_client.wallet.lock().await;
+            let mnemonic = wallet_guard.mnemonic().cloned();
+            mnemonic
+        };
+
+        self.log_buffer
+            .lock()
+            .unwrap()
+            .push(format!("Mnemonic: {}", mnemonic.unwrap().0));
         self.log_buffer
             .lock()
             .unwrap()

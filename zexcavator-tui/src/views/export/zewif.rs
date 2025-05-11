@@ -155,21 +155,6 @@ where
 {
     fn handle_message(msg: Msg, model: &mut T) -> Option<Msg> {
         match msg {
-            // Msg::MenuSelected(option) => {
-            //     if let Some(menu_item) = ExportOptions::from_label(&option) {
-            //         match menu_item {
-            //             ExportOptions::ZeWIF => {
-            //                 // model.navigate_to(Screen::ZecwalletFromPath)
-            //                 todo!()
-            //             }
-            //             ExportOptions::Send => {
-            //                 // model.navigate_to(Screen::ZecwalletFromMnemonic)
-            //                 todo!()
-            //             }
-            //         }
-            //     }
-            //     None
-            // }
             _ => None,
         }
     }

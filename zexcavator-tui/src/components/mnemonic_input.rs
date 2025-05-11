@@ -18,11 +18,12 @@ pub struct MnemonicInput {
 }
 
 impl MnemonicInput {
-    pub fn new(initial_text: String) -> Self {
+    pub fn new(initial_text: String, label: String) -> Self {
         Self {
             component: Input::default()
                 .input_type(tuirealm::props::InputType::Text)
-                .value(initial_text),
+                .value(initial_text)
+                .title(label, tuirealm::props::Alignment::Left),
         }
     }
 
@@ -64,15 +65,7 @@ impl Component<Msg, NoUserEvent> for MnemonicInput {
             Event::Keyboard(KeyEvent { code: Key::Esc, .. }) => return Some(Msg::AppClose),
             Event::Keyboard(KeyEvent {
                 code: Key::Enter, ..
-            }) => match self.validate_input(
-                self.component
-                    .query(Attribute::Text)
-                    .unwrap()
-                    .unwrap_string(),
-            ) {
-                true => self.perform(Cmd::Submit),
-                false => CmdResult::None,
-            },
+            }) => CmdResult::None,
             _ => CmdResult::None,
         };
 

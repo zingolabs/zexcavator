@@ -66,6 +66,7 @@ pub enum Id {
     ResultViewer,
     ExportZewif,
     ExportSend,
+    ExportZingolib,
 }
 
 #[tokio::main]

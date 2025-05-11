@@ -19,6 +19,7 @@ use crate::components::log_viewer::{LogViewer, SyncSource, new_log_buffer};
 use crate::components::menu::MenuOptions;
 use crate::views::export::send::ExportSendView;
 use crate::views::export::zewif::ExportZewifView;
+use crate::views::export::zingolib::ExportZingolibView;
 use crate::views::export::{ExportOptions, ExportView};
 use crate::views::main_menu::MainMenu;
 use crate::views::sync::SyncView;
@@ -40,6 +41,7 @@ pub enum Screen {
     Result,
     ExportZewif,
     ExportSend,
+    ExportZingolib,
 }
 
 pub struct Model<T>
@@ -61,6 +63,7 @@ where
     pub export_menu: ExportView,
     pub export_zewif: ExportZewifView,
     pub export_send: ExportSendView,
+    pub export_zingolib: ExportZingolibView,
 }
 
 impl Default for Model<CrosstermTerminalAdapter> {
@@ -70,12 +73,14 @@ impl Default for Model<CrosstermTerminalAdapter> {
         let export_menu = ExportView::new(Arc::clone(&light_client));
         let export_zewif = ExportZewifView::new(Arc::clone(&light_client));
         let export_send = ExportSendView::new(Arc::clone(&light_client));
+        let export_zingolib = ExportZingolibView::new(Arc::clone(&light_client));
 
         let mut app = Self::init_app(
             Arc::clone(&light_client),
             export_menu.clone(),
             export_zewif.clone(),
             export_send.clone(),
+            export_zingolib.clone(),
         );
 
         assert!(
@@ -98,6 +103,7 @@ impl Default for Model<CrosstermTerminalAdapter> {
             export_menu,
             export_zewif,
             export_send,
+            export_zingolib,
         }
     }
 }
@@ -131,6 +137,10 @@ where
                             let area = f.area();
                             self.app.view(&Id::ExportZewif, f, area);
                         }
+                        Screen::ExportZingolib => {
+                            let area = f.area();
+                            self.app.view(&Id::ExportZingolib, f, area);
+                        }
                     }
                 })
                 .is_ok()
@@ -142,6 +152,7 @@ where
         export_menu: ExportView,
         export_zewif: ExportZewifView,
         export_send: ExportSendView,
+        export_zingolib: ExportZingolibView,
     ) -> Application<Id, Msg, NoUserEvent> {
         // Setup application
         // NOTE: NoUserEvent is a shorthand to tell tui-realm we're not going to use any custom user event
@@ -169,32 +180,7 @@ where
 
         assert!(ZecwalletFromMnemonic::mount(&mut app).is_ok());
 
-        // SyncView::new_with_log(log_buffer);
-
         assert!(SyncView::mount(&mut app).is_ok());
-
-        // Mount result view
-        // assert!(ExportMenu::mount(&mut app).is_ok());
-
-        // // Mount menu
-        // assert!(
-        //     app.mount(
-        //         Id::ExportMenu,
-        //         Box::new(Menu::<ExportOptions>::new("Select the export method",)),
-        //         Vec::default()
-        //     )
-        //     .is_ok()
-        // );
-
-        // assert!(
-        //     app.mount(
-        //         Id::ResultViewer,
-        //         Box::new(ResultViewer::new(Vec::default())),
-        //         Vec::default()
-        //     )
-        //     .is_ok()
-        // );
-
         assert!(
             app.mount(Id::ExportView, Box::new(export_menu), Vec::default())
                 .is_ok()
@@ -212,14 +198,15 @@ where
                 .is_ok()
         );
 
-        // assert!(
-        //     app.mount(
-        //         Id::ExportView,
-        //         Box::new(ExportView::new_with_log(light_client, result_log)),
-        //         Vec::default(),
-        //     )
-        //     .is_ok(),
-        // );
+        // Mount export zingolib view
+        assert!(
+            app.mount(
+                Id::ExportZingolib,
+                Box::new(export_zingolib),
+                Vec::default()
+            )
+            .is_ok()
+        );
 
         // Focus main menu
         assert!(app.active(&Id::MainMenu).is_ok());
@@ -317,6 +304,21 @@ where
                 Msg::MenuSelected(label) => {
                     if self.screen == Screen::Result {
                         match ExportOptions::from_label(&label).unwrap() {
+                            ExportOptions::Zingolib => {
+                                self.navigate_to(Screen::ExportZingolib);
+                                let view = self.export_zingolib.clone();
+
+                                tokio::spawn(async move {
+                                    let path_or_err = view
+                                        .do_save()
+                                        .await
+                                        .map_err(|e| format!("Error: {}", e))
+                                        .map(|p| p.to_string());
+                                    *view.saved_path.lock().unwrap() =
+                                        Some(path_or_err.unwrap_or_else(|e| e));
+                                });
+                                return None;
+                            }
                             ExportOptions::ZeWIF => {
                                 self.navigate_to(Screen::ExportZewif);
                                 let view = self.export_zewif.clone();
@@ -333,18 +335,6 @@ where
                             }
                             ExportOptions::Send => {
                                 todo!();
-                                // self.navigate_to(Screen::ExportSend);
-                                // let view = self.export_send.clone();
-                                // tokio::spawn(async move {
-                                //     let path_or_err = view
-                                //         .do_send()
-                                //         .await
-                                //         .map_err(|e| format!("Error: {}", e))
-                                //         .map(|p| p.to_string());
-                                //     *view.sent_path.lock().unwrap() =
-                                //         Some(path_or_err.unwrap_or_else(|e| e));
-                                // });
-                                // return None;
                             }
                         }
                     }
@@ -518,6 +508,9 @@ impl<T: TerminalAdapter> HasScreenAndQuit for Model<T> {
             }
             Screen::ExportZewif => {
                 let _ = self.app.active(&Id::ExportZewif);
+            }
+            Screen::ExportZingolib => {
+                let _ = self.app.active(&Id::ExportZingolib);
             }
         }
     }
