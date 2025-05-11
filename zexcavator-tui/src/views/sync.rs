@@ -7,6 +7,7 @@ use bip0039::{English, Mnemonic};
 use http::Uri;
 use pepper_sync::sync::{SyncConfig, TransparentAddressDiscovery};
 use pepper_sync::sync_status;
+use tokio::sync::RwLock;
 use tuirealm::ratatui::layout::{Constraint, Direction, Layout};
 use tuirealm::{Application, Frame, NoUserEvent};
 use zexcavator_lib::parser::WalletParserFactory;
@@ -26,20 +27,15 @@ pub struct SyncView {
     log_buffer: LogBuffer,
     // Progress between 0.0 and 1.0
     pub progress: Arc<Mutex<f32>>,
-    pub sync_complete: Arc<Mutex<bool>>,
-    pub light_client: Arc<Mutex<Option<LightClient>>>,
+    pub sync_complete: Arc<Mutex<bool>>, // TODO: Replace with AtomicBool
 }
 
 impl SyncView {
-    pub fn new_with_log(
-        log_buffer: LogBuffer,
-        light_client: Arc<Mutex<Option<LightClient>>>,
-    ) -> Self {
+    pub fn new_with_log(log_buffer: LogBuffer) -> Self {
         Self {
             log_buffer,
             progress: Arc::new(Mutex::new(0.0)),
             sync_complete: Arc::new(Mutex::new(false)),
-            light_client,
         }
     }
 
@@ -47,7 +43,7 @@ impl SyncView {
         Arc::clone(&self.progress)
     }
 
-    pub async fn start_wallet_sync_from_path(&self, path: PathBuf) {
+    pub async fn start_wallet_sync_from_path(&self, path: PathBuf) -> LightClient {
         let wallet_parser = WalletParserFactory::read(path.to_str().unwrap()).unwrap();
 
         let seed = wallet_parser.parser.get_wallet_seed();
@@ -60,7 +56,7 @@ impl SyncView {
                 .push(format!("Error installing crypto provider: {:?}", e));
         }
 
-        let zc = match load_clientconfig(
+        let zc = load_clientconfig(
             Uri::from_static("https://na.zec.rocks:443"),
             None,
             ChainType::Mainnet,
@@ -69,16 +65,8 @@ impl SyncView {
                     transparent_address_discovery: TransparentAddressDiscovery::recovery(),
                 },
             },
-        ) {
-            Ok(zc) => zc,
-            Err(e) => {
-                self.log_buffer
-                    .lock()
-                    .unwrap()
-                    .push(format!("Error loading client config: {}", e));
-                return;
-            }
-        };
+        )
+        .unwrap();
 
         let initial_bh: u32 = bd.try_into().unwrap();
         let lw = LightWallet::new(
@@ -93,13 +81,13 @@ impl SyncView {
         )
         .unwrap();
 
-        let mut lc = lightclient::LightClient::create_from_wallet(lw, zc, true).unwrap();
+        let mut light_client = lightclient::LightClient::create_from_wallet(lw, zc, true).unwrap();
 
         self.log_buffer
             .lock()
             .unwrap()
             .push(format!("Starting sync from birthday: {}", bd));
-        match lc.sync().await {
+        match light_client.sync().await {
             Ok(_) => self
                 .log_buffer
                 .lock()
@@ -116,15 +104,10 @@ impl SyncView {
         interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
         loop {
             interval.tick().await;
-            match lc.poll_sync() {
-                PollReport::NoHandle => {
-                    self.log_buffer
-                        .lock()
-                        .unwrap()
-                        .push("No handle".to_string());
-                }
+            match light_client.poll_sync() {
+                PollReport::NoHandle => {}
                 PollReport::NotReady => {
-                    let wallet_guard = lc.wallet.lock().await;
+                    let wallet_guard = light_client.wallet.lock().await;
                     match sync_status(&*wallet_guard).await {
                         Ok(status) => {
                             *self.progress.lock().unwrap() =
@@ -143,23 +126,30 @@ impl SyncView {
                             .lock()
                             .unwrap()
                             .push(format!("Sync result: {:?}", sync_result));
-                        // let balances = lc.do_balance().await;
-                        // self.log_buffer
-                        //     .lock()
-                        //     .unwrap()
-                        //     .push(format!("Balances: {:?}", balances));
-                        // *self.light_client.lock().unwrap() = Some(lc);
+                        let balances = light_client.do_balance().await;
+                        let final_balance = balances.confirmed_transparent_balance.unwrap()
+                            + balances.verified_sapling_balance.unwrap()
+                            + balances.verified_orchard_balance.unwrap();
+                        let balance_in_zec = final_balance / 10u64.pow(8);
+                        self.log_buffer
+                            .lock()
+                            .unwrap()
+                            .push(format!("Total ZEC found: {}", balance_in_zec));
+
                         *self.sync_complete.lock().unwrap() = true;
 
                         break;
                     }
                     Err(e) => {
-                        self.log_buffer.lock().unwrap().push(format!("{}", e));
+                        self.log_buffer
+                            .lock()
+                            .unwrap()
+                            .push("Error. Resuming sync".to_string());
                         self.log_buffer
                             .lock()
                             .unwrap()
                             .push("Restarting sync".to_string());
-                        match lc.sync().await {
+                        match light_client.sync().await {
                             Ok(_) => self
                                 .log_buffer
                                 .lock()
@@ -173,23 +163,24 @@ impl SyncView {
             };
         }
 
-        match lc.await_sync().await {
+        match light_client.await_sync().await {
             Ok(_) => {
                 self.log_buffer
                     .lock()
                     .unwrap()
                     .push("Sync finished".to_string());
-                *self.light_client.lock().unwrap() = Some(lc);
             }
             Err(e) => self.log_buffer.lock().unwrap().push(format!("{}", e)),
         }
+
+        light_client
     }
 
     pub async fn start_wallet_sync_from_mnemonic(
         &self,
         mnemonic_str: String,
         birthday: Option<u32>,
-    ) {
+    ) -> LightClient {
         if let Err(e) = rustls::crypto::ring::default_provider().install_default() {
             self.log_buffer
                 .lock()
@@ -197,7 +188,7 @@ impl SyncView {
                 .push(format!("Error installing crypto provider: {:?}", e));
         }
 
-        let zc = match load_clientconfig(
+        let zc = load_clientconfig(
             Uri::from_static("https://na.zec.rocks:443"),
             None,
             ChainType::Mainnet,
@@ -206,16 +197,8 @@ impl SyncView {
                     transparent_address_discovery: TransparentAddressDiscovery::recovery(),
                 },
             },
-        ) {
-            Ok(zc) => zc,
-            Err(e) => {
-                self.log_buffer
-                    .lock()
-                    .unwrap()
-                    .push(format!("Error loading client config: {}", e));
-                return;
-            }
-        };
+        )
+        .unwrap();
 
         let mnemonic = Mnemonic::<English>::from_str(&mnemonic_str).unwrap();
 
@@ -233,13 +216,13 @@ impl SyncView {
         )
         .unwrap();
 
-        let mut lc = lightclient::LightClient::create_from_wallet(lw, zc, true).unwrap();
+        let mut light_client = LightClient::create_from_wallet(lw, zc, true).unwrap();
 
         self.log_buffer
             .lock()
             .unwrap()
             .push(format!("Starting sync from birthday: {}", birthday));
-        match lc.sync().await {
+        match light_client.sync().await {
             Ok(_) => self
                 .log_buffer
                 .lock()
@@ -256,16 +239,11 @@ impl SyncView {
         interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
         loop {
             interval.tick().await;
-            match lc.poll_sync() {
-                PollReport::NoHandle => {
-                    self.log_buffer
-                        .lock()
-                        .unwrap()
-                        .push("No handle".to_string());
-                }
+            match light_client.poll_sync() {
+                PollReport::NoHandle => (),
                 PollReport::NotReady => {
-                    let wallet_guard = lc.wallet.lock().await;
-                    match sync_status(&*wallet_guard).await {
+                    let wallet = light_client.wallet.lock().await;
+                    match sync_status(&*wallet).await {
                         Ok(status) => {
                             self.log_buffer.lock().unwrap().push(format!("{}", status));
                             *self.progress.lock().unwrap() =
@@ -283,23 +261,31 @@ impl SyncView {
                             .lock()
                             .unwrap()
                             .push(format!("Sync result: {:?}", sync_result));
-                        // let balances = lc.do_balance().await;
-                        // self.log_buffer
-                        //     .lock()
-                        //     .unwrap()
-                        //     .push(format!("Balances: {:?}", balances));
-                        // *self.light_client.lock().unwrap() = Some(lc);
+                        let balances = light_client.do_balance().await;
+
+                        let final_balance = balances.confirmed_transparent_balance.unwrap()
+                            + balances.verified_sapling_balance.unwrap()
+                            + balances.verified_orchard_balance.unwrap();
+                        let balance_in_zec = final_balance / 10u64.pow(8);
+                        self.log_buffer
+                            .lock()
+                            .unwrap()
+                            .push(format!("Total ZEC found: {}", balance_in_zec));
                         *self.sync_complete.lock().unwrap() = true;
 
                         break;
                     }
                     Err(e) => {
-                        self.log_buffer.lock().unwrap().push(format!("{}", e));
+                        self.log_buffer
+                            .lock()
+                            .unwrap()
+                            .push("Error. Resuming sync".to_string());
                         self.log_buffer
                             .lock()
                             .unwrap()
                             .push("Restarting sync".to_string());
-                        match lc.sync().await {
+
+                        match light_client.sync().await {
                             Ok(_) => self
                                 .log_buffer
                                 .lock()
@@ -310,19 +296,22 @@ impl SyncView {
                         continue;
                     }
                 },
-            };
+            }
         }
 
-        match lc.await_sync().await {
+        match light_client.sync().await {
             Ok(_) => {
                 self.log_buffer
                     .lock()
                     .unwrap()
                     .push("Sync finished".to_string());
-                *self.light_client.lock().unwrap() = Some(lc);
             }
-            Err(e) => self.log_buffer.lock().unwrap().push(format!("{}", e)),
+            Err(e) => {
+                self.log_buffer.lock().unwrap().push(format!("{}", e));
+            }
         }
+
+        light_client
     }
 }
 

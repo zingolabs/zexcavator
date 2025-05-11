@@ -25,6 +25,7 @@ pub trait MenuOptions {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct Menu<T: MenuOptions + Clone> {
     options: Vec<T>,
     cursor_position: usize,

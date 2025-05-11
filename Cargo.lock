@@ -366,10 +366,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bca44ac53b3021300a17e19dbe06117b3a7e2381f321c0fac687c164e7dee332"
 dependencies = [
  "anyhow",
- "bc-crypto",
- "bc-rand",
- "bc-ur",
- "dcbor",
+ "bc-crypto 0.6.0",
+ "bc-rand 0.2.1",
+ "bc-ur 0.6.2",
+ "dcbor 0.16.5",
  "hex",
  "miniz_oxide",
  "paste",
@@ -378,7 +378,32 @@ dependencies = [
  "pqcrypto-traits",
  "rand_core",
  "ssh-key",
- "sskr",
+ "sskr 0.5.0",
+ "url",
+ "zeroize",
+]
+
+[[package]]
+name = "bc-components"
+version = "0.20.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "30ad09f203e55dde31351a144ad497d36072dd0a571945f3a88992f2383f7f94"
+dependencies = [
+ "anyhow",
+ "bc-crypto 0.8.0",
+ "bc-rand 0.4.0",
+ "bc-tags",
+ "bc-ur 0.8.0",
+ "dcbor 0.18.1",
+ "hex",
+ "miniz_oxide",
+ "paste",
+ "pqcrypto-mldsa",
+ "pqcrypto-mlkem",
+ "pqcrypto-traits",
+ "rand_core",
+ "ssh-key",
+ "sskr 0.7.0",
  "url",
  "zeroize",
 ]
@@ -390,7 +415,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a858c7d3a8c073b012ab1502004a43642d6b2f560eb83ff08a086d569a53d1ed"
 dependencies = [
  "anyhow",
- "bc-rand",
+ "bc-rand 0.2.1",
  "chacha20poly1305",
  "crc32fast",
  "ed25519-dalek",
@@ -406,20 +431,64 @@ dependencies = [
 ]
 
 [[package]]
+name = "bc-crypto"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "04934bfaaf6880d5fa71099ffc75435d45c7d066a9b42d6bccf2a4ca832947c1"
+dependencies = [
+ "anyhow",
+ "bc-rand 0.4.0",
+ "chacha20poly1305",
+ "crc32fast",
+ "ed25519-dalek",
+ "hex",
+ "hkdf",
+ "hmac 0.12.1",
+ "pbkdf2",
+ "rand",
+ "scrypt",
+ "secp256k1 0.30.0",
+ "sha2 0.10.9",
+ "thiserror 1.0.69",
+ "x25519-dalek",
+]
+
+[[package]]
 name = "bc-envelope"
 version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f60ce56fcbe4d2771e154426ccfea9a55587132fae6c61dc0fa4b3f7a92868b3"
 dependencies = [
  "anyhow",
- "bc-components",
- "bc-crypto",
- "bc-rand",
- "bc-ur",
+ "bc-components 0.17.0",
+ "bc-crypto 0.6.0",
+ "bc-rand 0.2.1",
+ "bc-ur 0.6.2",
  "bytes",
- "dcbor",
+ "dcbor 0.16.5",
  "hex",
  "itertools 0.11.0",
+ "paste",
+ "ssh-key",
+ "thiserror 1.0.69",
+]
+
+[[package]]
+name = "bc-envelope"
+version = "0.27.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "76105e49094351f67909e8f6ba02cf2579a9973b673d3094e7ab55061b331f67"
+dependencies = [
+ "anyhow",
+ "bc-components 0.20.0",
+ "bc-crypto 0.8.0",
+ "bc-rand 0.4.0",
+ "bc-ur 0.8.0",
+ "bytes",
+ "dcbor 0.18.1",
+ "hex",
+ "itertools 0.11.0",
+ "known-values",
  "paste",
  "ssh-key",
  "thiserror 1.0.69",
@@ -440,14 +509,49 @@ dependencies = [
 ]
 
 [[package]]
+name = "bc-rand"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5bd5f55d05b06624b5b3c2aa7d7e1c6ab06a41e186b66fef68cfd2ad08149ba1"
+dependencies = [
+ "getrandom 0.2.16",
+ "lazy_static",
+ "num-traits",
+ "rand",
+ "rand_core",
+ "rand_xoshiro",
+]
+
+[[package]]
 name = "bc-shamir"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5ae105d819b82cb8a68e7c3a9c63a2080401f6f18be48e5fc0095a2e1db274e4"
 dependencies = [
- "bc-crypto",
- "bc-rand",
+ "bc-crypto 0.6.0",
+ "bc-rand 0.2.1",
  "thiserror 1.0.69",
+]
+
+[[package]]
+name = "bc-shamir"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "71ea35338f9769920bc6bac820182a4b61108fa85151f63fd90983ae252adbe1"
+dependencies = [
+ "bc-crypto 0.8.0",
+ "bc-rand 0.4.0",
+ "thiserror 1.0.69",
+]
+
+[[package]]
+name = "bc-tags"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "22b913ee5f2b0abd3fc0b4098aa88519ff20d6c30c21894eb47c4cc977bfa0b5"
+dependencies = [
+ "dcbor 0.18.1",
+ "paste",
 ]
 
 [[package]]
@@ -457,7 +561,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0eced5ba4f1321a74faac8a346d1d527a76ecec9fda7d746da22a43e923201a3"
 dependencies = [
  "anyhow",
- "dcbor",
+ "dcbor 0.16.5",
+ "thiserror 1.0.69",
+ "ur",
+]
+
+[[package]]
+name = "bc-ur"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fd117e4e52cd634f935220f4936e8283a1a2341dc8511ff7e913586f33687540"
+dependencies = [
+ "dcbor 0.18.1",
  "thiserror 1.0.69",
  "ur",
 ]
@@ -730,7 +845,7 @@ dependencies = [
 [[package]]
 name = "build_utils"
 version = "0.1.0"
-source = "git+https://github.com/zingolabs/zingolib.git?branch=dev#f16f70b3ad7bf2a416d82a74a9a17b08c474e7e2"
+source = "git+https://github.com/zingolabs/zingolib.git?branch=dev#8048616f5a1aed9a7ed28e2449332601d7e9c0c8"
 
 [[package]]
 name = "bumpalo"
@@ -1196,6 +1311,21 @@ dependencies = [
  "chrono",
  "half",
  "hex",
+ "thiserror 1.0.69",
+ "unicode-normalization",
+]
+
+[[package]]
+name = "dcbor"
+version = "0.18.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f76928fbc340ddc5aea3c271974a0f8b4dff0ee086001a08e8b2b11dfff444d6"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "half",
+ "hex",
+ "paste",
  "thiserror 1.0.69",
  "unicode-normalization",
 ]
@@ -2419,6 +2549,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "known-values"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "de45f9a353aea10da248d5e1b7270795f394eb95fb5f60d0daae71ae2ff426f8"
+dependencies = [
+ "bc-components 0.20.0",
+ "dcbor 0.18.1",
+ "paste",
+]
+
+[[package]]
 name = "lazy-regex"
 version = "3.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3080,7 +3221,7 @@ dependencies = [
 [[package]]
 name = "pepper-sync"
 version = "0.1.0"
-source = "git+https://github.com/zingolabs/zingolib.git?branch=dev#f16f70b3ad7bf2a416d82a74a9a17b08c474e7e2"
+source = "git+https://github.com/zingolabs/zingolib.git?branch=dev#8048616f5a1aed9a7ed28e2449332601d7e9c0c8"
 dependencies = [
  "bip32 0.6.0-pre.1",
  "byteorder",
@@ -3388,7 +3529,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be769465445e8c1474e9c5dac2018218498557af32d9ed057325ec9a41ae81bf"
 dependencies = [
  "heck",
- "itertools 0.11.0",
+ "itertools 0.13.0",
  "log",
  "multimap",
  "once_cell",
@@ -3408,7 +3549,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a56d757972c98b346a9b766e3f02746cde6dd1cd1d1d563472929fdd74bec4d"
 dependencies = [
  "anyhow",
- "itertools 0.11.0",
+ "itertools 0.13.0",
  "proc-macro2",
  "quote",
  "syn 2.0.101",
@@ -3901,6 +4042,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "28d3b2b1366ec20994f1fd18c3c594f05c5dd4bc44d8bb0c1c632c8d6829481f"
 
 [[package]]
+name = "salsa20"
+version = "0.10.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "97a22f5af31f73a954c10289c93e8a50cc23d971e80ee446f1f6f7137a088213"
+dependencies = [
+ "cipher 0.4.4",
+]
+
+[[package]]
 name = "same-file"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3988,6 +4138,17 @@ name = "scopeguard"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
+
+[[package]]
+name = "scrypt"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0516a385866c09368f0b5bcd1caff3366aace790fcd46e2bb032697bb172fd1f"
+dependencies = [
+ "pbkdf2",
+ "salsa20",
+ "sha2 0.10.9",
+]
 
 [[package]]
 name = "sec1"
@@ -4392,8 +4553,19 @@ version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2bb82d84810c92ae464197c90f38f2bad403032d5a6b55ec746ce06d19eb867"
 dependencies = [
- "bc-rand",
- "bc-shamir",
+ "bc-rand 0.2.1",
+ "bc-shamir 0.5.0",
+ "thiserror 1.0.69",
+]
+
+[[package]]
+name = "sskr"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f412d410cd9e7b6eb62fcf7bc491970dfd25ea6dc06d1d6f087e927364a2dd86"
+dependencies = [
+ "bc-rand 0.4.0",
+ "bc-shamir 0.7.0",
  "thiserror 1.0.69",
 ]
 
@@ -6088,11 +6260,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "zewif"
+version = "0.1.0"
+source = "git+https://github.com/BlockchainCommons/zewif.git?rev=18592063cce454158e8110d0bd11be869fb67f60#18592063cce454158e8110d0bd11be869fb67f60"
+dependencies = [
+ "anyhow",
+ "bc-components 0.20.0",
+ "bc-crypto 0.8.0",
+ "bc-envelope 0.27.2",
+ "chrono",
+ "dcbor 0.18.1",
+ "hex",
+]
+
+[[package]]
 name = "zexcavator-cli"
 version = "0.1.0"
 dependencies = [
  "abscissa_core",
- "bc-envelope",
+ "bc-envelope 0.24.0",
  "clap",
  "http",
  "once_cell",
@@ -6125,6 +6311,8 @@ dependencies = [
  "zcash_encoding 0.2.2",
  "zcash_keys 0.5.0",
  "zcash_primitives 0.20.0",
+ "zewif",
+ "zingolib",
 ]
 
 [[package]]
@@ -6139,6 +6327,7 @@ dependencies = [
  "tokio",
  "tui-realm-stdlib",
  "tuirealm",
+ "zewif",
  "zexcavator-lib",
  "zingolib",
 ]
@@ -6146,7 +6335,7 @@ dependencies = [
 [[package]]
 name = "zingo-memo"
 version = "0.1.0"
-source = "git+https://github.com/zingolabs/zingolib.git?branch=dev#f16f70b3ad7bf2a416d82a74a9a17b08c474e7e2"
+source = "git+https://github.com/zingolabs/zingolib.git?branch=dev#8048616f5a1aed9a7ed28e2449332601d7e9c0c8"
 dependencies = [
  "zcash_address 0.7.0",
  "zcash_client_backend 0.18.0",
@@ -6158,7 +6347,7 @@ dependencies = [
 [[package]]
 name = "zingo-netutils"
 version = "0.1.0"
-source = "git+https://github.com/zingolabs/zingolib.git?branch=dev#f16f70b3ad7bf2a416d82a74a9a17b08c474e7e2"
+source = "git+https://github.com/zingolabs/zingolib.git?branch=dev#8048616f5a1aed9a7ed28e2449332601d7e9c0c8"
 dependencies = [
  "http",
  "http-body",
@@ -6178,7 +6367,7 @@ dependencies = [
 [[package]]
 name = "zingo-status"
 version = "0.1.0"
-source = "git+https://github.com/zingolabs/zingolib.git?branch=dev#f16f70b3ad7bf2a416d82a74a9a17b08c474e7e2"
+source = "git+https://github.com/zingolabs/zingolib.git?branch=dev#8048616f5a1aed9a7ed28e2449332601d7e9c0c8"
 dependencies = [
  "byteorder",
  "zcash_primitives 0.22.0",
@@ -6187,7 +6376,7 @@ dependencies = [
 [[package]]
 name = "zingolib"
 version = "0.2.0"
-source = "git+https://github.com/zingolabs/zingolib.git?branch=dev#f16f70b3ad7bf2a416d82a74a9a17b08c474e7e2"
+source = "git+https://github.com/zingolabs/zingolib.git?branch=dev#8048616f5a1aed9a7ed28e2449332601d7e9c0c8"
 dependencies = [
  "append-only-vec",
  "bech32 0.11.0",

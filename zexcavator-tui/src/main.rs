@@ -61,17 +61,18 @@ pub enum Id {
     ZecwalletFromMnemonicButton,
     SyncLog,
     ProgressBar,
+    ExportView,
     ExportMenu,
     ResultViewer,
+    ExportZewif,
+    ExportSend,
 }
 
 #[tokio::main]
 async fn main() {
     // Setup model
     let mut model = Model::default();
-    // Enter alternate screen
-    let _ = model.terminal.enter_alternate_screen();
-    let _ = model.terminal.enable_raw_mode();
+
     // Main loop
     // NOTE: loop until quit; quit is set in update if AppClose is received from counter
     while !model.quit {

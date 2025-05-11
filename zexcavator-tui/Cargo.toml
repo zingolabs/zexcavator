@@ -14,3 +14,4 @@ anyhow = { workspace = true }
 http.workspace = true
 zexcavator-lib = { workspace = true }
 bip0039.workspace = true
+zewif = { workspace = true }

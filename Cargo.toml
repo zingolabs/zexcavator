@@ -28,6 +28,11 @@ zcash_keys = "0.5.0"
 zcash_primitives = { version = "0.20.0", features = ["transparent-inputs"] }
 zexcavator-lib = { path = "zexcavator-lib" }
 anyhow = "1.0.98"
+incrementalmerkletree = "0.3.1"
+orchard_new = "0.10.1"
+orchard_old = "=0.3.0"
+sapling = { version = "0.3", default-features = false }
+zewif = { git = "https://github.com/BlockchainCommons/zewif.git", rev = "18592063cce454158e8110d0bd11be869fb67f60" }
 
 [workspace.dependencies.zingolib]
 git = "https://github.com/zingolabs/zingolib.git"
