@@ -1,4 +1,3 @@
-use anyhow::Result;
 use tuirealm::event::Key;
 use tuirealm::props::BorderSides;
 use tuirealm::ratatui::layout::{Constraint, Direction, Layout, Rect};
@@ -7,35 +6,14 @@ use tuirealm::ratatui::widgets::{Block, Paragraph};
 use tuirealm::{Application, Component, Event, Frame, MockComponent, NoUserEvent};
 
 use crate::components::birthday_input::BirthdayInput;
-use crate::components::log_viewer::{LogBuffer, start_wallet_sync_from_mnemonic};
 use crate::components::mnemonic_input::MnemonicInput;
 use crate::views::Renderable;
 use crate::{Id, Msg};
 
 use super::Mountable;
 
-pub struct ZecwalletFromMnemonic {
-    log_buffer: LogBuffer,
-}
-
-impl ZecwalletFromMnemonic {
-    pub fn start_sync(&mut self, mnemonic: String, birthday: u32) {
-        tokio::spawn(start_wallet_sync_from_mnemonic(
-            self.log_buffer.clone(),
-            mnemonic,
-            birthday,
-        ));
-    }
-
-    pub fn new_with_log(log_buffer: LogBuffer) -> Self {
-        Self { log_buffer }
-    }
-
-    pub fn validate_input(mnemonic: String) -> Result<()> {
-        MnemonicInput::validate_input(mnemonic);
-        Ok(())
-    }
-}
+#[derive(Default)]
+pub struct ZecwalletFromMnemonic;
 
 impl Mountable for ZecwalletFromMnemonic {
     fn mount(app: &mut Application<Id, Msg, tuirealm::event::NoUserEvent>) -> anyhow::Result<()> {
@@ -59,9 +37,10 @@ impl Mountable for ZecwalletFromMnemonic {
             .is_ok()
         );
 
+        // Mount submit button
         assert!(
             app.mount(
-                Id::ZecwalletFromPathButton,
+                Id::ZecwalletFromMnemonicButton,
                 Box::new(SubmitButton),
                 Vec::default()
             )
@@ -80,13 +59,11 @@ impl Renderable for ZecwalletFromMnemonic {
                 Constraint::Percentage(10),
                 Constraint::Percentage(10),
                 Constraint::Length(3),
-                Constraint::Percentage(70),
             ])
             .split(f.area());
         app.view(&Id::MnemonicInput, f, chunks[0]);
         app.view(&Id::BirthdayInput, f, chunks[1]);
         app.view(&Id::ZecwalletFromPathButton, f, chunks[2]);
-        app.view(&Id::LogViewerSeed, f, chunks[3]);
     }
 }
 
@@ -119,7 +96,9 @@ impl Component<Msg, NoUserEvent> for SubmitButton {
     fn on(&mut self, ev: Event<NoUserEvent>) -> Option<Msg> {
         if let Event::Keyboard(key) = ev {
             match key.code {
-                Key::Enter => return Some(Msg::FromMnemonicSubmit),
+                Key::Enter => {
+                    return Some(Msg::FromMnemonicSubmit);
+                }
                 Key::Tab => return Some(Msg::FromMnemonicSubmitBlur),
                 Key::Esc => return Some(Msg::AppClose),
                 _ => (),

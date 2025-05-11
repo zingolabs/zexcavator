@@ -4,16 +4,19 @@
 
 use std::path::PathBuf;
 use std::str::FromStr;
+use std::sync::Arc;
 use std::time::Duration;
 
 use tuirealm::event::NoUserEvent;
+use tuirealm::props::{PropPayload, PropValue};
 use tuirealm::terminal::{CrosstermTerminalAdapter, TerminalAdapter, TerminalBridge};
 use tuirealm::{Application, AttrValue, Attribute, EventListenerCfg, Update};
 
 use crate::components::HandleMessage;
-use crate::components::log_viewer::{LogViewer, new_log_buffer};
+use crate::components::log_viewer::{LogViewer, SyncSource, new_log_buffer};
 use crate::components::menu::MenuOptions;
 use crate::views::main_menu::{MainMenu, MainMenuOption};
+use crate::views::sync::SyncView;
 use crate::views::zecwallet::from_mnemonic::ZecwalletFromMnemonic;
 use crate::views::zecwallet::from_path::ZecwalletFromPath;
 use crate::views::zecwallet::{ZecwalletMenu, ZecwalletMenuOption};
@@ -45,30 +48,19 @@ where
     pub terminal: TerminalBridge<T>,
     /// Active screen
     pub screen: Screen,
-    pub zecwallet_from_path: ZecwalletFromPath,
-    pub zecwallet_from_mnemonic: ZecwalletFromMnemonic,
+    pub sync_view: Arc<SyncView>,
 }
 
 impl Default for Model<CrosstermTerminalAdapter> {
     fn default() -> Self {
         let log_buffer_path = new_log_buffer();
-        let log_buffer_seed = new_log_buffer();
 
         let mut app = Self::init_app();
 
         assert!(
             app.mount(
-                Id::LogViewerPath,
+                Id::SyncLog,
                 Box::new(LogViewer::new(log_buffer_path.clone())),
-                Vec::default()
-            )
-            .is_ok()
-        );
-
-        assert!(
-            app.mount(
-                Id::LogViewerSeed,
-                Box::new(LogViewer::new(log_buffer_seed.clone())),
                 Vec::default()
             )
             .is_ok()
@@ -80,8 +72,7 @@ impl Default for Model<CrosstermTerminalAdapter> {
             redraw: true,
             screen: Screen::MainMenu,
             terminal: TerminalBridge::init_crossterm().expect("Cannot initialize terminal"),
-            zecwallet_from_path: ZecwalletFromPath::new_with_log(log_buffer_path),
-            zecwallet_from_mnemonic: ZecwalletFromMnemonic::new_with_log(log_buffer_seed),
+            sync_view: Arc::new(SyncView::new_with_log(log_buffer_path)),
         }
     }
 }
@@ -98,7 +89,7 @@ where
                 .draw(|f| {
                     match self.screen {
                         Screen::MainMenu => main_menu::render(app, f),
-                        Screen::Syncing => todo!(),
+                        Screen::Syncing => SyncView::render(app, f),
                         Screen::ZecwalletInput => ZecwalletMenu::render(app, f),
                         Screen::ZecwalletFromPath => ZecwalletFromPath::render(app, f),
                         Screen::ZecwalletFromMnemonic => ZecwalletFromMnemonic::render(app, f),
@@ -132,17 +123,15 @@ where
 
         let log_buffer = new_log_buffer();
 
-        // Create the screen and give it the buffer
-        ZecwalletFromPath::new_with_log(log_buffer.clone());
-
         assert!(ZecwalletFromPath::mount(&mut app).is_ok());
-
-        // Create the screen and give it the buffer
-        ZecwalletFromMnemonic::new_with_log(log_buffer);
 
         assert!(ZecwalletFromMnemonic::mount(&mut app).is_ok());
 
-        // Active main menu
+        SyncView::new_with_log(log_buffer);
+
+        assert!(SyncView::mount(&mut app).is_ok());
+
+        // Focus main menu
         assert!(app.active(&Id::MainMenu).is_ok());
 
         app
@@ -155,6 +144,13 @@ where
     T: TerminalAdapter,
 {
     fn update(&mut self, msg: Option<Msg>) -> Option<Msg> {
+        let progress = *self.sync_view.get_progress().lock().unwrap();
+        let _ = self.app.attr(
+            &Id::ProgressBar,
+            Attribute::Value,
+            AttrValue::Payload(PropPayload::One(PropValue::F32(progress))),
+        );
+        self.redraw = true;
         if let Some(msg) = msg {
             // Set redraw
             self.redraw = true;
@@ -164,14 +160,13 @@ where
                     self.quit = true; // Terminate
                     None
                 }
-                Msg::SeedInputBlur => None,
                 Msg::SeedInputChanged(s) => {
                     assert!(
                         self.app
                             .attr(
                                 &Id::ZecwalletFromPath,
                                 Attribute::Text,
-                                AttrValue::String(format!("LetterCounter has now value: {}", s))
+                                AttrValue::String(s)
                             )
                             .is_ok()
                     );
@@ -182,7 +177,6 @@ where
                     match ZecwalletFromPath::validate_path(PathBuf::from_str(&path).unwrap()) {
                         Err(_) => None::<Msg>,
                         Ok(_) => {
-                            self.zecwallet_from_path.start_sync(path);
                             return None;
                         }
                     };
@@ -213,35 +207,12 @@ where
                     );
                     None
                 }
-                Msg::MnemonicInputValidate => {
-                    let mnemonic = self
-                        .app
-                        .query(&Id::MnemonicInput, Attribute::Text)
-                        .unwrap()
-                        .unwrap()
-                        .as_string()
-                        .unwrap()
-                        .to_string();
-                    let birthday = self
-                        .app
-                        .query(&Id::BirthdayInput, Attribute::Text)
-                        .unwrap()
-                        .unwrap()
-                        .as_number()
-                        .unwrap() as u32;
-                    match ZecwalletFromMnemonic::validate_input(mnemonic.clone()) {
-                        Err(_) => None::<Msg>,
-                        Ok(_) => {
-                            self.zecwallet_from_mnemonic.start_sync(mnemonic, birthday);
-
-                            return None;
-                        }
-                    };
-
-                    None
-                }
                 Msg::MnemonicInputBlur => {
                     assert!(self.app.active(&Id::BirthdayInput).is_ok());
+                    None
+                }
+                Msg::FromPathInputBlur => {
+                    assert!(self.app.active(&Id::ZecwalletFromPathButton).is_ok());
                     None
                 }
                 Msg::BirthdayInputChanged(birthday) => {
@@ -261,36 +232,71 @@ where
                     None
                 }
                 Msg::FromMnemonicSubmitBlur => {
-                    assert!(self.app.active(&Id::MnemonicInput).is_ok());
+                    assert!(self.app.active(&Id::ZecwalletFromPath).is_ok());
                     None
                 }
+                Msg::FromPathSubmitBlur => {
+                    assert!(self.app.active(&Id::ZecwalletFromPath).is_ok());
+                    None
+                }
+
                 Msg::FromMnemonicSubmit => {
-                    let mnemonic = self
+                    let mnemonic: String = self
                         .app
                         .query(&Id::MnemonicInput, Attribute::Text)
+                        .ok()
                         .unwrap()
+                        .unwrap()
+                        .unwrap_string();
+                    let birthday = self
+                        .app
+                        .query(&Id::BirthdayInput, Attribute::Text)
+                        .ok()
+                        .flatten()
                         .unwrap()
                         .as_string()
-                        .unwrap()
-                        .to_string();
-                    let birthday_str = self.app.query(&Id::BirthdayInput, Attribute::Text);
+                        .and_then(|s| s.parse::<u32>().ok());
 
-                    let birthday = birthday_str
+                    Some(Msg::StartSync(SyncSource::Mnemonic {
+                        mnemonic: mnemonic.to_string(),
+                        birthday,
+                    }))
+                }
+                Msg::FromPathSubmit => {
+                    let path: String = self
+                        .app
+                        .query(&Id::ZecwalletFromPath, Attribute::Text)
+                        .ok()
                         .unwrap()
                         .unwrap()
-                        .as_string()
-                        .unwrap()
-                        .trim()
-                        .parse()
-                        .unwrap();
-                    match ZecwalletFromMnemonic::validate_input(mnemonic.clone()) {
-                        Err(_) => None::<Msg>,
-                        Ok(_) => {
-                            self.zecwallet_from_mnemonic.start_sync(mnemonic, birthday);
+                        .unwrap_string();
 
-                            return None;
+                    Some(Msg::StartSync(SyncSource::WalletFile(
+                        PathBuf::from_str(&path).unwrap(),
+                    )))
+                }
+                Msg::StartSync(source) => {
+                    match source {
+                        SyncSource::WalletFile(path) => {
+                            let sv = Arc::clone(&self.sync_view);
+
+                            let sv_clone = Arc::clone(&sv);
+                            tokio::spawn(async move {
+                                sv_clone.start_wallet_sync_from_path(path).await;
+                            });
                         }
-                    };
+                        SyncSource::Mnemonic { mnemonic, birthday } => {
+                            let sv = Arc::clone(&self.sync_view);
+
+                            let sv_clone = Arc::clone(&sv);
+                            tokio::spawn(async move {
+                                sv_clone
+                                    .start_wallet_sync_from_mnemonic(mnemonic, birthday)
+                                    .await;
+                            });
+                        }
+                    }
+                    self.navigate_to(Screen::Syncing);
 
                     None
                 }
@@ -352,7 +358,7 @@ impl<T: TerminalAdapter> HasScreenAndQuit for Model<T> {
                 let _ = self.app.active(&Id::MnemonicInput);
             }
             Screen::Syncing => {
-                todo!()
+                let _ = self.app.active(&Id::SyncLog);
             }
         }
     }

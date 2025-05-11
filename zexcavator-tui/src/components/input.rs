@@ -10,11 +10,11 @@ use tuirealm::{State, StateValue};
 use crate::Msg;
 
 #[derive(MockComponent, Default)]
-pub struct SeedInput {
+pub struct PathInput {
     component: Input,
 }
 
-impl SeedInput {
+impl PathInput {
     pub fn new(initial_text: String) -> Self {
         Self {
             component: Input::default()
@@ -24,7 +24,7 @@ impl SeedInput {
     }
 }
 
-impl Component<Msg, NoUserEvent> for SeedInput {
+impl Component<Msg, NoUserEvent> for PathInput {
     fn on(&mut self, ev: Event<NoUserEvent>) -> Option<Msg> {
         let cmd = match ev {
             Event::Keyboard(KeyEvent {
@@ -42,7 +42,7 @@ impl Component<Msg, NoUserEvent> for SeedInput {
             Event::Keyboard(KeyEvent {
                 code: Key::Tab,
                 modifiers: KeyModifiers::NONE,
-            }) => return Some(Msg::SeedInputBlur), // Focus lost
+            }) => return Some(Msg::FromPathInputBlur), // Focus lost
             Event::Keyboard(KeyEvent {
                 code: Key::Delete, ..
             }) => self.perform(Cmd::Cancel),
