@@ -45,13 +45,10 @@ impl MockComponent for ResultViewer {
     }
 
     fn attr(&mut self, attr: tuirealm::Attribute, value: tuirealm::AttrValue) {
-        match attr {
-            tuirealm::Attribute::Value => {
-                if let tuirealm::AttrValue::Payload(PropPayload::One(PropValue::Str(msg))) = value {
-                    self.output.push(msg);
-                }
+        if attr == tuirealm::Attribute::Value {
+            if let tuirealm::AttrValue::Payload(PropPayload::One(PropValue::Str(msg))) = value {
+                self.output.push(msg);
             }
-            _ => (),
         }
     }
 

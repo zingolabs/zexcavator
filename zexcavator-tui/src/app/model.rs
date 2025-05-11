@@ -225,13 +225,10 @@ where
             let export_menu = self.export_menu.clone();
             tokio::spawn(async move {
                 let balance = export_menu.load_balance().await;
-                match balance {
-                    Some(b) => {
-                        let mut guard = export_menu.balance.write().await;
-                        guard.replace(b);
-                        drop(guard);
-                    }
-                    None => (),
+                if let Some(b) = balance {
+                    let mut guard = export_menu.balance.write().await;
+                    guard.replace(b);
+                    drop(guard);
                 }
             });
 
@@ -252,17 +249,14 @@ where
             }
             self.redraw = true;
         }
-        match self.screen {
-            Screen::Syncing => {
-                let progress = *self.sync_view.get_progress().lock().unwrap();
-                let _ = self.app.attr(
-                    &Id::ProgressBar,
-                    Attribute::Value,
-                    AttrValue::Payload(PropPayload::One(PropValue::F32(progress))),
-                );
-                self.redraw = true;
-            }
-            _ => (),
+        if self.screen == Screen::Syncing {
+            let progress = *self.sync_view.get_progress().lock().unwrap();
+            let _ = self.app.attr(
+                &Id::ProgressBar,
+                Attribute::Value,
+                AttrValue::Payload(PropPayload::One(PropValue::F32(progress))),
+            );
+            self.redraw = true;
         }
 
         if let Some(msg) = msg {

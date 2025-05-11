@@ -37,7 +37,7 @@ impl ExportZingolibView {
         let mut buf = Vec::new();
         {
             let mut lw_guard = lc.wallet.lock().await;
-            let network = lw_guard.network.clone();
+            let network = lw_guard.network;
             lw_guard
                 .write(&mut buf, &network)
                 .await
@@ -115,8 +115,6 @@ where
     T: HasScreenAndQuit,
 {
     fn handle_message(msg: Msg, model: &mut T) -> Option<Msg> {
-        match msg {
-            _ => None,
-        }
+        None
     }
 }

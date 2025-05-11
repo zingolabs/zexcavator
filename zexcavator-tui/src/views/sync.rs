@@ -7,7 +7,6 @@ use bip0039::{English, Mnemonic};
 use http::Uri;
 use pepper_sync::sync::{SyncConfig, TransparentAddressDiscovery};
 use pepper_sync::sync_status;
-use tokio::sync::RwLock;
 use tuirealm::ratatui::layout::{Constraint, Direction, Layout};
 use tuirealm::{Application, Frame, NoUserEvent};
 use zexcavator_lib::parser::WalletParserFactory;

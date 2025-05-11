@@ -154,8 +154,6 @@ where
     T: HasScreenAndQuit,
 {
     fn handle_message(msg: Msg, model: &mut T) -> Option<Msg> {
-        match msg {
-            _ => None,
-        }
+        None
     }
 }
