@@ -86,6 +86,11 @@ impl MockComponent for ExportView {
             let para =
                 Paragraph::new(text).block(Block::default().borders(Borders::ALL).title("Balance"));
             frame.render_widget(para, chunks[0]);
+        } else {
+            let text = format!("Loading balance...");
+            let para =
+                Paragraph::new(text).block(Block::default().borders(Borders::ALL).title("Balance"));
+            frame.render_widget(para, chunks[0]);
         }
 
         self.menu.view(frame, chunks[1]);

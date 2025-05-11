@@ -28,4 +28,3 @@ incrementalmerkletree = { workspace = true }
 orchard_old = { package = "orchard", version = "=0.3.0" }
 orchard_new = { package = "orchard", version = "0.10.1" }
 zingolib = { workspace = true }
-zewif = { workspace = true }
