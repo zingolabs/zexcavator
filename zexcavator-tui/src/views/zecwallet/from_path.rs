@@ -40,7 +40,7 @@ impl Mountable for ZecwalletFromPath {
         assert!(
             app.mount(
                 Id::ZecwalletFromPathButton,
-                Box::new(SubmitButton),
+                Box::new(SubmitButtonPath),
                 Vec::default()
             )
             .is_ok()
@@ -61,9 +61,9 @@ impl Renderable for ZecwalletFromPath {
     }
 }
 
-pub struct SubmitButton;
+pub struct SubmitButtonPath;
 
-impl MockComponent for SubmitButton {
+impl MockComponent for SubmitButtonPath {
     fn view(&mut self, frame: &mut Frame, area: Rect) {
         let button = Paragraph::new(Text::raw("Submit"))
             .alignment(tuirealm::props::Alignment::Center)
@@ -86,14 +86,14 @@ impl MockComponent for SubmitButton {
     }
 }
 
-impl Component<Msg, NoUserEvent> for SubmitButton {
+impl Component<Msg, NoUserEvent> for SubmitButtonPath {
     fn on(&mut self, ev: Event<NoUserEvent>) -> Option<Msg> {
         if let Event::Keyboard(key) = ev {
             match key.code {
                 Key::Enter => {
                     return Some(Msg::FromPathSubmit);
                 }
-                Key::Tab => return Some(Msg::FromMnemonicSubmitBlur),
+                Key::Tab => return Some(Msg::FromPathSubmitBlur),
                 Key::Esc => return Some(Msg::AppClose),
                 _ => (),
             }

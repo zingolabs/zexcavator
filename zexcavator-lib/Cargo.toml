@@ -24,8 +24,7 @@ jubjub = { workspace = true }
 rusqlite = { workspace = true }
 bridgetree = { workspace = true }
 prost = { workspace = true }
-incrementalmerkletree = "0.3.1"
+incrementalmerkletree = { workspace = true }
 orchard_old = { package = "orchard", version = "=0.3.0" }
 orchard_new = { package = "orchard", version = "0.10.1" }
-
-# zingolib = { workspace = true }
+zingolib = { workspace = true }

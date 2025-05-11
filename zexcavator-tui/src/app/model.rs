@@ -7,19 +7,24 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 
+use tokio::sync::RwLock;
 use tuirealm::event::NoUserEvent;
 use tuirealm::props::{PropPayload, PropValue};
 use tuirealm::terminal::{CrosstermTerminalAdapter, TerminalAdapter, TerminalBridge};
 use tuirealm::{Application, AttrValue, Attribute, EventListenerCfg, Update};
+use zingolib::lightclient::LightClient;
 
 use crate::components::HandleMessage;
 use crate::components::log_viewer::{LogViewer, SyncSource, new_log_buffer};
 use crate::components::menu::MenuOptions;
-use crate::views::main_menu::{MainMenu, MainMenuOption};
+use crate::views::export::send::ExportSendView;
+use crate::views::export::zewif::ExportZewifView;
+use crate::views::export::{ExportOptions, ExportView};
+use crate::views::main_menu::MainMenu;
 use crate::views::sync::SyncView;
+use crate::views::zecwallet::ZecwalletMenu;
 use crate::views::zecwallet::from_mnemonic::ZecwalletFromMnemonic;
 use crate::views::zecwallet::from_path::ZecwalletFromPath;
-use crate::views::zecwallet::{ZecwalletMenu, ZecwalletMenuOption};
 use crate::views::{Mountable, Renderable, main_menu};
 
 use super::{Id, Msg};
@@ -32,6 +37,9 @@ pub enum Screen {
     ZecwalletFromPath,
     ZecwalletFromMnemonic,
     ZcashdInput,
+    Result,
+    ExportZewif,
+    ExportSend,
 }
 
 pub struct Model<T>
@@ -49,13 +57,26 @@ where
     /// Active screen
     pub screen: Screen,
     pub sync_view: Arc<SyncView>,
+    pub light_client: Arc<RwLock<Option<LightClient>>>,
+    pub export_menu: ExportView,
+    pub export_zewif: ExportZewifView,
+    pub export_send: ExportSendView,
 }
 
 impl Default for Model<CrosstermTerminalAdapter> {
     fn default() -> Self {
         let log_buffer_path = new_log_buffer();
+        let light_client = Arc::new(RwLock::new(None));
+        let export_menu = ExportView::new(Arc::clone(&light_client));
+        let export_zewif = ExportZewifView::new(Arc::clone(&light_client));
+        let export_send = ExportSendView::new(Arc::clone(&light_client));
 
-        let mut app = Self::init_app();
+        let mut app = Self::init_app(
+            Arc::clone(&light_client),
+            export_menu.clone(),
+            export_zewif.clone(),
+            export_send.clone(),
+        );
 
         assert!(
             app.mount(
@@ -73,6 +94,10 @@ impl Default for Model<CrosstermTerminalAdapter> {
             screen: Screen::MainMenu,
             terminal: TerminalBridge::init_crossterm().expect("Cannot initialize terminal"),
             sync_view: Arc::new(SyncView::new_with_log(log_buffer_path)),
+            light_client,
+            export_menu,
+            export_zewif,
+            export_send,
         }
     }
 }
@@ -82,25 +107,42 @@ where
     T: TerminalAdapter,
 {
     pub fn view(&mut self) {
-        let _screen = self.screen;
-        let app = &mut self.app;
         assert!(
             self.terminal
                 .draw(|f| {
                     match self.screen {
-                        Screen::MainMenu => main_menu::render(app, f),
-                        Screen::Syncing => SyncView::render(app, f),
-                        Screen::ZecwalletInput => ZecwalletMenu::render(app, f),
-                        Screen::ZecwalletFromPath => ZecwalletFromPath::render(app, f),
-                        Screen::ZecwalletFromMnemonic => ZecwalletFromMnemonic::render(app, f),
+                        Screen::MainMenu => main_menu::render(&mut self.app, f),
+                        Screen::Syncing => SyncView::render(&mut self.app, f),
+                        Screen::ZecwalletInput => ZecwalletMenu::render(&mut self.app, f),
+                        Screen::ZecwalletFromPath => ZecwalletFromPath::render(&mut self.app, f),
+                        Screen::ZecwalletFromMnemonic => {
+                            ZecwalletFromMnemonic::render(&mut self.app, f)
+                        }
                         Screen::ZcashdInput => todo!(),
+                        Screen::Result => {
+                            let area = f.area();
+                            self.app.view(&Id::ExportView, f, area);
+                        }
+                        Screen::ExportSend => {
+                            let area = f.area();
+                            self.app.view(&Id::ExportSend, f, area);
+                        }
+                        Screen::ExportZewif => {
+                            let area = f.area();
+                            self.app.view(&Id::ExportZewif, f, area);
+                        }
                     }
                 })
                 .is_ok()
         );
     }
 
-    fn init_app() -> Application<Id, Msg, NoUserEvent> {
+    fn init_app(
+        lc: Arc<RwLock<Option<LightClient>>>,
+        export_menu: ExportView,
+        export_zewif: ExportZewifView,
+        export_send: ExportSendView,
+    ) -> Application<Id, Msg, NoUserEvent> {
         // Setup application
         // NOTE: NoUserEvent is a shorthand to tell tui-realm we're not going to use any custom user event
         // NOTE: the event listener is configured to use the default crossterm input listener and to raise a Tick event each second
@@ -121,15 +163,63 @@ where
         // Mount Zecwallet view
         assert!(ZecwalletMenu::mount(&mut app).is_ok());
 
-        let log_buffer = new_log_buffer();
+        // let log_buffer = new_log_buffer();
 
         assert!(ZecwalletFromPath::mount(&mut app).is_ok());
 
         assert!(ZecwalletFromMnemonic::mount(&mut app).is_ok());
 
-        SyncView::new_with_log(log_buffer);
+        // SyncView::new_with_log(log_buffer);
 
         assert!(SyncView::mount(&mut app).is_ok());
+
+        // Mount result view
+        // assert!(ExportMenu::mount(&mut app).is_ok());
+
+        // // Mount menu
+        // assert!(
+        //     app.mount(
+        //         Id::ExportMenu,
+        //         Box::new(Menu::<ExportOptions>::new("Select the export method",)),
+        //         Vec::default()
+        //     )
+        //     .is_ok()
+        // );
+
+        // assert!(
+        //     app.mount(
+        //         Id::ResultViewer,
+        //         Box::new(ResultViewer::new(Vec::default())),
+        //         Vec::default()
+        //     )
+        //     .is_ok()
+        // );
+
+        assert!(
+            app.mount(Id::ExportView, Box::new(export_menu), Vec::default())
+                .is_ok()
+        );
+
+        // Mount export zewif view
+        assert!(
+            app.mount(Id::ExportZewif, Box::new(export_zewif), Vec::default())
+                .is_ok()
+        );
+
+        // Mount export send view
+        assert!(
+            app.mount(Id::ExportSend, Box::new(export_send), Vec::default())
+                .is_ok()
+        );
+
+        // assert!(
+        //     app.mount(
+        //         Id::ExportView,
+        //         Box::new(ExportView::new_with_log(light_client, result_log)),
+        //         Vec::default(),
+        //     )
+        //     .is_ok(),
+        // );
 
         // Focus main menu
         assert!(app.active(&Id::MainMenu).is_ok());
@@ -138,19 +228,56 @@ where
     }
 }
 
-// Let's implement Update for model
+// Update loop
 impl<T> Update<Msg> for Model<T>
 where
     T: TerminalAdapter,
 {
     fn update(&mut self, msg: Option<Msg>) -> Option<Msg> {
-        let progress = *self.sync_view.get_progress().lock().unwrap();
-        let _ = self.app.attr(
-            &Id::ProgressBar,
-            Attribute::Value,
-            AttrValue::Payload(PropPayload::One(PropValue::F32(progress))),
-        );
-        self.redraw = true;
+        if *self.sync_view.sync_complete.lock().unwrap() {
+            let export_menu = self.export_menu.clone();
+            tokio::spawn(async move {
+                let balance = export_menu.load_balance().await;
+                match balance {
+                    Some(b) => {
+                        let mut guard = export_menu.balance.write().await;
+                        guard.replace(b);
+                        drop(guard);
+                    }
+                    None => (),
+                }
+            });
+
+            self.navigate_to(Screen::Result);
+            *self.sync_view.sync_complete.lock().unwrap() = false;
+            self.redraw = true;
+        }
+        if self.screen == Screen::Syncing {
+            let balance_loaded = {
+                if let Ok(balance_guard) = self.export_menu.balance.try_read() {
+                    balance_guard.is_some()
+                } else {
+                    false
+                }
+            };
+            if balance_loaded {
+                self.navigate_to(Screen::Result);
+            }
+            self.redraw = true;
+        }
+        match self.screen {
+            Screen::Syncing => {
+                let progress = *self.sync_view.get_progress().lock().unwrap();
+                let _ = self.app.attr(
+                    &Id::ProgressBar,
+                    Attribute::Value,
+                    AttrValue::Payload(PropPayload::One(PropValue::F32(progress))),
+                );
+                self.redraw = true;
+            }
+            _ => (),
+        }
+
         if let Some(msg) = msg {
             // Set redraw
             self.redraw = true;
@@ -188,14 +315,47 @@ where
                 }
                 Msg::MenuCursorMove(_) => None,
                 Msg::MenuSelected(label) => {
-                    match (
-                        MainMenuOption::from_label(&label),
-                        ZecwalletMenuOption::from_label(&label),
-                    ) {
-                        (Some(_), _) => MainMenu::handle_message(Msg::MenuSelected(label), self),
-                        (_, Some(_)) => {
-                            ZecwalletMenu::handle_message(Msg::MenuSelected(label), self)
+                    if self.screen == Screen::Result {
+                        match ExportOptions::from_label(&label).unwrap() {
+                            ExportOptions::ZeWIF => {
+                                self.navigate_to(Screen::ExportZewif);
+                                let view = self.export_zewif.clone();
+                                tokio::spawn(async move {
+                                    let path_or_err = view
+                                        .do_save()
+                                        .await
+                                        .map_err(|e| format!("Error: {}", e))
+                                        .map(|p| p.to_string());
+                                    *view.saved_path.lock().unwrap() =
+                                        Some(path_or_err.unwrap_or_else(|e| e));
+                                });
+                                return None;
+                            }
+                            ExportOptions::Send => {
+                                todo!();
+                                // self.navigate_to(Screen::ExportSend);
+                                // let view = self.export_send.clone();
+                                // tokio::spawn(async move {
+                                //     let path_or_err = view
+                                //         .do_send()
+                                //         .await
+                                //         .map_err(|e| format!("Error: {}", e))
+                                //         .map(|p| p.to_string());
+                                //     *view.sent_path.lock().unwrap() =
+                                //         Some(path_or_err.unwrap_or_else(|e| e));
+                                // });
+                                // return None;
+                            }
                         }
+                    }
+
+                    let msg = Msg::MenuSelected(label.clone());
+                    match self.screen {
+                        Screen::MainMenu => MainMenu::handle_message(msg, self),
+                        Screen::ZecwalletInput
+                        | Screen::ZecwalletFromPath
+                        | Screen::ZecwalletFromMnemonic => ZecwalletMenu::handle_message(msg, self),
+                        Screen::Result => ExportView::handle_message(msg, self),
                         _ => None,
                     }
                 }
@@ -228,18 +388,17 @@ where
                     None
                 }
                 Msg::BirthdayInputBlur => {
-                    assert!(self.app.active(&Id::ZecwalletFromPathButton).is_ok());
+                    assert!(self.app.active(&Id::ZecwalletFromMnemonicButton).is_ok());
                     None
                 }
                 Msg::FromMnemonicSubmitBlur => {
-                    assert!(self.app.active(&Id::ZecwalletFromPath).is_ok());
+                    assert!(self.app.active(&Id::MnemonicInput).is_ok());
                     None
                 }
                 Msg::FromPathSubmitBlur => {
                     assert!(self.app.active(&Id::ZecwalletFromPath).is_ok());
                     None
                 }
-
                 Msg::FromMnemonicSubmit => {
                     let mnemonic: String = self
                         .app
@@ -276,28 +435,43 @@ where
                     )))
                 }
                 Msg::StartSync(source) => {
-                    match source {
-                        SyncSource::WalletFile(path) => {
-                            let sv = Arc::clone(&self.sync_view);
-
-                            let sv_clone = Arc::clone(&sv);
-                            tokio::spawn(async move {
-                                sv_clone.start_wallet_sync_from_path(path).await;
-                            });
-                        }
-                        SyncSource::Mnemonic { mnemonic, birthday } => {
-                            let sv = Arc::clone(&self.sync_view);
-
-                            let sv_clone = Arc::clone(&sv);
-                            tokio::spawn(async move {
-                                sv_clone
-                                    .start_wallet_sync_from_mnemonic(mnemonic, birthday)
-                                    .await;
-                            });
-                        }
-                    }
                     self.navigate_to(Screen::Syncing);
 
+                    let sv = Arc::clone(&self.sync_view);
+                    let lc_lock = Arc::clone(&self.light_client);
+
+                    tokio::spawn(async move {
+                        let result_lc: LightClient = match source {
+                            SyncSource::WalletFile(path) => {
+                                sv.start_wallet_sync_from_path(path).await
+                            }
+                            SyncSource::Mnemonic { mnemonic, birthday } => {
+                                sv.start_wallet_sync_from_mnemonic(mnemonic, birthday).await
+                            }
+                        };
+
+                        {
+                            let mut guard = lc_lock.write().await;
+                            *guard = Some(result_lc);
+                        }
+                    });
+
+                    None
+                }
+                Msg::GoToResult => {
+                    self.navigate_to(Screen::Result);
+                    None
+                }
+                Msg::InitializeLightClient => None,
+                Msg::FetchBalance => None,
+                Msg::BalanceReady(balance) => {
+                    let balance_str = format!("{:?}", balance);
+                    let _ = self.app.attr(
+                        &Id::ResultViewer,
+                        Attribute::Text,
+                        AttrValue::Payload(PropPayload::One(PropValue::Str(balance_str))),
+                    );
+                    self.redraw = true;
                     None
                 }
             }
@@ -314,7 +488,9 @@ pub trait HasScreenAndQuit {
 
 impl<T: TerminalAdapter> HasScreenAndQuit for Model<T> {
     fn navigate_to(&mut self, screen: Screen) {
-        // Blur current active screen
+        // Update screen
+        self.screen = screen;
+        // Focus new screen
         match self.screen {
             Screen::MainMenu => {
                 let _ = self.app.active(&Id::MainMenu);
@@ -326,39 +502,22 @@ impl<T: TerminalAdapter> HasScreenAndQuit for Model<T> {
                 todo!()
             }
             Screen::Syncing => {
-                todo!()
+                let _ = self.app.active(&Id::SyncLog);
             }
             Screen::ZecwalletFromPath => {
-                let _ = self.app.active(&Id::ZecwalletFromPath);
-            }
-            Screen::ZecwalletFromMnemonic => {
-                let _ = self.app.active(&Id::ZecwalletFromMnemonic);
-            }
-        }
-
-        // Update screen
-        self.screen = screen;
-
-        // Activate new screen
-        match self.screen {
-            Screen::MainMenu => {
-                let _ = self.app.active(&Id::MainMenu);
-            }
-            Screen::ZecwalletInput => {
-                let _ = self.app.active(&Id::ZecwalletMenu);
-            }
-            Screen::ZcashdInput => {
-                todo!()
-            }
-            Screen::ZecwalletFromPath => {
-                // TODO: It should be more clear that this refers to the input inside the ZecwalletFromPath view.
                 let _ = self.app.active(&Id::ZecwalletFromPath);
             }
             Screen::ZecwalletFromMnemonic => {
                 let _ = self.app.active(&Id::MnemonicInput);
             }
-            Screen::Syncing => {
-                let _ = self.app.active(&Id::SyncLog);
+            Screen::Result => {
+                let _ = self.app.active(&Id::ExportView);
+            }
+            Screen::ExportSend => {
+                let _ = self.app.active(&Id::ExportSend);
+            }
+            Screen::ExportZewif => {
+                let _ = self.app.active(&Id::ExportZewif);
             }
         }
     }

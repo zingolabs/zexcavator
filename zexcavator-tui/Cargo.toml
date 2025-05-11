@@ -14,3 +14,7 @@ anyhow = { workspace = true }
 http.workspace = true
 zexcavator-lib = { workspace = true }
 bip0039.workspace = true
+zewif = { workspace = true }
+bc-envelope = { workspace = true }
+chrono = "0.4.41"
+dirs = "6.0.0"

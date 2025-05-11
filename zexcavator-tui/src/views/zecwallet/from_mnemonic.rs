@@ -41,7 +41,7 @@ impl Mountable for ZecwalletFromMnemonic {
         assert!(
             app.mount(
                 Id::ZecwalletFromMnemonicButton,
-                Box::new(SubmitButton),
+                Box::new(SubmitButtonMnemonic),
                 Vec::default()
             )
             .is_ok()
@@ -63,13 +63,13 @@ impl Renderable for ZecwalletFromMnemonic {
             .split(f.area());
         app.view(&Id::MnemonicInput, f, chunks[0]);
         app.view(&Id::BirthdayInput, f, chunks[1]);
-        app.view(&Id::ZecwalletFromPathButton, f, chunks[2]);
+        app.view(&Id::ZecwalletFromMnemonicButton, f, chunks[2]);
     }
 }
 
-pub struct SubmitButton;
+pub struct SubmitButtonMnemonic;
 
-impl MockComponent for SubmitButton {
+impl MockComponent for SubmitButtonMnemonic {
     fn view(&mut self, frame: &mut Frame, area: Rect) {
         let button = Paragraph::new(Text::raw("Submit"))
             .alignment(tuirealm::props::Alignment::Center)
@@ -92,7 +92,7 @@ impl MockComponent for SubmitButton {
     }
 }
 
-impl Component<Msg, NoUserEvent> for SubmitButton {
+impl Component<Msg, NoUserEvent> for SubmitButtonMnemonic {
     fn on(&mut self, ev: Event<NoUserEvent>) -> Option<Msg> {
         if let Event::Keyboard(key) = ev {
             match key.code {

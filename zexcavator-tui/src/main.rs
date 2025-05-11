@@ -10,6 +10,7 @@ mod app;
 mod components;
 mod views;
 use app::model::Model;
+use zingolib::lightclient::PoolBalances;
 
 #[derive(Debug, PartialEq)]
 pub enum Msg {
@@ -29,6 +30,10 @@ pub enum Msg {
     MenuCursorMove(usize),
     FromMnemonicSubmit,
     FromPathSubmit,
+    GoToResult,
+    InitializeLightClient,
+    BalanceReady(PoolBalances),
+    FetchBalance,
     None,
 }
 
@@ -56,15 +61,18 @@ pub enum Id {
     ZecwalletFromMnemonicButton,
     SyncLog,
     ProgressBar,
+    ExportView,
+    ExportMenu,
+    ResultViewer,
+    ExportZewif,
+    ExportSend,
 }
 
 #[tokio::main]
 async fn main() {
     // Setup model
     let mut model = Model::default();
-    // Enter alternate screen
-    let _ = model.terminal.enter_alternate_screen();
-    let _ = model.terminal.enable_raw_mode();
+
     // Main loop
     // NOTE: loop until quit; quit is set in update if AppClose is received from counter
     while !model.quit {
@@ -86,9 +94,9 @@ async fn main() {
                 // NOTE: redraw if at least one msg has been processed
                 model.redraw = true;
                 for msg in messages.into_iter() {
-                    let mut msg = Some(msg);
-                    while msg.is_some() {
-                        msg = model.update(msg);
+                    let mut current = Some(msg);
+                    while let Some(next) = current {
+                        current = model.update(Some(next));
                     }
                 }
             }

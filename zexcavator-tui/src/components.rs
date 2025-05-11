@@ -14,6 +14,7 @@ pub mod label;
 pub mod log_viewer;
 pub mod menu;
 pub mod mnemonic_input;
+pub mod result_viewer;
 pub mod sync_bar;
 pub mod welcome;
 
