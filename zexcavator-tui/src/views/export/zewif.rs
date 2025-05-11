@@ -9,6 +9,8 @@ use chrono::Utc;
 use tokio::sync::RwLock;
 use tuirealm::event::{Key, KeyEvent, KeyModifiers};
 use tuirealm::ratatui::layout::{Constraint, Direction, Layout};
+use tuirealm::ratatui::text::Text;
+use tuirealm::ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 use tuirealm::{Component, Frame, MockComponent, NoUserEvent, State};
 use zewif::{Bip39Mnemonic, BlockHeight, SeedMaterial, Zewif, ZewifWallet};
 use zingolib::grpc_connector::get_latest_block;
@@ -46,7 +48,6 @@ impl ExportZewifView {
 
         let (m, _) = mnemonic.unwrap();
 
-        // Conversion here
         let path = ExportZewifView::export_to_zewif(Some(m), export_height);
 
         Ok(path.unwrap().to_string_lossy().to_string())
@@ -100,20 +101,22 @@ impl ExportZewifView {
 
 impl MockComponent for ExportZewifView {
     fn view(&mut self, frame: &mut Frame, area: tuirealm::ratatui::prelude::Rect) {
+        // Split off a little header row if you like, or just draw full-screen:
         let chunks = Layout::default()
             .direction(Direction::Vertical)
-            .constraints([Constraint::Length(3), Constraint::Min(1)])
+            .constraints([Constraint::Min(1)])
             .split(area);
 
-        // // Show balance summary
-        // if self.balance.try_read().unwrap().is_some() {
-        //     let text = format!("{:?}", self.balance.try_read().unwrap().as_ref().unwrap());
-        //     let para =
-        //         Paragraph::new(text).block(Block::default().borders(Borders::ALL).title("Balance"));
-        //     frame.render_widget(para, chunks[0]);
-        // }
+        let msg = match &*self.saved_path.lock().unwrap() {
+            Some(path) => format!("Exported to:\n{}", path),
+            None => "Exporting ZeWIF…".into(),
+        };
 
-        // self.menu.view(frame, chunks[1]);
+        let para = Paragraph::new(Text::from(msg))
+            .block(Block::default().borders(Borders::ALL).title("ZeWIF Export"))
+            .wrap(Wrap { trim: false });
+
+        frame.render_widget(para, chunks[0]);
     }
 
     fn query(&self, attr: tuirealm::Attribute) -> Option<tuirealm::AttrValue> {
