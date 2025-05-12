@@ -21,7 +21,7 @@ impl Mountable for ZecwalletFromMnemonic {
         assert!(
             app.mount(
                 Id::MnemonicInput,
-                Box::new(MnemonicInput::new(String::new())),
+                Box::new(MnemonicInput::new(String::new(), "Mnemonic".to_string())),
                 Vec::default()
             )
             .is_ok()
@@ -31,7 +31,10 @@ impl Mountable for ZecwalletFromMnemonic {
         assert!(
             app.mount(
                 Id::BirthdayInput,
-                Box::new(BirthdayInput::new(String::new())),
+                Box::new(BirthdayInput::new(
+                    String::new(),
+                    "Wallet birthday".to_string()
+                )),
                 Vec::default()
             )
             .is_ok()

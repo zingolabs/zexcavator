@@ -25,10 +25,10 @@ wallet files into an in-memory representation, **zingolib** for fund recovery an
 ## How to Run (WIP)
 
 ```bash
-cargo run -- <filename>
+cargo run -p zexcavator-tui
 ```
 
-This command parses the example wallet files included in the project and prints the output to `stdout`.
+This command opens the interactive TUI.
 
 ---
 

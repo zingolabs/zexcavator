@@ -30,7 +30,7 @@ impl Mountable for ZecwalletFromPath {
         assert!(
             app.mount(
                 Id::ZecwalletFromPath,
-                Box::new(PathInput::new(String::new())),
+                Box::new(PathInput::new(String::new(), "Wallet location".to_string())),
                 Vec::default()
             )
             .is_ok()

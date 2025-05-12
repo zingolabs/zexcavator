@@ -7,7 +7,6 @@ use bip0039::{English, Mnemonic};
 use http::Uri;
 use pepper_sync::sync::{SyncConfig, TransparentAddressDiscovery};
 use pepper_sync::sync_status;
-use tokio::sync::RwLock;
 use tuirealm::ratatui::layout::{Constraint, Direction, Layout};
 use tuirealm::{Application, Frame, NoUserEvent};
 use zexcavator_lib::parser::WalletParserFactory;
@@ -83,6 +82,16 @@ impl SyncView {
 
         let mut light_client = lightclient::LightClient::create_from_wallet(lw, zc, true).unwrap();
 
+        let mnemonic = {
+            let wallet_guard = light_client.wallet.lock().await;
+            let mnemonic = wallet_guard.mnemonic().cloned();
+            mnemonic
+        };
+
+        self.log_buffer
+            .lock()
+            .unwrap()
+            .push(format!("Mnemonic: {}", mnemonic.unwrap().0));
         self.log_buffer
             .lock()
             .unwrap()

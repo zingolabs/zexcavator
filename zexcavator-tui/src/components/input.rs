@@ -15,11 +15,12 @@ pub struct PathInput {
 }
 
 impl PathInput {
-    pub fn new(initial_text: String) -> Self {
+    pub fn new(initial_text: String, label: String) -> Self {
         Self {
             component: Input::default()
                 .input_type(tuirealm::props::InputType::Text)
-                .value(initial_text),
+                .value(initial_text)
+                .title(label, tuirealm::props::Alignment::Left),
         }
     }
 }

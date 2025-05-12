@@ -1,14 +1,15 @@
 pub mod send;
 pub mod zewif;
+pub mod zingolib;
 
 use std::sync::Arc;
 
+use ::zingolib::lightclient::{LightClient, PoolBalances};
 use tokio::sync::RwLock;
 use tuirealm::event::{Key, KeyEvent, KeyModifiers};
 use tuirealm::ratatui::layout::{Constraint, Direction, Layout};
 use tuirealm::ratatui::widgets::{Block, Borders, Paragraph};
 use tuirealm::{Component, Frame, MockComponent, NoUserEvent, State};
-use zingolib::lightclient::{LightClient, PoolBalances};
 
 use crate::Msg;
 use crate::app::model::{HasScreenAndQuit, Screen};
@@ -18,6 +19,7 @@ use crate::components::menu::{Menu, MenuOptions};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExportOptions {
+    Zingolib,
     ZeWIF,
     Send,
 }
@@ -27,13 +29,14 @@ impl MenuOptions for ExportOptions {
     where
         Self: Sized,
     {
-        vec![Self::ZeWIF, Self::Send]
+        vec![Self::Zingolib, Self::ZeWIF, Self::Send]
     }
 
     fn label(&self) -> &'static str {
         match self {
-            Self::ZeWIF => "ZeWIF",
-            Self::Send => "Send",
+            Self::Zingolib => "Zingolib",
+            Self::ZeWIF => "ZeWIF (WARNING: experimental. Only exports mnemonic phrase)",
+            Self::Send => "Send (Not implemented)",
         }
     }
 }
@@ -87,7 +90,7 @@ impl MockComponent for ExportView {
                 Paragraph::new(text).block(Block::default().borders(Borders::ALL).title("Balance"));
             frame.render_widget(para, chunks[0]);
         } else {
-            let text = format!("Loading balance...");
+            let text = "Loading balance...".to_string();
             let para =
                 Paragraph::new(text).block(Block::default().borders(Borders::ALL).title("Balance"));
             frame.render_widget(para, chunks[0]);
@@ -136,13 +139,15 @@ where
             Msg::MenuSelected(option) => {
                 if let Some(menu_item) = ExportOptions::from_label(&option) {
                     match menu_item {
+                        ExportOptions::Zingolib => {
+                            model.navigate_to(Screen::ExportZingolib);
+                            todo!()
+                        }
                         ExportOptions::ZeWIF => {
                             model.navigate_to(Screen::ExportZewif);
-                            todo!()
                         }
                         ExportOptions::Send => {
                             model.navigate_to(Screen::ExportSend);
-                            todo!()
                         }
                     }
                 }
