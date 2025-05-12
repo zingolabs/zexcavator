@@ -3,7 +3,6 @@ use std::str::FromStr;
 use bip0039::{English, Mnemonic};
 use tui_realm_stdlib::Input;
 use tuirealm::command::{Cmd, CmdResult, Direction, Position};
-use tuirealm::event::KeyModifiers;
 use tuirealm::{
     Component, Event, MockComponent, NoUserEvent,
     event::{Key, KeyEvent},
@@ -47,10 +46,9 @@ impl Component<Msg, NoUserEvent> for MnemonicInput {
             Event::Keyboard(KeyEvent { code: Key::End, .. }) => {
                 self.perform(Cmd::GoTo(Position::End))
             }
-            Event::Keyboard(KeyEvent {
-                code: Key::Tab,
-                modifiers: KeyModifiers::NONE,
-            }) => return Some(Msg::MnemonicInputBlur), // Focus lost
+            Event::Keyboard(KeyEvent { code: Key::Tab, .. }) => {
+                return Some(Msg::MnemonicInputBlur);
+            } // Focus lost
             Event::Keyboard(KeyEvent {
                 code: Key::Delete, ..
             }) => self.perform(Cmd::Cancel),
@@ -60,7 +58,7 @@ impl Component<Msg, NoUserEvent> for MnemonicInput {
             }) => self.perform(Cmd::Delete),
             Event::Keyboard(KeyEvent {
                 code: Key::Char(ch),
-                modifiers: KeyModifiers::NONE,
+                ..
             }) => self.perform(Cmd::Type(ch)),
             Event::Keyboard(KeyEvent { code: Key::Esc, .. }) => return Some(Msg::Start),
             Event::Keyboard(KeyEvent {

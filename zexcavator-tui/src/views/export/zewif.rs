@@ -7,7 +7,7 @@ use bc_envelope::Envelope;
 use bc_envelope::prelude::CBOREncodable;
 use chrono::Utc;
 use tokio::sync::RwLock;
-use tuirealm::event::{Key, KeyEvent, KeyModifiers};
+use tuirealm::event::{Key, KeyEvent};
 use tuirealm::ratatui::layout::{Constraint, Direction, Layout};
 use tuirealm::ratatui::text::Text;
 use tuirealm::ratatui::widgets::{Block, Borders, Paragraph, Wrap};
@@ -140,10 +140,7 @@ impl Component<Msg, NoUserEvent> for ExportZewifView {
         //     return Some(menu_msg);
         // }
         match ev {
-            tuirealm::Event::Keyboard(KeyEvent {
-                code: Key::Esc,
-                modifiers: KeyModifiers::NONE,
-            }) => Some(Msg::Start),
+            tuirealm::Event::Keyboard(KeyEvent { code: Key::Esc, .. }) => Some(Msg::Start),
             _ => None,
         }
     }

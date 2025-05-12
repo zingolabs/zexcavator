@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 use anyhow::{Context, Ok};
 use chrono::Utc;
 use tokio::sync::RwLock;
-use tuirealm::event::{Key, KeyEvent, KeyModifiers};
+use tuirealm::event::{Key, KeyEvent};
 use tuirealm::ratatui::layout::{Constraint, Direction, Layout};
 use tuirealm::ratatui::text::Text;
 use tuirealm::ratatui::widgets::{Block, Borders, Paragraph, Wrap};
@@ -101,10 +101,7 @@ impl MockComponent for ExportZingolibView {
 impl Component<Msg, NoUserEvent> for ExportZingolibView {
     fn on(&mut self, ev: tuirealm::Event<NoUserEvent>) -> Option<Msg> {
         match ev {
-            tuirealm::Event::Keyboard(KeyEvent {
-                code: Key::Esc,
-                modifiers: KeyModifiers::NONE,
-            }) => Some(Msg::Start),
+            tuirealm::Event::Keyboard(KeyEvent { code: Key::Esc, .. }) => Some(Msg::Start),
             _ => None,
         }
     }
