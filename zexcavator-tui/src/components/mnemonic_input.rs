@@ -4,11 +4,11 @@ use bip0039::{English, Mnemonic};
 use tui_realm_stdlib::Input;
 use tuirealm::command::{Cmd, CmdResult, Direction, Position};
 use tuirealm::event::KeyModifiers;
-use tuirealm::{State, StateValue};
 use tuirealm::{
     Component, Event, MockComponent, NoUserEvent,
     event::{Key, KeyEvent},
 };
+use tuirealm::{State, StateValue};
 
 use crate::Msg;
 

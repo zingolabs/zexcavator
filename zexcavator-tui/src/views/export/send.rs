@@ -11,7 +11,6 @@ use crate::Msg;
 use crate::app::model::HasScreenAndQuit;
 use crate::components::HandleMessage;
 
-
 // #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 // pub enum ExportOptions {
 //     ZeWIF,
@@ -86,10 +85,6 @@ impl MockComponent for ExportSendView {
 
 impl Component<Msg, NoUserEvent> for ExportSendView {
     fn on(&mut self, ev: tuirealm::Event<NoUserEvent>) -> Option<Msg> {
-        // first let the menu handle arrows/enter/esc:
-        // if let Some(menu_msg) = self.menu.on(ev.clone()) {
-        //     return Some(menu_msg);
-        // }
         match ev {
             tuirealm::Event::Keyboard(KeyEvent {
                 code: Key::Esc,
