@@ -1,6 +1,5 @@
 use tui_realm_stdlib::ProgressBar;
 use tuirealm::command::{Cmd, CmdResult};
-use tuirealm::event::KeyModifiers;
 use tuirealm::props::{Alignment, BorderType, Borders, Color, PropPayload, PropValue};
 use tuirealm::{AttrValue, Attribute, State};
 use tuirealm::{
@@ -71,10 +70,7 @@ impl MockComponent for SyncBar {
 impl Component<Msg, NoUserEvent> for SyncBar {
     fn on(&mut self, ev: Event<NoUserEvent>) -> Option<Msg> {
         match ev {
-            Event::Keyboard(KeyEvent {
-                code: Key::Esc,
-                modifiers: KeyModifiers::NONE,
-            }) => Some(Msg::AppClose),
+            Event::Keyboard(KeyEvent { code: Key::Esc, .. }) => Some(Msg::AppClose),
             _ => None,
         }
     }

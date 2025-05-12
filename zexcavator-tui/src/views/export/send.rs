@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use tokio::sync::RwLock;
-use tuirealm::event::{Key, KeyEvent, KeyModifiers};
+use tuirealm::event::{Key, KeyEvent};
 use tuirealm::ratatui::layout::{Constraint, Direction, Layout};
 use tuirealm::ratatui::widgets::{Block, Borders, Paragraph};
 use tuirealm::{Component, Frame, MockComponent, NoUserEvent, State};
@@ -86,10 +86,7 @@ impl MockComponent for ExportSendView {
 impl Component<Msg, NoUserEvent> for ExportSendView {
     fn on(&mut self, ev: tuirealm::Event<NoUserEvent>) -> Option<Msg> {
         match ev {
-            tuirealm::Event::Keyboard(KeyEvent {
-                code: Key::Esc,
-                modifiers: KeyModifiers::NONE,
-            }) => Some(Msg::AppClose),
+            tuirealm::Event::Keyboard(KeyEvent { code: Key::Esc, .. }) => Some(Msg::AppClose),
             _ => None,
         }
     }
