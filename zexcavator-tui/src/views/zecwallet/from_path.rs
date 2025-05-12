@@ -94,7 +94,7 @@ impl Component<Msg, NoUserEvent> for SubmitButtonPath {
                     return Some(Msg::FromPathSubmit);
                 }
                 Key::Tab => return Some(Msg::FromPathSubmitBlur),
-                Key::Esc => return Some(Msg::AppClose),
+                Key::Esc => return Some(Msg::Start),
                 _ => (),
             }
         }

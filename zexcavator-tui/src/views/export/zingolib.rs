@@ -104,7 +104,7 @@ impl Component<Msg, NoUserEvent> for ExportZingolibView {
             tuirealm::Event::Keyboard(KeyEvent {
                 code: Key::Esc,
                 modifiers: KeyModifiers::NONE,
-            }) => Some(Msg::AppClose),
+            }) => Some(Msg::Start),
             _ => None,
         }
     }

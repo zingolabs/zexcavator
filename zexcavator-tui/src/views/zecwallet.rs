@@ -17,6 +17,7 @@ pub enum ZecwalletMenuOption {
     Mnemonic,
     Path,
     Seed,
+    Back,
 }
 
 impl MenuOptions for ZecwalletMenuOption {
@@ -24,7 +25,7 @@ impl MenuOptions for ZecwalletMenuOption {
     where
         Self: Sized,
     {
-        vec![Self::Mnemonic, Self::Path, Self::Seed]
+        vec![Self::Mnemonic, Self::Path, Self::Seed, Self::Back]
     }
 
     fn label(&self) -> &'static str {
@@ -32,6 +33,7 @@ impl MenuOptions for ZecwalletMenuOption {
             Self::Mnemonic => "From Mnemonic",
             Self::Path => "From Path",
             Self::Seed => "From Seed",
+            Self::Back => "Back",
         }
     }
 }
@@ -77,6 +79,7 @@ where
                             model.navigate_to(Screen::ZecwalletFromMnemonic)
                         }
                         ZecwalletMenuOption::Seed => model.navigate_to(Screen::ZecwalletInput),
+                        ZecwalletMenuOption::Back => model.navigate_to(Screen::MainMenu),
                     }
                 }
                 None
