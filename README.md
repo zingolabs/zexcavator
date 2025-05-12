@@ -22,14 +22,22 @@ wallet files into an in-memory representation, **zingolib** for fund recovery an
 
 ---
 
-## How to Run (WIP)
+## How to Run The Terminal User Interface (WIP)
 
+This command opens the interactive TUI.
 ```bash
 cargo run -p zexcavator-tui
 ```
 
-This command opens the interactive TUI.
 
+
+## Using the CLI
+
+This commands uses the CLI version of ZexCavator.
+
+```bash
+cargo run -p zexcavator-tui [parse|export] FILE
+```
 ---
 
 ## Principles
