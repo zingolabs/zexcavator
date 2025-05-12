@@ -5,8 +5,8 @@
 
 > Check [the GitHub project](https://github.com/orgs/zingolabs/projects/9) to track progress.
 
-**ZExCavator** is a tool that recovers (excavates!) lost ZEC.
-It builds on top of ZeWIF (Zcash Extensible Wallet Interchange Format) and is currenlty focused on **ZecWallet Lite** wallets, though the architecture is extensible and can be extended to support additional wallets in the future. Under the hood, it uses **zmigrate** to parse
+**ZExCavator** is a tool that recovers (excavates!) _possibly_ lost ZEC.
+It builds on top of [ZeWIF (Zcash Extensible Wallet Interchange Format)](https://github.com/BlockchainCommons/zewif) and is currenlty focused on **ZecWallet Lite** wallets, though the architecture is extensible and can be extended to support additional wallets in the future. Under the hood, it uses **zmigrate** to parse
 wallet files into an in-memory representation, **zingolib** for fund recovery and syncing, and the **ZeWIF** specification for wallet export (this is WIP).
 
 ---
@@ -23,14 +23,22 @@ wallet files into an in-memory representation, **zingolib** for fund recovery an
 
 ---
 
-## How to Run (WIP)
+## How to Run The Terminal User Interface (WIP)
 
+This command opens the interactive TUI.
 ```bash
 cargo run -p zexcavator-tui
 ```
 
-This command opens the interactive TUI.
 
+
+## Using the CLI
+
+This commands uses the CLI version of ZexCavator.
+
+```bash
+cargo run -p zexcavator-cli [parse|export] FILE
+```
 ---
 
 ## Principles
