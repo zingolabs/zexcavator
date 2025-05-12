@@ -1,6 +1,7 @@
 # ZExCavator
 
-> ⚠️ Parsing has moved to a different repository. Check https://github.com/BlockchainCommons/zmigrate for more information.
+> ⚠️ Use the "Zingolib" export option for fund recovery. This is temporary until full ZeWIF support is added.
+> Parsing has moved to a different repository. Check https://github.com/BlockchainCommons/zmigrate for more information.
 
 > Check [the GitHub project](https://github.com/orgs/zingolabs/projects/9) to track progress.
 
@@ -16,7 +17,7 @@ wallet files into an in-memory representation, **zingolib** for fund recovery an
 - Handles both encrypted and unencrypted wallets.
 - Supports ZecWallet and zcashd wallets.
 - Configurable & interactive syncing and recovery.
-- CLI & TUI interfaces.
+- TUI interfaces.
 - Supports ZeWIF and sweeping funds.
 - Extensible architecture.
 
@@ -39,7 +40,7 @@ By reading a wallet file and exporting it into a standardized format (ZeWIF), **
 
 ### Core Structs (WIP: Needs to be revisited after documenting issues with zcashd & zecwallet-lite)
 
-Head to https://github.com/BlockchainCommons/zmigrate for more info.
+Head to https://github.com/BlockchainCommons/zewif for more info.
 
 ---
 
