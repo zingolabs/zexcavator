@@ -143,7 +143,7 @@ impl Component<Msg, NoUserEvent> for ExportZewifView {
             tuirealm::Event::Keyboard(KeyEvent {
                 code: Key::Esc,
                 modifiers: KeyModifiers::NONE,
-            }) => Some(Msg::AppClose),
+            }) => Some(Msg::Start),
             _ => None,
         }
     }

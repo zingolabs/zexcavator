@@ -6,7 +6,6 @@ use std::sync::Arc;
 
 use ::zingolib::lightclient::{LightClient, PoolBalances};
 use tokio::sync::RwLock;
-use tuirealm::event::{Key, KeyEvent, KeyModifiers};
 use tuirealm::ratatui::layout::{Constraint, Direction, Layout};
 use tuirealm::ratatui::widgets::{Block, Borders, Paragraph};
 use tuirealm::{Component, Frame, MockComponent, NoUserEvent, State};
@@ -22,6 +21,7 @@ pub enum ExportOptions {
     Zingolib,
     ZeWIF,
     Send,
+    Cancel,
 }
 
 impl MenuOptions for ExportOptions {
@@ -29,7 +29,7 @@ impl MenuOptions for ExportOptions {
     where
         Self: Sized,
     {
-        vec![Self::Zingolib, Self::ZeWIF, Self::Send]
+        vec![Self::Zingolib, Self::ZeWIF, Self::Send, Self::Cancel]
     }
 
     fn label(&self) -> &'static str {
@@ -37,6 +37,7 @@ impl MenuOptions for ExportOptions {
             Self::Zingolib => "Zingolib",
             Self::ZeWIF => "ZeWIF (WARNING: experimental. Only exports mnemonic phrase)",
             Self::Send => "Send (Not implemented)",
+            Self::Cancel => "Cancel",
         }
     }
 }
@@ -120,13 +121,7 @@ impl Component<Msg, NoUserEvent> for ExportView {
         if let Some(menu_msg) = self.menu.on(ev.clone()) {
             return Some(menu_msg);
         }
-        match ev {
-            tuirealm::Event::Keyboard(KeyEvent {
-                code: Key::Esc,
-                modifiers: KeyModifiers::NONE,
-            }) => Some(Msg::AppClose),
-            _ => None,
-        }
+        None
     }
 }
 
@@ -148,6 +143,9 @@ where
                         }
                         ExportOptions::Send => {
                             model.navigate_to(Screen::ExportSend);
+                        }
+                        ExportOptions::Cancel => {
+                            model.navigate_to(Screen::MainMenu);
                         }
                     }
                 }

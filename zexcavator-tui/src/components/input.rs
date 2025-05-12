@@ -55,7 +55,7 @@ impl Component<Msg, NoUserEvent> for PathInput {
                 code: Key::Char(ch),
                 modifiers: KeyModifiers::NONE,
             }) => self.perform(Cmd::Type(ch)),
-            Event::Keyboard(KeyEvent { code: Key::Esc, .. }) => return Some(Msg::AppClose),
+            Event::Keyboard(KeyEvent { code: Key::Esc, .. }) => return Some(Msg::Start),
             Event::Keyboard(KeyEvent {
                 code: Key::Enter, ..
             }) => self.perform(Cmd::Submit),

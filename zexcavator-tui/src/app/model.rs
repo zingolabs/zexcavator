@@ -292,6 +292,7 @@ where
                 }
                 Msg::Start => {
                     self.screen = Screen::MainMenu;
+                    self.app.active(&Id::MainMenu);
                     None
                 }
                 Msg::MenuCursorMove(_) => None,
@@ -329,6 +330,9 @@ where
                             }
                             ExportOptions::Send => {
                                 todo!();
+                            }
+                            ExportOptions::Cancel => {
+                                self.navigate_to(Screen::MainMenu);
                             }
                         }
                     }
