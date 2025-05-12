@@ -36,7 +36,7 @@ cargo run -p zexcavator-tui
 This commands uses the CLI version of ZexCavator.
 
 ```bash
-cargo run -p zexcavator-tui [parse|export] FILE
+cargo run -p zexcavator-cli [parse|export] FILE
 ```
 ---
 
