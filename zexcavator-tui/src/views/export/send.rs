@@ -35,15 +35,15 @@ use crate::components::HandleMessage;
 
 #[derive(Debug, Clone)]
 pub struct ExportSendView {
-    pub light_client: Arc<RwLock<Option<LightClient>>>,
+    // pub light_client: Arc<RwLock<Option<LightClient>>>,
     pub balance: Arc<RwLock<Option<PoolBalances>>>,
     // pub menu: Menu<ExportOptions>,
 }
 
 impl ExportSendView {
-    pub fn new(light_client: Arc<RwLock<Option<LightClient>>>) -> Self {
+    pub fn new(_light_client: Arc<RwLock<Option<LightClient>>>) -> Self {
         Self {
-            light_client,
+            // light_client,
             balance: Arc::new(RwLock::new(None)),
             // menu: Menu::new("Choose an export option"),
         }
@@ -68,17 +68,17 @@ impl MockComponent for ExportSendView {
         // self.menu.view(frame, chunks[1]);
     }
 
-    fn query(&self, attr: tuirealm::Attribute) -> Option<tuirealm::AttrValue> {
+    fn query(&self, _attr: tuirealm::Attribute) -> Option<tuirealm::AttrValue> {
         todo!()
     }
 
-    fn attr(&mut self, attr: tuirealm::Attribute, value: tuirealm::AttrValue) {}
+    fn attr(&mut self, _attr: tuirealm::Attribute, _value: tuirealm::AttrValue) {}
 
     fn state(&self) -> State {
         todo!()
     }
 
-    fn perform(&mut self, cmd: tuirealm::command::Cmd) -> tuirealm::command::CmdResult {
+    fn perform(&mut self, _cmd: tuirealm::command::Cmd) -> tuirealm::command::CmdResult {
         todo!()
     }
 }
@@ -96,7 +96,7 @@ impl<T> HandleMessage<T> for ExportSendView
 where
     T: HasScreenAndQuit,
 {
-    fn handle_message(msg: Msg, model: &mut T) -> Option<Msg> {
+    fn handle_message(_msg: Msg, _model: &mut T) -> Option<Msg> {
         None
     }
 }

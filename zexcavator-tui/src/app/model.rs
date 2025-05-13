@@ -17,6 +17,7 @@ use zingolib::lightclient::LightClient;
 use crate::components::HandleMessage;
 use crate::components::log_viewer::{LogViewer, SyncSource, new_log_buffer};
 use crate::components::menu::MenuOptions;
+use crate::components::mnemonic_input::MnemonicInput;
 use crate::views::export::send::ExportSendView;
 use crate::views::export::zewif::ExportZewifView;
 use crate::views::export::zingolib::ExportZingolibView;
@@ -292,7 +293,13 @@ where
                 }
                 Msg::Start => {
                     self.screen = Screen::MainMenu;
-                    self.app.active(&Id::MainMenu);
+                    match self.app.active(&Id::MainMenu) {
+                        Ok(_) => Msg::None,
+                        Err(e) => {
+                            println!("Error: {}", e);
+                            return None;
+                        }
+                    };
                     None
                 }
                 Msg::MenuCursorMove(_) => None,
@@ -395,6 +402,12 @@ where
                         .unwrap()
                         .unwrap()
                         .unwrap_string();
+
+                    match MnemonicInput::validate_input(mnemonic.clone()) {
+                        false => return None,
+                        true => (),
+                    }
+
                     let birthday = self
                         .app
                         .query(&Id::BirthdayInput, Attribute::Text)

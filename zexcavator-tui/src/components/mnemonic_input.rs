@@ -26,7 +26,7 @@ impl MnemonicInput {
         }
     }
 
-    pub fn validate_input(&self, mnemonic: String) -> bool {
+    pub fn validate_input(mnemonic: String) -> bool {
         Mnemonic::<English>::from_str(&mnemonic).is_ok()
     }
 }
