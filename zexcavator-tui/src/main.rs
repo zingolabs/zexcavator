@@ -2,8 +2,13 @@
 //!
 //! `Demo` shows how to use tui-realm in a real case
 
+use std::io;
+
 use components::log_viewer::SyncSource;
 use tuirealm::application::PollStrategy;
+use tuirealm::ratatui::crossterm::event::DisableMouseCapture;
+use tuirealm::ratatui::crossterm::execute;
+use tuirealm::ratatui::crossterm::terminal::{LeaveAlternateScreen, disable_raw_mode};
 use tuirealm::{AttrValue, Attribute, Update};
 // -- internal
 mod app;
@@ -73,6 +78,12 @@ pub enum Id {
 async fn main() {
     // Setup model
     let mut model = Model::default();
+    std::panic::set_hook(Box::new(|info| {
+        let _ = disable_raw_mode();
+        let _ = execute!(io::stdout(), LeaveAlternateScreen, DisableMouseCapture);
+        // Show WHY we crashed
+        eprintln!("{}", info);
+    }));
 
     // Main loop
     // NOTE: loop until quit; quit is set in update if AppClose is received from counter
