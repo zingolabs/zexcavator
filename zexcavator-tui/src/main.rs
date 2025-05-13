@@ -10,6 +10,7 @@ use tuirealm::ratatui::crossterm::event::DisableMouseCapture;
 use tuirealm::ratatui::crossterm::execute;
 use tuirealm::ratatui::crossterm::terminal::{LeaveAlternateScreen, disable_raw_mode};
 use tuirealm::{AttrValue, Attribute, Update};
+
 mod app;
 mod components;
 mod views;
