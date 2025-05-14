@@ -1,9 +1,10 @@
+use tuirealm::command::CmdResult;
 use tuirealm::event::Key;
 use tuirealm::props::BorderSides;
 use tuirealm::ratatui::layout::{Constraint, Direction, Layout, Rect};
 use tuirealm::ratatui::text::Text;
 use tuirealm::ratatui::widgets::{Block, Paragraph};
-use tuirealm::{Application, Component, Event, Frame, MockComponent, NoUserEvent};
+use tuirealm::{Application, Component, Event, Frame, MockComponent, NoUserEvent, State};
 
 use crate::components::birthday_input::BirthdayInput;
 use crate::components::mnemonic_input::MnemonicInput;
@@ -80,18 +81,18 @@ impl MockComponent for SubmitButtonMnemonic {
         frame.render_widget(button, area);
     }
 
-    fn query(&self, attr: tuirealm::Attribute) -> Option<tuirealm::AttrValue> {
-        todo!()
+    fn query(&self, _attr: tuirealm::Attribute) -> Option<tuirealm::AttrValue> {
+        None
     }
 
-    fn attr(&mut self, attr: tuirealm::Attribute, value: tuirealm::AttrValue) {}
+    fn attr(&mut self, _attr: tuirealm::Attribute, _value: tuirealm::AttrValue) {}
 
-    fn state(&self) -> tuirealm::State {
-        todo!()
+    fn state(&self) -> State {
+        State::None
     }
 
-    fn perform(&mut self, cmd: tuirealm::command::Cmd) -> tuirealm::command::CmdResult {
-        todo!()
+    fn perform(&mut self, _cmd: tuirealm::command::Cmd) -> tuirealm::command::CmdResult {
+        CmdResult::None
     }
 }
 

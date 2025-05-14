@@ -63,7 +63,6 @@ where
     pub light_client: Arc<RwLock<Option<LightClient>>>,
     pub export_menu: ExportView,
     pub export_zewif: ExportZewifView,
-    pub export_send: ExportSendView,
     pub export_zingolib: ExportZingolibView,
 }
 
@@ -77,7 +76,6 @@ impl Default for Model<CrosstermTerminalAdapter> {
         let export_zingolib = ExportZingolibView::new(Arc::clone(&light_client));
 
         let mut app = Self::init_app(
-            Arc::clone(&light_client),
             export_menu.clone(),
             export_zewif.clone(),
             export_send.clone(),
@@ -103,7 +101,6 @@ impl Default for Model<CrosstermTerminalAdapter> {
             light_client,
             export_menu,
             export_zewif,
-            export_send,
             export_zingolib,
         }
     }
@@ -149,7 +146,6 @@ where
     }
 
     fn init_app(
-        lc: Arc<RwLock<Option<LightClient>>>,
         export_menu: ExportView,
         export_zewif: ExportZewifView,
         export_send: ExportSendView,
@@ -403,10 +399,7 @@ where
                         .unwrap()
                         .unwrap_string();
 
-                    match MnemonicInput::validate_input(mnemonic.clone()) {
-                        false => return None,
-                        true => (),
-                    }
+                    if !MnemonicInput::validate_input(mnemonic.clone()) { return None }
 
                     let birthday = self
                         .app
@@ -499,9 +492,8 @@ impl<T: TerminalAdapter> HasScreenAndQuit for Model<T> {
             Screen::ZecwalletInput => {
                 let _ = self.app.active(&Id::ZecwalletMenu);
             }
-            Screen::ZcashdInput => {
-                todo!()
-            }
+            // TODO
+            Screen::ZcashdInput => (),
             Screen::Syncing => {
                 let _ = self.app.active(&Id::SyncLog);
             }

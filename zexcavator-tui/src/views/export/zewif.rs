@@ -7,6 +7,7 @@ use bc_envelope::Envelope;
 use bc_envelope::prelude::CBOREncodable;
 use chrono::Utc;
 use tokio::sync::RwLock;
+use tuirealm::command::CmdResult;
 use tuirealm::event::{Key, KeyEvent};
 use tuirealm::ratatui::layout::{Constraint, Direction, Layout};
 use tuirealm::ratatui::text::Text;
@@ -17,8 +18,6 @@ use zingolib::grpc_connector::get_latest_block;
 use zingolib::lightclient::LightClient;
 
 use crate::Msg;
-use crate::app::model::HasScreenAndQuit;
-use crate::components::HandleMessage;
 
 #[derive(Debug, Clone)]
 pub struct ExportZewifView {
@@ -119,38 +118,26 @@ impl MockComponent for ExportZewifView {
         frame.render_widget(para, chunks[0]);
     }
 
-    fn query(&self, attr: tuirealm::Attribute) -> Option<tuirealm::AttrValue> {
-        todo!()
+    fn query(&self, _attr: tuirealm::Attribute) -> Option<tuirealm::AttrValue> {
+        None
     }
 
-    fn attr(&mut self, attr: tuirealm::Attribute, value: tuirealm::AttrValue) {}
+    fn attr(&mut self, _attr: tuirealm::Attribute, _value: tuirealm::AttrValue) {}
 
     fn state(&self) -> State {
-        todo!()
+        State::None
     }
 
-    fn perform(&mut self, cmd: tuirealm::command::Cmd) -> tuirealm::command::CmdResult {
-        todo!()
+    fn perform(&mut self, _cmd: tuirealm::command::Cmd) -> tuirealm::command::CmdResult {
+        CmdResult::None
     }
 }
 
 impl Component<Msg, NoUserEvent> for ExportZewifView {
     fn on(&mut self, ev: tuirealm::Event<NoUserEvent>) -> Option<Msg> {
-        // if let Some(menu_msg) = self.menu.on(ev.clone()) {
-        //     return Some(menu_msg);
-        // }
         match ev {
             tuirealm::Event::Keyboard(KeyEvent { code: Key::Esc, .. }) => Some(Msg::Start),
             _ => None,
         }
-    }
-}
-
-impl<T> HandleMessage<T> for ExportZewifView
-where
-    T: HasScreenAndQuit,
-{
-    fn handle_message(msg: Msg, model: &mut T) -> Option<Msg> {
-        None
     }
 }
