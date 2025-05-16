@@ -1,7 +1,7 @@
 use std::fs;
 use std::sync::{Arc, Mutex};
 
-use anyhow::{Context, Ok};
+use anyhow::Context;
 use chrono::Utc;
 use tokio::sync::RwLock;
 use tuirealm::command::CmdResult;
@@ -66,9 +66,12 @@ impl MockComponent for ExportZingolibView {
             .constraints([Constraint::Min(1)])
             .split(area);
 
-        let msg = match &*self.saved_path.lock().unwrap() {
-            Some(path) => format!("Exported to:\n{}\nLoad this wallet in Zingolib.", path),
-            None => "Exporting to Zingolib...".into(),
+        let msg = match self.saved_path.lock() {
+            Ok(guard) => match &*guard {
+                Some(path) => format!("Exported to:\n{}\nLoad this wallet in Zingolib.", path),
+                None => "Exporting to Zingolib...".into(),
+            },
+            Err(e) => format!("⚠️ Failed to read saved path: {}", e),
         };
 
         let para = Paragraph::new(Text::from(msg))

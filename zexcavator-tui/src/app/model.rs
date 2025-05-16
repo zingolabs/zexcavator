@@ -218,10 +218,24 @@ where
     T: TerminalAdapter,
 {
     fn update(&mut self, msg: Option<Msg>) -> Option<Msg> {
-        if *self.sync_view.sync_complete.lock().unwrap() {
+        let sync_should_run = if let Ok(mut sync_complete) = self.sync_view.sync_complete.lock() {
+            if *sync_complete {
+                *sync_complete = false;
+                true
+            } else {
+                false
+            }
+        } else {
+            eprintln!("Failed to lock sync_complete");
+            false
+        };
+
+        if sync_should_run {
             let export_menu = self.export_menu.clone();
+
             tokio::spawn(async move {
                 let balance = export_menu.load_balance().await;
+
                 if let Some(b) = balance {
                     let mut guard = export_menu.balance.write().await;
                     guard.replace(b);
@@ -230,9 +244,9 @@ where
             });
 
             self.navigate_to(Screen::Result);
-            *self.sync_view.sync_complete.lock().unwrap() = false;
             self.redraw = true;
         }
+
         if self.screen == Screen::Syncing {
             let balance_loaded = {
                 if let Ok(balance_guard) = self.export_menu.balance.try_read() {
