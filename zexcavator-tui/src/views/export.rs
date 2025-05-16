@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use ::zingolib::lightclient::{LightClient, PoolBalances};
 use tokio::sync::RwLock;
+use tuirealm::command::CmdResult;
 use tuirealm::ratatui::layout::{Constraint, Direction, Layout};
 use tuirealm::ratatui::widgets::{Block, Borders, Paragraph};
 use tuirealm::{Component, Frame, MockComponent, NoUserEvent, State};
@@ -100,18 +101,18 @@ impl MockComponent for ExportView {
         self.menu.view(frame, chunks[1]);
     }
 
-    fn query(&self, attr: tuirealm::Attribute) -> Option<tuirealm::AttrValue> {
-        todo!()
+    fn query(&self, _attr: tuirealm::Attribute) -> Option<tuirealm::AttrValue> {
+        None
     }
 
-    fn attr(&mut self, attr: tuirealm::Attribute, value: tuirealm::AttrValue) {}
+    fn attr(&mut self, _attr: tuirealm::Attribute, _value: tuirealm::AttrValue) {}
 
     fn state(&self) -> State {
-        todo!()
+        State::None
     }
 
-    fn perform(&mut self, cmd: tuirealm::command::Cmd) -> tuirealm::command::CmdResult {
-        todo!()
+    fn perform(&mut self, _cmd: tuirealm::command::Cmd) -> tuirealm::command::CmdResult {
+        CmdResult::None
     }
 }
 

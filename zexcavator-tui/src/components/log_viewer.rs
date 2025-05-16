@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
+use tuirealm::command::CmdResult;
 use tuirealm::event::Key;
 
 pub type LogBuffer = Arc<Mutex<Vec<String>>>;
@@ -29,7 +30,7 @@ impl LogViewer {
 
 use tuirealm::ratatui::layout::Rect;
 use tuirealm::ratatui::widgets::Wrap;
-use tuirealm::{Component, Event, Frame, MockComponent, NoUserEvent};
+use tuirealm::{Component, Event, Frame, MockComponent, NoUserEvent, State};
 
 use crate::Msg;
 
@@ -56,18 +57,18 @@ impl MockComponent for LogViewer {
         frame.render_widget(paragraph, area);
     }
 
-    fn query(&self, attr: tuirealm::Attribute) -> Option<tuirealm::AttrValue> {
-        todo!()
+    fn query(&self, _attr: tuirealm::Attribute) -> Option<tuirealm::AttrValue> {
+        None
     }
 
-    fn attr(&mut self, attr: tuirealm::Attribute, value: tuirealm::AttrValue) {}
+    fn attr(&mut self, _attr: tuirealm::Attribute, _value: tuirealm::AttrValue) {}
 
     fn state(&self) -> tuirealm::State {
-        todo!()
+        State::None
     }
 
-    fn perform(&mut self, cmd: tuirealm::command::Cmd) -> tuirealm::command::CmdResult {
-        todo!()
+    fn perform(&mut self, _cmd: tuirealm::command::Cmd) -> tuirealm::command::CmdResult {
+        CmdResult::None
     }
 }
 

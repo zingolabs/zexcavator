@@ -46,17 +46,17 @@ impl MockComponent for WelcomeComponent {
         frame.render_widget(logo_block, layout[0]);
     }
 
-    fn query(&self, attr: tuirealm::Attribute) -> Option<tuirealm::AttrValue> {
+    fn query(&self, _attr: tuirealm::Attribute) -> Option<tuirealm::AttrValue> {
         None
     }
 
-    fn attr(&mut self, attr: tuirealm::Attribute, value: tuirealm::AttrValue) {}
+    fn attr(&mut self, _attr: tuirealm::Attribute, _value: tuirealm::AttrValue) {}
 
     fn state(&self) -> State {
         State::None
     }
 
-    fn perform(&mut self, cmd: tuirealm::command::Cmd) -> tuirealm::command::CmdResult {
+    fn perform(&mut self, _cmd: tuirealm::command::Cmd) -> tuirealm::command::CmdResult {
         CmdResult::None
     }
 }

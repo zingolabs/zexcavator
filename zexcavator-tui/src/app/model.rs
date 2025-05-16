@@ -17,6 +17,7 @@ use zingolib::lightclient::LightClient;
 use crate::components::HandleMessage;
 use crate::components::log_viewer::{LogViewer, SyncSource, new_log_buffer};
 use crate::components::menu::MenuOptions;
+use crate::components::mnemonic_input::MnemonicInput;
 use crate::views::export::send::ExportSendView;
 use crate::views::export::zewif::ExportZewifView;
 use crate::views::export::zingolib::ExportZingolibView;
@@ -62,7 +63,6 @@ where
     pub light_client: Arc<RwLock<Option<LightClient>>>,
     pub export_menu: ExportView,
     pub export_zewif: ExportZewifView,
-    pub export_send: ExportSendView,
     pub export_zingolib: ExportZingolibView,
 }
 
@@ -76,7 +76,6 @@ impl Default for Model<CrosstermTerminalAdapter> {
         let export_zingolib = ExportZingolibView::new(Arc::clone(&light_client));
 
         let mut app = Self::init_app(
-            Arc::clone(&light_client),
             export_menu.clone(),
             export_zewif.clone(),
             export_send.clone(),
@@ -102,7 +101,6 @@ impl Default for Model<CrosstermTerminalAdapter> {
             light_client,
             export_menu,
             export_zewif,
-            export_send,
             export_zingolib,
         }
     }
@@ -148,7 +146,6 @@ where
     }
 
     fn init_app(
-        lc: Arc<RwLock<Option<LightClient>>>,
         export_menu: ExportView,
         export_zewif: ExportZewifView,
         export_send: ExportSendView,
@@ -292,7 +289,13 @@ where
                 }
                 Msg::Start => {
                     self.screen = Screen::MainMenu;
-                    self.app.active(&Id::MainMenu);
+                    match self.app.active(&Id::MainMenu) {
+                        Ok(_) => Msg::None,
+                        Err(e) => {
+                            println!("Error: {}", e);
+                            return None;
+                        }
+                    };
                     None
                 }
                 Msg::MenuCursorMove(_) => None,
@@ -395,6 +398,11 @@ where
                         .unwrap()
                         .unwrap()
                         .unwrap_string();
+
+                    if !MnemonicInput::validate_input(mnemonic.clone()) {
+                        return None;
+                    }
+
                     let birthday = self
                         .app
                         .query(&Id::BirthdayInput, Attribute::Text)
@@ -486,9 +494,8 @@ impl<T: TerminalAdapter> HasScreenAndQuit for Model<T> {
             Screen::ZecwalletInput => {
                 let _ = self.app.active(&Id::ZecwalletMenu);
             }
-            Screen::ZcashdInput => {
-                todo!()
-            }
+            // TODO
+            Screen::ZcashdInput => (),
             Screen::Syncing => {
                 let _ = self.app.active(&Id::SyncLog);
             }

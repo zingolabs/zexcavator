@@ -4,12 +4,6 @@ pub struct ResultViewer {
     output: Vec<String>,
 }
 
-impl ResultViewer {
-    pub fn new(output: Vec<String>) -> Self {
-        Self { output }
-    }
-}
-
 use tuirealm::props::{PropPayload, PropValue};
 use tuirealm::ratatui::layout::Rect;
 use tuirealm::ratatui::widgets::Wrap;
@@ -40,7 +34,7 @@ impl MockComponent for ResultViewer {
         frame.render_widget(paragraph, area);
     }
 
-    fn query(&self, attr: tuirealm::Attribute) -> Option<tuirealm::AttrValue> {
+    fn query(&self, _attr: tuirealm::Attribute) -> Option<tuirealm::AttrValue> {
         todo!()
     }
 
@@ -56,7 +50,7 @@ impl MockComponent for ResultViewer {
         todo!()
     }
 
-    fn perform(&mut self, cmd: tuirealm::command::Cmd) -> tuirealm::command::CmdResult {
+    fn perform(&mut self, _cmd: tuirealm::command::Cmd) -> tuirealm::command::CmdResult {
         todo!()
     }
 }

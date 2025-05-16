@@ -32,9 +32,9 @@ impl MenuOptions for MainMenuOption {
     fn label(&self) -> &'static str {
         match self {
             Self::Zecwallet => "Zecwallet",
-            Self::Zcashd => "zcashd",
-            Self::Ledger => "Ledger",
-            Self::Trezor => "Trezor",
+            Self::Zcashd => "zcashd (Not yet implemented)",
+            Self::Ledger => "Ledger (Not yet implemented)",
+            Self::Trezor => "Trezor (Not yet implemented)",
             Self::Exit => "Exit",
         }
     }

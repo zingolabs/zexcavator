@@ -10,7 +10,6 @@ use super::Msg;
 // -- modules
 pub mod birthday_input;
 pub mod input;
-pub mod label;
 pub mod log_viewer;
 pub mod menu;
 pub mod mnemonic_input;

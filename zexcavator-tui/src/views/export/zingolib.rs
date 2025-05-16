@@ -4,6 +4,7 @@ use std::sync::{Arc, Mutex};
 use anyhow::{Context, Ok};
 use chrono::Utc;
 use tokio::sync::RwLock;
+use tuirealm::command::CmdResult;
 use tuirealm::event::{Key, KeyEvent};
 use tuirealm::ratatui::layout::{Constraint, Direction, Layout};
 use tuirealm::ratatui::text::Text;
@@ -12,8 +13,6 @@ use tuirealm::{Component, Frame, MockComponent, NoUserEvent, State};
 use zingolib::lightclient::LightClient;
 
 use crate::Msg;
-use crate::app::model::HasScreenAndQuit;
-use crate::components::HandleMessage;
 
 #[derive(Debug, Clone)]
 pub struct ExportZingolibView {
@@ -83,18 +82,18 @@ impl MockComponent for ExportZingolibView {
         frame.render_widget(para, chunks[0]);
     }
 
-    fn query(&self, attr: tuirealm::Attribute) -> Option<tuirealm::AttrValue> {
-        todo!()
+    fn query(&self, _attr: tuirealm::Attribute) -> Option<tuirealm::AttrValue> {
+        None
     }
 
-    fn attr(&mut self, attr: tuirealm::Attribute, value: tuirealm::AttrValue) {}
+    fn attr(&mut self, _attr: tuirealm::Attribute, _value: tuirealm::AttrValue) {}
 
     fn state(&self) -> State {
-        todo!()
+        State::None
     }
 
-    fn perform(&mut self, cmd: tuirealm::command::Cmd) -> tuirealm::command::CmdResult {
-        todo!()
+    fn perform(&mut self, _cmd: tuirealm::command::Cmd) -> tuirealm::command::CmdResult {
+        CmdResult::None
     }
 }
 
@@ -104,14 +103,5 @@ impl Component<Msg, NoUserEvent> for ExportZingolibView {
             tuirealm::Event::Keyboard(KeyEvent { code: Key::Esc, .. }) => Some(Msg::Start),
             _ => None,
         }
-    }
-}
-
-impl<T> HandleMessage<T> for ExportZingolibView
-where
-    T: HasScreenAndQuit,
-{
-    fn handle_message(msg: Msg, model: &mut T) -> Option<Msg> {
-        None
     }
 }

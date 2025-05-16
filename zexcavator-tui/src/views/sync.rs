@@ -149,7 +149,7 @@ impl SyncView {
 
                         break;
                     }
-                    Err(e) => {
+                    Err(_e) => {
                         self.log_buffer
                             .lock()
                             .unwrap()
@@ -284,7 +284,7 @@ impl SyncView {
 
                         break;
                     }
-                    Err(e) => {
+                    Err(_e) => {
                         self.log_buffer
                             .lock()
                             .unwrap()
