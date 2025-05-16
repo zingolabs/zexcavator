@@ -1,6 +1,7 @@
 [workspace]
 members = ["zexcavator-cli", "zexcavator-lib", "zexcavator-tui"]
 resolver = "3"
+default-members = ["zexcavator-lib", "zexcavator-tui"]
 
 [workspace.dependencies]
 rusqlite = { version = "0.32.1", features = ["bundled"] }
