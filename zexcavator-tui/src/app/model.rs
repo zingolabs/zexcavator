@@ -399,7 +399,9 @@ where
                         .unwrap()
                         .unwrap_string();
 
-                    if !MnemonicInput::validate_input(mnemonic.clone()) { return None }
+                    if !MnemonicInput::validate_input(mnemonic.clone()) {
+                        return None;
+                    }
 
                     let birthday = self
                         .app
