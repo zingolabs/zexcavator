@@ -349,3 +349,58 @@ impl Renderable for SyncView {
         app.view(&Id::SyncLog, f, chunks[1]);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use super::*;
+
+    #[derive(Debug, serde::Deserialize, Clone)]
+    pub struct WalletTestVector {
+        pub mnemonic: String,
+        pub birthday: Option<u64>,
+    }
+
+    #[tokio::test]
+    async fn test_mnemonic_vectors_from_file() {
+        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        path.push("testvectors/mnemonic.json");
+
+        println!("Using test vector file: {}", path.display());
+
+        let json = fs::read_to_string(&path).expect("Failed to read test vector file");
+        let vectors: Vec<WalletTestVector> =
+            serde_json::from_str(&json).expect("Failed to parse test vectors");
+
+        for (i, vec) in vectors.iter().enumerate() {
+            println!("\n Running vector {i}: {}", &vec.mnemonic);
+            println!("from birthday: {}", vec.birthday.unwrap_or(0));
+
+            let log_buffer = Arc::new(Mutex::new(vec![]));
+            let view = SyncView::new_with_log(log_buffer.clone());
+
+            let client = view
+                .start_wallet_sync_from_mnemonic(
+                    vec.mnemonic.clone(),
+                    Some(vec.birthday.unwrap_or(0) as u32),
+                )
+                .await;
+
+            let complete = *view.sync_complete.lock().unwrap();
+            assert!(
+                complete,
+                "Vector {i} failed: Sync did not complete\nMnemonic: {}\nBirthday: {:?}",
+                vec.mnemonic, vec.birthday
+            );
+
+            let balances = client.do_balance().await;
+            let total = balances.confirmed_transparent_balance.unwrap_or(0)
+                + balances.verified_sapling_balance.unwrap_or(0)
+                + balances.verified_orchard_balance.unwrap_or(0);
+            let zec = total / 10u64.pow(8);
+
+            println!("Vector {i} passed! Found balance: {} ZEC", zec);
+        }
+    }
+}

@@ -6602,6 +6602,8 @@ dependencies = [
  "http",
  "pepper-sync",
  "rustls",
+ "serde",
+ "serde_json",
  "tokio",
  "tui-realm-stdlib",
  "tuirealm",
