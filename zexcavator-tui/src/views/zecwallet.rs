@@ -32,7 +32,7 @@ impl MenuOptions for ZecwalletMenuOption {
         match self {
             Self::Mnemonic => "From Mnemonic",
             Self::Path => "From Path",
-            Self::Seed => "From Seed",
+            Self::Seed => "From Seed (Not yet implemented)",
             Self::Back => "Back",
         }
     }

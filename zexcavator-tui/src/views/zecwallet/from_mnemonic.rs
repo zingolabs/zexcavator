@@ -4,10 +4,13 @@ use tuirealm::props::BorderSides;
 use tuirealm::ratatui::layout::{Constraint, Direction, Layout, Rect};
 use tuirealm::ratatui::text::Text;
 use tuirealm::ratatui::widgets::{Block, Paragraph};
-use tuirealm::{Application, Component, Event, Frame, MockComponent, NoUserEvent, State};
+use tuirealm::{
+    Application, AttrValue, Attribute, Component, Event, Frame, MockComponent, NoUserEvent, State,
+};
 
 use crate::components::birthday_input::BirthdayInput;
 use crate::components::mnemonic_input::MnemonicInput;
+use crate::constants::colors::ZINGO_GREEN;
 use crate::views::Renderable;
 use crate::{Id, Msg};
 
@@ -45,7 +48,7 @@ impl Mountable for ZecwalletFromMnemonic {
         assert!(
             app.mount(
                 Id::ZecwalletFromMnemonicButton,
-                Box::new(SubmitButtonMnemonic),
+                Box::new(SubmitButtonMnemonic::default()),
                 Vec::default()
             )
             .is_ok()
@@ -71,13 +74,27 @@ impl Renderable for ZecwalletFromMnemonic {
     }
 }
 
-pub struct SubmitButtonMnemonic;
+#[derive(Default)]
+pub struct SubmitButtonMnemonic {
+    focused: bool,
+}
 
 impl MockComponent for SubmitButtonMnemonic {
     fn view(&mut self, frame: &mut Frame, area: Rect) {
+        let border_style = if self.focused {
+            tuirealm::ratatui::style::Style::default().fg(ZINGO_GREEN)
+        } else {
+            tuirealm::ratatui::style::Style::default()
+        };
+
         let button = Paragraph::new(Text::raw("Submit"))
             .alignment(tuirealm::props::Alignment::Center)
-            .block(Block::default().borders(BorderSides::all()));
+            .block(
+                Block::default()
+                    .borders(BorderSides::all())
+                    .border_style(border_style),
+            );
+
         frame.render_widget(button, area);
     }
 
@@ -85,7 +102,13 @@ impl MockComponent for SubmitButtonMnemonic {
         None
     }
 
-    fn attr(&mut self, _attr: tuirealm::Attribute, _value: tuirealm::AttrValue) {}
+    fn attr(&mut self, attr: tuirealm::Attribute, value: tuirealm::AttrValue) {
+        if attr == Attribute::Focus {
+            if let AttrValue::Flag(focus_flag) = value {
+                self.focused = focus_flag;
+            }
+        }
+    }
 
     fn state(&self) -> State {
         State::None
@@ -104,7 +127,7 @@ impl Component<Msg, NoUserEvent> for SubmitButtonMnemonic {
                     return Some(Msg::FromMnemonicSubmit);
                 }
                 Key::Tab => return Some(Msg::FromMnemonicSubmitBlur),
-                Key::Esc => return Some(Msg::AppClose),
+                Key::Esc => return Some(Msg::Start),
                 _ => (),
             }
         }

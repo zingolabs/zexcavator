@@ -86,7 +86,7 @@ impl MockComponent for ExportSendView {
 impl Component<Msg, NoUserEvent> for ExportSendView {
     fn on(&mut self, ev: tuirealm::Event<NoUserEvent>) -> Option<Msg> {
         match ev {
-            tuirealm::Event::Keyboard(KeyEvent { code: Key::Esc, .. }) => Some(Msg::AppClose),
+            tuirealm::Event::Keyboard(KeyEvent { code: Key::Esc, .. }) => Some(Msg::GoToResult),
             _ => None,
         }
     }

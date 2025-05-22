@@ -70,7 +70,7 @@ impl MockComponent for SyncBar {
 impl Component<Msg, NoUserEvent> for SyncBar {
     fn on(&mut self, ev: Event<NoUserEvent>) -> Option<Msg> {
         match ev {
-            Event::Keyboard(KeyEvent { code: Key::Esc, .. }) => Some(Msg::AppClose),
+            Event::Keyboard(KeyEvent { code: Key::Esc, .. }) => Some(Msg::Start),
             _ => None,
         }
     }
