@@ -59,7 +59,7 @@ impl Component<Msg, NoUserEvent> for ResultViewer {
     fn on(&mut self, ev: Event<NoUserEvent>) -> Option<Msg> {
         if let Event::Keyboard(key) = ev {
             if key.code == Key::Esc {
-                return Some(Msg::AppClose);
+                return Some(Msg::Start);
             }
         }
         None

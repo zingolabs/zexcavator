@@ -16,6 +16,7 @@ mod components;
 mod views;
 use app::model::Model;
 use zingolib::lightclient::PoolBalances;
+mod constants;
 
 #[derive(Debug, PartialEq)]
 pub enum Msg {

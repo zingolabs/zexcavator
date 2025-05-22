@@ -7,9 +7,12 @@ use tuirealm::props::BorderSides;
 use tuirealm::ratatui::layout::{Constraint, Direction, Layout, Rect};
 use tuirealm::ratatui::text::Text;
 use tuirealm::ratatui::widgets::{Block, Paragraph};
-use tuirealm::{Application, Component, Event, Frame, MockComponent, NoUserEvent, State};
+use tuirealm::{
+    Application, AttrValue, Attribute, Component, Event, Frame, MockComponent, NoUserEvent, State,
+};
 
 use crate::components::input::PathInput;
+use crate::constants::colors::ZINGO_GREEN;
 use crate::views::Renderable;
 use crate::{Id, Msg};
 
@@ -41,7 +44,7 @@ impl Mountable for ZecwalletFromPath {
         assert!(
             app.mount(
                 Id::ZecwalletFromPathButton,
-                Box::new(SubmitButtonPath),
+                Box::new(SubmitButtonPath::default()),
                 Vec::default()
             )
             .is_ok()
@@ -62,13 +65,27 @@ impl Renderable for ZecwalletFromPath {
     }
 }
 
-pub struct SubmitButtonPath;
+#[derive(Default)]
+pub struct SubmitButtonPath {
+    focused: bool,
+}
 
 impl MockComponent for SubmitButtonPath {
     fn view(&mut self, frame: &mut Frame, area: Rect) {
+        let border_style = if self.focused {
+            tuirealm::ratatui::style::Style::default().fg(ZINGO_GREEN)
+        } else {
+            tuirealm::ratatui::style::Style::default()
+        };
+
         let button = Paragraph::new(Text::raw("Submit"))
             .alignment(tuirealm::props::Alignment::Center)
-            .block(Block::default().borders(BorderSides::all()));
+            .block(
+                Block::default()
+                    .borders(BorderSides::all())
+                    .border_style(border_style),
+            );
+
         frame.render_widget(button, area);
     }
 
@@ -76,7 +93,13 @@ impl MockComponent for SubmitButtonPath {
         None
     }
 
-    fn attr(&mut self, _attr: tuirealm::Attribute, _value: tuirealm::AttrValue) {}
+    fn attr(&mut self, attr: tuirealm::Attribute, value: tuirealm::AttrValue) {
+        if attr == Attribute::Focus {
+            if let AttrValue::Flag(focus_flag) = value {
+                self.focused = focus_flag;
+            }
+        }
+    }
 
     fn state(&self) -> State {
         State::None
