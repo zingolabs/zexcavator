@@ -20,7 +20,7 @@ jobs:
 
       - name: Generate code coverage
         run: |
-          cargo +nightly tarpaulin --no-fail-fast --timeout 120 --out xml --output-dir resources -- --nocapture
+          cargo +nightly tarpaulin -p zexcavator-tui --no-fail-fast --timeout 120 --out xml --output-dir resources -- --nocapture
 
       - name: Code Coverage Summary Report
         uses: irongut/CodeCoverageSummary@v1.3.0
@@ -37,6 +37,6 @@ jobs:
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           number: ${{ steps.finder.outputs.pr }}
-          header: "🛡️ Code Coverage Report"
+          header: "Code Coverage Report"
           recreate: true
           path: code-coverage-results.md
