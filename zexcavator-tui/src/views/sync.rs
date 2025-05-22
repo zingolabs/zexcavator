@@ -10,7 +10,7 @@ use pepper_sync::sync_status;
 use tuirealm::ratatui::layout::{Constraint, Direction, Layout};
 use tuirealm::{Application, Frame, NoUserEvent};
 use zexcavator_lib::parser::WalletParserFactory;
-use zingolib::config::{ChainType, load_clientconfig};
+use zingolib::config::{ChainType, DEFAULT_LIGHTWALLETD_SERVER, load_clientconfig};
 use zingolib::data::PollReport;
 use zingolib::lightclient::{self, LightClient};
 use zingolib::wallet::{LightWallet, WalletBase, WalletSettings};
@@ -198,7 +198,7 @@ impl SyncView {
         }
 
         let zc = load_clientconfig(
-            Uri::from_static("https://na.zec.rocks:443"),
+            Uri::from_static(DEFAULT_LIGHTWALLETD_SERVER),
             None,
             ChainType::Mainnet,
             WalletSettings {
