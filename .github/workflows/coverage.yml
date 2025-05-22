@@ -30,8 +30,13 @@ jobs:
           format: "markdown"
           output: "both"
 
+      - uses: jwalton/gh-find-current-pr@v1
+        id: finder
+
       - name: Add Coverage PR Comment
         uses: marocchino/sticky-pull-request-comment@v2
         with:
+          number: ${{ steps.finder.outputs.pr }}
+          header: "🛡️ Code Coverage Report"
           recreate: true
           path: code-coverage-results.md
