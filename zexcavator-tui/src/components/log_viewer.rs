@@ -39,22 +39,25 @@ impl MockComponent for LogViewer {
         use tuirealm::ratatui::text::{Line, Span, Text};
         use tuirealm::ratatui::widgets::{Block, Borders, Paragraph};
 
-        let log_lines = self.logs.lock().unwrap();
-        let text = Text::from(
-            log_lines
-                .iter()
-                .map(|l| Line::from(Span::raw(l)))
-                .collect::<Vec<_>>(),
-        );
+        let logs_guard = self.logs.lock();
 
-        let scroll_offset = log_lines.len().saturating_sub(area.height as usize - 2);
+        if let Ok(log_lines) = logs_guard {
+            let text = Text::from(
+                log_lines
+                    .iter()
+                    .map(|l| Line::from(Span::raw(l)))
+                    .collect::<Vec<_>>(),
+            );
 
-        let paragraph = Paragraph::new(text)
-            .block(Block::default().title("Sync Log").borders(Borders::ALL))
-            .scroll((scroll_offset as u16, 0))
-            .wrap(Wrap { trim: true });
+            let scroll_offset = log_lines.len().saturating_sub(area.height as usize - 2);
 
-        frame.render_widget(paragraph, area);
+            let paragraph = Paragraph::new(text)
+                .block(Block::default().title("Sync Log").borders(Borders::ALL))
+                .scroll((scroll_offset as u16, 0))
+                .wrap(Wrap { trim: true });
+
+            frame.render_widget(paragraph, area);
+        }
     }
 
     fn query(&self, _attr: tuirealm::Attribute) -> Option<tuirealm::AttrValue> {
