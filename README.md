@@ -6,8 +6,7 @@
 > Check [the GitHub project](https://github.com/orgs/zingolabs/projects/9) to track progress.
 
 **ZExCavator** is a tool that recovers (excavates!) _possibly_ lost ZEC.
-It builds on top of [ZeWIF (Zcash Extensible Wallet Interchange Format)](https://github.com/BlockchainCommons/zewif) and is currenlty focused on **ZecWallet Lite** wallets, though the architecture is extensible and can be extended to support additional wallets in the future. Under the hood, it uses **zmigrate** to parse
-wallet files into an in-memory representation, **zingolib** for fund recovery and syncing, and the **ZeWIF** specification for wallet export (this is WIP).
+It builds on top of [ZeWIF (Zcash Extensible Wallet Interchange Format)](https://github.com/BlockchainCommons/zewif) and is currenlty focused on **ZecWallet Lite** wallets, though the architecture is extensible and can be extended to support additional wallets in the future. It parses wallet files into an in-memory representation, uses **zingolib** and **pepper-sync** for fund recovery and syncing, and the **ZeWIF** specification for wallet export (WIP: Currently a minimal export is supported).
 
 ---
 
