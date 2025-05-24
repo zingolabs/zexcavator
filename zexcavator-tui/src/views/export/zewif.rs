@@ -93,6 +93,7 @@ impl ExportZewifView {
 
         // Convert the Zewif instance to an Envelope
         let envelope = Envelope::from(zewif.clone());
+
         std::fs::write(&path, envelope.to_cbor_data()).unwrap();
         Ok(path)
     }

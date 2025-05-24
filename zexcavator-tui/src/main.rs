@@ -14,6 +14,7 @@ use tuirealm::{AttrValue, Attribute, Update};
 mod app;
 mod components;
 mod views;
+mod walletparsers;
 use app::model::Model;
 use zingolib::lightclient::PoolBalances;
 mod constants;

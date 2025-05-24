@@ -1,12 +1,12 @@
 [workspace]
-members = ["zexcavator-cli", "zexcavator-lib", "zexcavator-tui"]
+members = ["zexcavator-tui"]
 resolver = "3"
-default-members = ["zexcavator-lib", "zexcavator-tui"]
+default-members = ["zexcavator-tui"]
 
 [workspace.dependencies]
 rusqlite = { version = "0.32.1", features = ["bundled"] }
 abscissa_core = "0.8.2"
-bc-envelope = "0.27.2"
+bc-envelope = "0.28.0"
 bip0039 = "0.12.0"
 bridgetree = "0.6.0"
 byteorder = "1.5.0"
@@ -33,14 +33,6 @@ incrementalmerkletree = "0.3.1"
 orchard_new = "0.10.1"
 orchard_old = "=0.3.0"
 sapling = { version = "0.3", default-features = false }
-zewif = { git = "https://github.com/BlockchainCommons/zewif.git", rev = "18592063cce454158e8110d0bd11be869fb67f60" }
-
-[workspace.dependencies.zingolib]
-git = "https://github.com/zingolabs/zingolib.git"
-branch = "dev"
-package = "zingolib"
-
-[workspace.dependencies.pepper-sync]
-git = "https://github.com/zingolabs/zingolib.git"
-branch = "dev"
-package = "pepper-sync"
+zewif = { version = "0.0.1", package = "zingolabs-zewif" }
+zingolib = { version = "0.0.1" }
+pepper-sync = { version = "0.0.1" }

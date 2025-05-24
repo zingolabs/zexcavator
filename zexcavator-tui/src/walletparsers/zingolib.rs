@@ -1,5 +1,3 @@
-pub mod zewif;
-
 use zcash_client_backend::proto::service::TreeState;
 
 pub struct TxMap {}

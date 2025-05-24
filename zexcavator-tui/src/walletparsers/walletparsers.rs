@@ -1,14 +1,11 @@
-pub mod parser;
-pub mod ywallet;
-pub mod zingolib;
-pub mod zwl;
-
 use std::io;
 
 use orchard_old::keys::{FullViewingKey, SpendingKey};
 use sapling::zip32::{ExtendedFullViewingKey, ExtendedSpendingKey};
 // use zcash_keys::keys::UnifiedFullViewingKey;
 use zcash_primitives::consensus::BlockHeight;
+
+use super::{ywallet::YWallet, zwl::ZwlWallet};
 
 #[derive(Debug, Clone)]
 pub enum WalletKeyType {
@@ -111,5 +108,28 @@ impl Wallet {
     {
         let _ = W::write(self, filename);
         Ok(())
+    }
+}
+
+pub struct WalletParserFactory {
+    pub parser: Box<dyn WalletParser>,
+    pub filename: String,
+}
+
+impl WalletParserFactory {
+    pub fn read(filename: &str) -> Result<Self, String> {
+        if filename.ends_with(".db") {
+            Ok(WalletParserFactory {
+                filename: filename.to_string(),
+                parser: Box::new(YWallet::read(filename).unwrap()),
+            })
+        } else if filename.ends_with(".dat") {
+            Ok(WalletParserFactory {
+                filename: filename.to_string(),
+                parser: Box::new(ZwlWallet::read(filename).unwrap()),
+            })
+        } else {
+            Err(format!("Unknown wallet format for file: {}", filename))
+        }
     }
 }

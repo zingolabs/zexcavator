@@ -3,6 +3,11 @@ name = "zexcavator-tui"
 version = "0.1.0"
 edition = "2024"
 
+[[bin]]
+name = "zexcavator-tui"
+path = "src/main.rs"
+
+
 [dependencies]
 tuirealm = { workspace = true }
 tui-realm-stdlib = { workspace = true }
@@ -12,7 +17,6 @@ zingolib = { workspace = true }
 pepper-sync = { workspace = true }
 anyhow.workspace = true
 http.workspace = true
-zexcavator-lib = { workspace = true }
 bip0039.workspace = true
 zewif = { workspace = true }
 bc-envelope = { workspace = true }
@@ -20,3 +24,26 @@ chrono = "0.4.41"
 dirs = "6.0.0"
 serde.workspace = true
 serde_json = "1.0.140"
+
+byteorder = { workspace = true }
+zcash_primitives = { workspace = true, features = ["transparent-inputs"] }
+zcash_encoding = { workspace = true }
+zcash_keys = { workspace = true, features = [
+    "transparent-inputs",
+    "sapling",
+    "orchard",
+] }
+zcash_client_backend = { workspace = true, features = [
+    "transparent-inputs",
+    "orchard",
+] }
+sapling = { package = "sapling-crypto", version = "0.3", default-features = false }
+secp256k1 = { workspace = true }
+hex = { workspace = true }
+jubjub = { workspace = true }
+rusqlite = { workspace = true }
+bridgetree = { workspace = true }
+prost = { workspace = true }
+incrementalmerkletree = { workspace = true }
+orchard_old = { package = "orchard", version = "=0.3.0" }
+orchard_new = { package = "orchard", version = "0.10.1" }

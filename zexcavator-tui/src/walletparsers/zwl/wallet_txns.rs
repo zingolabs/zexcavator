@@ -7,7 +7,7 @@ use byteorder::{LittleEndian, ReadBytesExt};
 use zcash_encoding::Vector;
 use zcash_primitives::{consensus::BlockHeight, transaction::TxId};
 
-use crate::zwl::data::WalletTx;
+use super::transactions::WalletTx;
 
 pub struct WalletTxns {
     pub current: HashMap<TxId, WalletTx>,
@@ -16,7 +16,7 @@ pub struct WalletTxns {
 
 impl WalletTxns {
     pub fn serialized_version() -> u64 {
-        return 21;
+        21
     }
 
     pub fn read<R: Read>(mut reader: R) -> io::Result<Self> {
@@ -40,7 +40,7 @@ impl WalletTxns {
             .values()
             .fold(None, |c: Option<(TxId, BlockHeight)>, w| {
                 if c.is_none() || w.block > c.unwrap().1 {
-                    Some((w.txid.clone(), w.block))
+                    Some((w.txid, w.block))
                 } else {
                     c
                 }

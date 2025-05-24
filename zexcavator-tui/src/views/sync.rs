@@ -9,7 +9,6 @@ use pepper_sync::sync::{SyncConfig, TransparentAddressDiscovery};
 use pepper_sync::sync_status;
 use tuirealm::ratatui::layout::{Constraint, Direction, Layout};
 use tuirealm::{Application, Frame, NoUserEvent};
-use zexcavator_lib::parser::WalletParserFactory;
 use zingolib::config::{ChainType, DEFAULT_LIGHTWALLETD_SERVER, load_clientconfig};
 use zingolib::data::PollReport;
 use zingolib::lightclient::{self, LightClient};
@@ -17,6 +16,7 @@ use zingolib::wallet::{LightWallet, WalletBase, WalletSettings};
 
 use crate::components::log_viewer::LogBuffer;
 use crate::components::sync_bar::SyncBar;
+use crate::walletparsers::walletparsers::WalletParserFactory;
 use crate::{Id, Msg};
 
 use super::{Mountable, Renderable};
