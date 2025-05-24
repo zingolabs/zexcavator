@@ -3,9 +3,9 @@ use std::fmt::Display;
 use std::io::{self, Read};
 use zcash_encoding::Vector;
 
-use crate::zwl::walletokey::WalletOKey;
-use crate::zwl::wallettkey::WalletTKey;
-use crate::zwl::walletzkey::WalletZKey;
+use super::walletokey::WalletOKey;
+use super::wallettkey::WalletTKey;
+use super::walletzkey::WalletZKey;
 
 #[derive(Debug, Clone)]
 pub struct Keys {

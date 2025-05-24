@@ -19,7 +19,7 @@ use zcash_primitives::{
     },
 };
 
-use crate::WalletAccount;
+use crate::walletparsers::walletparsers::WalletAccount;
 
 #[derive(Debug)]
 pub struct AccountT {
