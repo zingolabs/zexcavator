@@ -6,6 +6,7 @@ edition = "2024"
 repository = "https://github.com/zingolabs/zexcavator"
 homepage = "https://github.com/zingolabs/zexcavator"
 license = "MIT"
+readme = "../README.md"
 
 
 [[bin]]
