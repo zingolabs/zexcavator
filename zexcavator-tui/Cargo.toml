@@ -1,7 +1,12 @@
 [package]
 name = "zexcavator-tui"
+description = "ZExCavator is a tool that recovers possibly lost ZEC."
 version = "0.1.0"
 edition = "2024"
+repository = "https://github.com/zingolabs/zexcavator"
+homepage = "https://github.com/zingolabs/zexcavator"
+license = "MIT"
+
 
 [[bin]]
 name = "zexcavator-tui"
