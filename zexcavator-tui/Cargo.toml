@@ -1,5 +1,5 @@
 [package]
-name = "zexcavator-tui"
+name = "zexcavator"
 description = "ZExCavator is a tool that recovers possibly lost ZEC."
 version = "0.0.1"
 edition = "2024"
@@ -9,7 +9,7 @@ license = "MIT"
 
 
 [[bin]]
-name = "zexcavator-tui"
+name = "zexcavator"
 path = "src/main.rs"
 
 
