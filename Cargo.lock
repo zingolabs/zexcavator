@@ -8338,7 +8338,7 @@ dependencies = [
 
 [[package]]
 name = "zexcavator"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "anyhow",
  "bc-envelope",
@@ -8435,9 +8435,9 @@ dependencies = [
 
 [[package]]
 name = "zingolabs-zewif"
-version = "0.0.1"
+version = "0.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "daf02b600c7b6ddfeefc3e48734c85b9297640616037eeac71789f2f6990a0c4"
+checksum = "714b10efb0d9bf656b6f3803868e8e6a45929aad8e9a0a12a61131a405c059a9"
 dependencies = [
  "anyhow",
  "bc-components",

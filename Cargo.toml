@@ -33,6 +33,6 @@ incrementalmerkletree = "0.3.1"
 orchard_new = "0.10.1"
 orchard_old = "=0.3.0"
 sapling = { version = "0.3", default-features = false }
-zewif = { version = "0.0.1", package = "zingolabs-zewif" }
+zewif = { version = "0.0.2", package = "zingolabs-zewif" }
 zingolib = { version = "0.0.1" }
 pepper-sync = { version = "0.0.1" }
