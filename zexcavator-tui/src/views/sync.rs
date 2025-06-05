@@ -1,3 +1,4 @@
+use std::num::NonZero;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
@@ -47,6 +48,7 @@ impl SyncView {
 
         let seed = wallet_parser.parser.get_wallet_seed();
         let bd = wallet_parser.parser.get_birthday();
+        let wallet_version = wallet_parser.parser.get_wallet_version();
 
         if let Err(e) = rustls::crypto::ring::default_provider().install_default() {
             self.log_buffer
@@ -64,13 +66,17 @@ impl SyncView {
                     transparent_address_discovery: TransparentAddressDiscovery::recovery(),
                 },
             },
+            NonZero::new(1).unwrap(),
         )
         .unwrap();
 
         let initial_bh: u32 = bd.try_into().unwrap();
         let lw = LightWallet::new(
             ChainType::Mainnet,
-            WalletBase::SeedBytes(seed),
+            WalletBase::Mnemonic {
+                mnemonic: Mnemonic::from_entropy(seed).unwrap(),
+                no_of_accounts: NonZero::new(1).unwrap(),
+            },
             initial_bh.into(),
             WalletSettings {
                 sync_config: SyncConfig {
@@ -91,7 +97,12 @@ impl SyncView {
         self.log_buffer
             .lock()
             .unwrap()
-            .push(format!("Mnemonic: {}", mnemonic.unwrap().0));
+            .push(format!("=== WALLET VERSION: {} ===", wallet_version));
+
+        self.log_buffer
+            .lock()
+            .unwrap()
+            .push(format!("Mnemonic: {}", mnemonic.unwrap().to_string()));
         self.log_buffer
             .lock()
             .unwrap()
@@ -135,15 +146,22 @@ impl SyncView {
                             .lock()
                             .unwrap()
                             .push(format!("Sync result: {:?}", sync_result));
-                        let balances = light_client.do_balance().await;
-                        let final_balance = balances.confirmed_transparent_balance.unwrap()
-                            + balances.verified_sapling_balance.unwrap()
-                            + balances.verified_orchard_balance.unwrap();
-                        let balance_in_zec = final_balance / 10u64.pow(8);
+                        let balances = light_client
+                            .wallet
+                            .lock()
+                            .await
+                            .account_balance(zip32::AccountId::try_from(0).unwrap())
+                            .await
+                            .unwrap();
+                        let final_balance = balances.total_transparent_balance.unwrap()
+                            + balances.total_sapling_balance.unwrap()
+                            + balances.total_orchard_balance.unwrap();
+                        let balance_in_zec =
+                            final_balance.unwrap() / NonZero::new(10u64.pow(8)).unwrap();
                         self.log_buffer
                             .lock()
                             .unwrap()
-                            .push(format!("Total ZEC found: {}", balance_in_zec));
+                            .push(format!("Total ZEC found: {}", balance_in_zec.into_u64()));
 
                         *self.sync_complete.lock().unwrap() = true;
 
@@ -206,6 +224,7 @@ impl SyncView {
                     transparent_address_discovery: TransparentAddressDiscovery::recovery(),
                 },
             },
+            NonZero::new(1).unwrap(),
         )
         .unwrap();
 
@@ -215,7 +234,10 @@ impl SyncView {
 
         let lw = LightWallet::new(
             ChainType::Mainnet,
-            WalletBase::Mnemonic(mnemonic),
+            WalletBase::Mnemonic {
+                mnemonic: mnemonic,
+                no_of_accounts: NonZero::new(1).unwrap(),
+            },
             birthday.into(),
             WalletSettings {
                 sync_config: SyncConfig {
@@ -270,16 +292,22 @@ impl SyncView {
                             .lock()
                             .unwrap()
                             .push(format!("Sync result: {:?}", sync_result));
-                        let balances = light_client.do_balance().await;
-
-                        let final_balance = balances.confirmed_transparent_balance.unwrap()
-                            + balances.verified_sapling_balance.unwrap()
-                            + balances.verified_orchard_balance.unwrap();
-                        let balance_in_zec = final_balance / 10u64.pow(8);
+                        let balances = light_client
+                            .wallet
+                            .lock()
+                            .await
+                            .account_balance(zip32::AccountId::try_from(0).unwrap())
+                            .await
+                            .unwrap();
+                        let final_balance = balances.total_transparent_balance.unwrap()
+                            + balances.total_sapling_balance.unwrap()
+                            + balances.total_orchard_balance.unwrap();
+                        let balance_in_zec =
+                            final_balance.unwrap() / NonZero::new(10u64.pow(8)).unwrap();
                         self.log_buffer
                             .lock()
                             .unwrap()
-                            .push(format!("Total ZEC found: {}", balance_in_zec));
+                            .push(format!("Total ZEC found: {}", balance_in_zec.into_u64()));
                         *self.sync_complete.lock().unwrap() = true;
 
                         break;
@@ -394,13 +422,22 @@ mod tests {
                 vec.mnemonic, vec.birthday
             );
 
-            let balances = client.do_balance().await;
-            let total = balances.confirmed_transparent_balance.unwrap_or(0)
-                + balances.verified_sapling_balance.unwrap_or(0)
-                + balances.verified_orchard_balance.unwrap_or(0);
-            let zec = total / 10u64.pow(8);
+            let balances = client
+                .wallet
+                .lock()
+                .await
+                .account_balance(zip32::AccountId::try_from(0).unwrap())
+                .await
+                .unwrap();
+            let final_balance = balances.total_transparent_balance.unwrap()
+                + balances.total_sapling_balance.unwrap()
+                + balances.total_orchard_balance.unwrap();
+            let balance_in_zec = final_balance.unwrap() / NonZero::new(10u64.pow(8)).unwrap();
 
-            println!("Vector {i} passed! Found balance: {} ZEC", zec);
+            println!(
+                "Vector {i} passed! Found balance: {} ZEC",
+                balance_in_zec.into_u64()
+            );
         }
     }
 }

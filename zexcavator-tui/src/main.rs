@@ -16,7 +16,7 @@ mod components;
 mod views;
 mod walletparsers;
 use app::model::Model;
-use zingolib::lightclient::PoolBalances;
+use zingolib::wallet::balance::AccountBalance;
 mod constants;
 
 #[derive(Debug, PartialEq)]
@@ -39,7 +39,7 @@ pub enum Msg {
     FromPathSubmit,
     GoToResult,
     InitializeLightClient,
-    BalanceReady(PoolBalances),
+    BalanceReady(AccountBalance),
     FetchBalance,
     None,
 }

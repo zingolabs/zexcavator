@@ -53,3 +53,4 @@ prost = { workspace = true }
 incrementalmerkletree = { workspace = true }
 orchard_old = { package = "orchard", version = "=0.3.0" }
 orchard_new = { package = "orchard", version = "0.10.1" }
+zip32 = "0.2.0"

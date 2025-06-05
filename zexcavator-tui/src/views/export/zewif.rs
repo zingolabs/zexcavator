@@ -45,7 +45,7 @@ impl ExportZewifView {
         let export_height = get_latest_block(lc.get_server_uri()).await.unwrap().height as u32;
         drop(guard);
 
-        let (m, _) = mnemonic.unwrap();
+        let m = mnemonic.unwrap();
 
         let path = ExportZewifView::export_to_zewif(Some(m), export_height);
 
