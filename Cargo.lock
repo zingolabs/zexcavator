@@ -3850,8 +3850,7 @@ dependencies = [
 [[package]]
 name = "pepper-sync"
 version = "0.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d3b3c82be25cab357957856b2eacef69a51530616240f6fd5ba21cf9896b3bf"
+source = "git+https://github.com/zingolabs/zingolib.git?rev=a9b66315b853c9084008d51e149d2572954aba8e#a9b66315b853c9084008d51e149d2572954aba8e"
 dependencies = [
  "bip32 0.6.0-pre.1",
  "byteorder",
@@ -4801,6 +4800,40 @@ dependencies = [
  "libsqlite3-sys",
  "smallvec",
  "time",
+]
+
+[[package]]
+name = "rust-embed"
+version = "6.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a36224c3276f8c4ebc8c20f158eca7ca4359c8db89991c4925132aaaf6702661"
+dependencies = [
+ "rust-embed-impl",
+ "rust-embed-utils",
+ "walkdir",
+]
+
+[[package]]
+name = "rust-embed-impl"
+version = "6.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "49b94b81e5b2c284684141a2fb9e2a31be90638caf040bf9afbc5a0416afe1ac"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "rust-embed-utils",
+ "syn 2.0.101",
+ "walkdir",
+]
+
+[[package]]
+name = "rust-embed-utils"
+version = "7.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9d38ff6bf570dc3bb7100fce9f7b60c33fa71d80e88da3f2580df4ff2bdded74"
+dependencies = [
+ "sha2 0.10.9",
+ "walkdir",
 ]
 
 [[package]]
@@ -8370,13 +8403,13 @@ dependencies = [
  "zcash_primitives 0.20.1",
  "zingolabs-zewif",
  "zingolib",
+ "zip32 0.2.0",
 ]
 
 [[package]]
 name = "zingo-memo"
 version = "0.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5c2c655174c0bff41505d5c0d45b0fea09d458e62324206b27fb2888f92a6293"
+source = "git+https://github.com/zingolabs/zingolib.git?rev=a9b66315b853c9084008d51e149d2572954aba8e#a9b66315b853c9084008d51e149d2572954aba8e"
 dependencies = [
  "zcash_address 0.7.1",
  "zcash_client_backend 0.18.0",
@@ -8388,8 +8421,7 @@ dependencies = [
 [[package]]
 name = "zingo-netutils"
 version = "0.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a19585976d02b6ccb84e7a51433ce1cc7e76d9061b993f58598fb73a1d07a27"
+source = "git+https://github.com/zingolabs/zingolib.git?rev=a9b66315b853c9084008d51e149d2572954aba8e#a9b66315b853c9084008d51e149d2572954aba8e"
 dependencies = [
  "http",
  "http-body",
@@ -8409,8 +8441,7 @@ dependencies = [
 [[package]]
 name = "zingo-price"
 version = "0.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "11878e7124006314820d39666fd417e0f269c6de7e9402e6e186c6f389512cbf"
+source = "git+https://github.com/zingolabs/zingolib.git?rev=a9b66315b853c9084008d51e149d2572954aba8e#a9b66315b853c9084008d51e149d2572954aba8e"
 dependencies = [
  "byteorder",
  "reqwest",
@@ -8426,8 +8457,7 @@ dependencies = [
 [[package]]
 name = "zingo-status"
 version = "0.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "66709d62607750781993ae49bebd96b3e5823fda5b46adca5dcf618dfdc3dc17"
+source = "git+https://github.com/zingolabs/zingolib.git?rev=a9b66315b853c9084008d51e149d2572954aba8e#a9b66315b853c9084008d51e149d2572954aba8e"
 dependencies = [
  "byteorder",
  "zcash_primitives 0.22.0",
@@ -8451,8 +8481,7 @@ dependencies = [
 [[package]]
 name = "zingolib"
 version = "0.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a9668c4a4884e0f5408e553f424db5c28ba4b6f03a9a2e998f1677bba308e9c"
+source = "git+https://github.com/zingolabs/zingolib.git?rev=a9b66315b853c9084008d51e149d2572954aba8e#a9b66315b853c9084008d51e149d2572954aba8e"
 dependencies = [
  "append-only-vec",
  "bech32 0.11.0",
@@ -8462,7 +8491,7 @@ dependencies = [
  "byteorder",
  "bytes",
  "chrono",
- "dirs 5.0.1",
+ "dirs 6.0.0",
  "futures",
  "hex",
  "http",
@@ -8479,6 +8508,7 @@ dependencies = [
  "prost",
  "rand 0.8.5",
  "ring 0.17.14",
+ "rust-embed",
  "rustls 0.23.27",
  "sapling-crypto 0.5.0",
  "secp256k1 0.29.1",

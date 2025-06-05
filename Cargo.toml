@@ -34,5 +34,5 @@ orchard_new = "0.10.1"
 orchard_old = "=0.3.0"
 sapling = { version = "0.3", default-features = false }
 zewif = { version = "0.0.2", package = "zingolabs-zewif" }
-zingolib = { version = "0.0.1" }
-pepper-sync = { version = "0.0.1" }
+zingolib = { git = "https://github.com/zingolabs/zingolib.git", rev = "a9b66315b853c9084008d51e149d2572954aba8e" }
+pepper-sync = { git = "https://github.com/zingolabs/zingolib.git", rev = "a9b66315b853c9084008d51e149d2572954aba8e", package = "pepper-sync" }

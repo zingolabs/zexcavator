@@ -39,7 +39,6 @@ impl ExportZingolibView {
             let network = lw_guard.network;
             lw_guard
                 .write(&mut buf, &network)
-                .await
                 .context("failed to serialize LightWallet")?;
         }
 

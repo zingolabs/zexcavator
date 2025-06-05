@@ -5,47 +5,23 @@ use tuirealm::event::{Key, KeyEvent};
 use tuirealm::ratatui::layout::{Constraint, Direction, Layout};
 use tuirealm::ratatui::widgets::{Block, Borders, Paragraph};
 use tuirealm::{Component, Frame, MockComponent, NoUserEvent, State};
-use zingolib::lightclient::{LightClient, PoolBalances};
+use zingolib::lightclient::LightClient;
+use zingolib::wallet::balance::AccountBalance;
 
 use crate::Msg;
 use crate::app::model::HasScreenAndQuit;
 use crate::components::HandleMessage;
 
-// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-// pub enum ExportOptions {
-//     ZeWIF,
-//     Send,
-// }
-
-// impl MenuOptions for ExportOptions {
-//     fn all() -> Vec<Self>
-//     where
-//         Self: Sized,
-//     {
-//         vec![Self::ZeWIF, Self::Send]
-//     }
-
-//     fn label(&self) -> &'static str {
-//         match self {
-//             Self::ZeWIF => "ZeWIF",
-//             Self::Send => "Send",
-//         }
-//     }
-// }
-
 #[derive(Debug, Clone)]
 pub struct ExportSendView {
     // pub light_client: Arc<RwLock<Option<LightClient>>>,
-    pub balance: Arc<RwLock<Option<PoolBalances>>>,
-    // pub menu: Menu<ExportOptions>,
+    pub balance: Arc<RwLock<Option<AccountBalance>>>,
 }
 
 impl ExportSendView {
     pub fn new(_light_client: Arc<RwLock<Option<LightClient>>>) -> Self {
         Self {
-            // light_client,
             balance: Arc::new(RwLock::new(None)),
-            // menu: Menu::new("Choose an export option"),
         }
     }
 }
@@ -64,8 +40,6 @@ impl MockComponent for ExportSendView {
                 Paragraph::new(text).block(Block::default().borders(Borders::ALL).title("Balance"));
             frame.render_widget(para, chunks[0]);
         }
-
-        // self.menu.view(frame, chunks[1]);
     }
 
     fn query(&self, _attr: tuirealm::Attribute) -> Option<tuirealm::AttrValue> {
