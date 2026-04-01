@@ -60,14 +60,20 @@ impl Keys {
         let mut seed_bytes = [0u8; 32];
         reader.read_exact(&mut seed_bytes)?;
 
-        // TODO: read old versions of wallet file
-        let okeys = Vector::read(&mut reader, |r| WalletOKey::read(r))?;
-
-        // TODO: read old versions of wallet file
-        let zkeys = Vector::read(&mut reader, |r| WalletZKey::read(r))?;
-
-        // read wallet tkeys
-        let tkeys = Vector::read(&mut reader, |r| WalletTKey::read(r))?;
+        // Orchard keys were not present in the original ZecWallet Lite
+        // format (Keys version <= 21). They were added in version 22.
+        // Additionally, the original format writes zkeys before tkeys,
+        // with no okeys at all.
+        let (okeys, zkeys, tkeys) = if version <= 21 {
+            let zkeys = Vector::read(&mut reader, |r| WalletZKey::read(r))?;
+            let tkeys = Vector::read(&mut reader, |r| WalletTKey::read(r))?;
+            (vec![], zkeys, tkeys)
+        } else {
+            let okeys = Vector::read(&mut reader, |r| WalletOKey::read(r))?;
+            let zkeys = Vector::read(&mut reader, |r| WalletZKey::read(r))?;
+            let tkeys = Vector::read(&mut reader, |r| WalletTKey::read(r))?;
+            (okeys, zkeys, tkeys)
+        };
 
         Ok(Self {
             encrypted,
