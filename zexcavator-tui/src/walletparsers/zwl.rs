@@ -707,4 +707,54 @@ mod tests {
         let wallet = get_wallet();
         assert_eq!(wallet.transactions.current.len(), 0);
     }
+
+    #[test]
+    fn test_multi_address_wallet_account_count() {
+        // w2 has multiple Z-addresses from the ZecWallet Lite bug
+        // (each at a different account index)
+        let wallet = ZwlWallet::read(
+            "../../zwl-lib/test_vectors/w2-multiple-addresses/zecwallet-light-wallet.dat",
+        );
+        match wallet {
+            Ok(w) => {
+                let accounts = w.get_wallet_accounts().unwrap();
+                println!("w2 accounts: {}", accounts.len());
+                println!("w2 version: {}", w.version);
+                println!("w2 zkeys: {}", w.keys.zkeys.len());
+                println!("w2 tkeys: {}", w.keys.tkeys.len());
+                println!("w2 okeys: {}", w.keys.okeys.len());
+                assert!(
+                    accounts.len() > 1,
+                    "w2 should have multiple accounts, got {}",
+                    accounts.len()
+                );
+            }
+            Err(e) => {
+                panic!("Failed to parse w2 wallet: {}", e);
+            }
+        }
+    }
+
+    #[test]
+    fn test_pre_orchard_wallet_parses() {
+        // w3 is version 24 (pre-Orchard) — should not crash
+        let wallet = ZwlWallet::read(
+            "../../zwl-lib/test_vectors/w3-old-checkpoint-multiple-addresses/zecwallet-light-wallet.dat",
+        );
+        match wallet {
+            Ok(w) => {
+                println!("w3 version: {}", w.version);
+                println!("w3 zkeys: {}", w.keys.zkeys.len());
+                println!("w3 okeys: {}", w.keys.okeys.len());
+                assert_eq!(
+                    w.keys.okeys.len(),
+                    0,
+                    "pre-Orchard wallet should have no okeys"
+                );
+            }
+            Err(e) => {
+                panic!("Failed to parse w3 pre-Orchard wallet: {}", e);
+            }
+        }
+    }
 }
