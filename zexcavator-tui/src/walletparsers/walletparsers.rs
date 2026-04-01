@@ -119,14 +119,16 @@ pub struct WalletParserFactory {
 impl WalletParserFactory {
     pub fn read(filename: &str) -> Result<Self, String> {
         if filename.ends_with(".db") {
+            let parser = YWallet::read(filename).map_err(|e| format!("{}", e))?;
             Ok(WalletParserFactory {
                 filename: filename.to_string(),
-                parser: Box::new(YWallet::read(filename).unwrap()),
+                parser: Box::new(parser),
             })
         } else if filename.ends_with(".dat") {
+            let parser = ZwlWallet::read(filename).map_err(|e| format!("{}", e))?;
             Ok(WalletParserFactory {
                 filename: filename.to_string(),
-                parser: Box::new(ZwlWallet::read(filename).unwrap()),
+                parser: Box::new(parser),
             })
         } else {
             Err(format!("Unknown wallet format for file: {}", filename))
