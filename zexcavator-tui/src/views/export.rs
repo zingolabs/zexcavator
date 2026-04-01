@@ -64,16 +64,38 @@ impl ExportView {
     pub async fn load_balance(&self) -> Option<AccountBalance> {
         let mut client_guard = self.light_client.write().await;
         let client = client_guard.as_mut()?;
-        let b = client
-            .wallet
-            .lock()
-            .await
+        let wallet_guard = client.wallet.lock().await;
+
+        // Aggregate balances across all accounts (ZecWallet Lite
+        // scattered funds across multiple ZIP 32 account indices).
+        let mut combined = wallet_guard
             .account_balance(zip32::AccountId::try_from(0).unwrap())
             .await
             .unwrap();
-        self.balance.try_write().unwrap().replace(b.clone());
+
+        for i in 1..20u32 {
+            let account_id = match zip32::AccountId::try_from(i) {
+                Ok(id) => id,
+                Err(_) => break,
+            };
+            if let Ok(b) = wallet_guard.account_balance(account_id).await {
+                // Add each pool's balance to the combined total
+                combined.total_sapling_balance = combined
+                    .total_sapling_balance
+                    .and_then(|c| b.total_sapling_balance.and_then(|v| c + v));
+                combined.total_orchard_balance = combined
+                    .total_orchard_balance
+                    .and_then(|c| b.total_orchard_balance.and_then(|v| c + v));
+                combined.total_transparent_balance = combined
+                    .total_transparent_balance
+                    .and_then(|c| b.total_transparent_balance.and_then(|v| c + v));
+            }
+        }
+
+        drop(wallet_guard);
+        self.balance.try_write().unwrap().replace(combined.clone());
         drop(client_guard);
-        Some(b)
+        Some(combined)
     }
 }
 

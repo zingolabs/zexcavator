@@ -442,7 +442,10 @@ where
                                 sv.start_wallet_sync_from_path(path).await
                             }
                             SyncSource::Mnemonic { mnemonic, birthday } => {
-                                sv.start_wallet_sync_from_mnemonic(mnemonic, birthday).await
+                                // Default to 5 accounts for mnemonic recovery
+                                // to cover ZecWallet Lite's scattered funds
+                                sv.start_wallet_sync_from_mnemonic(mnemonic, birthday, 5)
+                                    .await
                             }
                         };
 
