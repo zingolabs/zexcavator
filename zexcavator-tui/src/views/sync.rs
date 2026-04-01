@@ -50,12 +50,27 @@ impl SyncView {
         let bd = wallet_parser.parser.get_birthday();
         let wallet_version = wallet_parser.parser.get_wallet_version();
 
+        // Detect how many accounts the wallet contains. ZecWallet Lite
+        // scattered funds across multiple ZIP 32 account indices, so we
+        // must sync all of them (plus a gap-limit buffer of 5).
+        let parsed_account_count = wallet_parser
+            .parser
+            .get_wallet_accounts()
+            .map(|a| a.len() as u32)
+            .unwrap_or(1);
+        let no_of_accounts = std::cmp::max(parsed_account_count + 5, 1);
+
         if let Err(e) = rustls::crypto::ring::default_provider().install_default() {
             self.log_buffer
                 .lock()
                 .unwrap()
                 .push(format!("Error installing crypto provider: {:?}", e));
         }
+
+        self.log_buffer.lock().unwrap().push(format!(
+            "Scanning {} account(s) (found {} + 5 gap limit)",
+            no_of_accounts, parsed_account_count
+        ));
 
         let zc = load_clientconfig(
             Uri::from_static("https://na.zec.rocks:443"),
@@ -66,7 +81,7 @@ impl SyncView {
                     transparent_address_discovery: TransparentAddressDiscovery::recovery(),
                 },
             },
-            NonZero::new(1).unwrap(),
+            NonZero::new(no_of_accounts).unwrap(),
         )
         .unwrap();
 
@@ -75,7 +90,7 @@ impl SyncView {
             ChainType::Mainnet,
             WalletBase::Mnemonic {
                 mnemonic: Mnemonic::from_entropy(seed).unwrap(),
-                no_of_accounts: NonZero::new(1).unwrap(),
+                no_of_accounts: NonZero::new(no_of_accounts).unwrap(),
             },
             initial_bh.into(),
             WalletSettings {
@@ -146,22 +161,33 @@ impl SyncView {
                             .lock()
                             .unwrap()
                             .push(format!("Sync result: {:?}", sync_result));
-                        let balances = light_client
-                            .wallet
-                            .lock()
-                            .await
-                            .account_balance(zip32::AccountId::try_from(0).unwrap())
-                            .await
-                            .unwrap();
-                        let final_balance = balances.total_transparent_balance.unwrap()
-                            + balances.total_sapling_balance.unwrap()
-                            + balances.total_orchard_balance.unwrap();
-                        let balance_in_zec =
-                            final_balance.unwrap() / NonZero::new(10u64.pow(8)).unwrap();
+
+                        let wallet_guard = light_client.wallet.lock().await;
+                        let mut total_zat: u64 = 0;
+                        for i in 0..no_of_accounts {
+                            let account_id = zip32::AccountId::try_from(i).unwrap();
+                            if let Ok(balances) = wallet_guard.account_balance(account_id).await {
+                                let account_total = balances.total_transparent_balance.unwrap()
+                                    + balances.total_sapling_balance.unwrap()
+                                    + balances.total_orchard_balance.unwrap();
+                                if let Some(zat) = account_total {
+                                    let zat_u64 = u64::from(zat);
+                                    if zat_u64 > 0 {
+                                        self.log_buffer
+                                            .lock()
+                                            .unwrap()
+                                            .push(format!("  Account {}: {} zatoshis", i, zat_u64));
+                                    }
+                                    total_zat += zat_u64;
+                                }
+                            }
+                        }
+                        drop(wallet_guard);
+
                         self.log_buffer
                             .lock()
                             .unwrap()
-                            .push(format!("Total ZEC found: {}", balance_in_zec.into_u64()));
+                            .push(format!("Total ZEC found: {}", total_zat / 10u64.pow(8)));
 
                         *self.sync_complete.lock().unwrap() = true;
 
@@ -207,6 +233,7 @@ impl SyncView {
         &self,
         mnemonic_str: String,
         birthday: Option<u32>,
+        no_of_accounts: u32,
     ) -> LightClient {
         if let Err(e) = rustls::crypto::ring::default_provider().install_default() {
             self.log_buffer
@@ -214,6 +241,11 @@ impl SyncView {
                 .unwrap()
                 .push(format!("Error installing crypto provider: {:?}", e));
         }
+
+        self.log_buffer
+            .lock()
+            .unwrap()
+            .push(format!("Scanning {} account(s)", no_of_accounts));
 
         let zc = load_clientconfig(
             Uri::from_static(DEFAULT_LIGHTWALLETD_SERVER),
@@ -224,7 +256,7 @@ impl SyncView {
                     transparent_address_discovery: TransparentAddressDiscovery::recovery(),
                 },
             },
-            NonZero::new(1).unwrap(),
+            NonZero::new(no_of_accounts).unwrap(),
         )
         .unwrap();
 
@@ -236,7 +268,7 @@ impl SyncView {
             ChainType::Mainnet,
             WalletBase::Mnemonic {
                 mnemonic: mnemonic,
-                no_of_accounts: NonZero::new(1).unwrap(),
+                no_of_accounts: NonZero::new(no_of_accounts).unwrap(),
             },
             birthday.into(),
             WalletSettings {
@@ -292,22 +324,33 @@ impl SyncView {
                             .lock()
                             .unwrap()
                             .push(format!("Sync result: {:?}", sync_result));
-                        let balances = light_client
-                            .wallet
-                            .lock()
-                            .await
-                            .account_balance(zip32::AccountId::try_from(0).unwrap())
-                            .await
-                            .unwrap();
-                        let final_balance = balances.total_transparent_balance.unwrap()
-                            + balances.total_sapling_balance.unwrap()
-                            + balances.total_orchard_balance.unwrap();
-                        let balance_in_zec =
-                            final_balance.unwrap() / NonZero::new(10u64.pow(8)).unwrap();
+
+                        let wallet_guard = light_client.wallet.lock().await;
+                        let mut total_zat: u64 = 0;
+                        for i in 0..no_of_accounts {
+                            let account_id = zip32::AccountId::try_from(i).unwrap();
+                            if let Ok(balances) = wallet_guard.account_balance(account_id).await {
+                                let account_total = balances.total_transparent_balance.unwrap()
+                                    + balances.total_sapling_balance.unwrap()
+                                    + balances.total_orchard_balance.unwrap();
+                                if let Some(zat) = account_total {
+                                    let zat_u64 = u64::from(zat);
+                                    if zat_u64 > 0 {
+                                        self.log_buffer
+                                            .lock()
+                                            .unwrap()
+                                            .push(format!("  Account {}: {} zatoshis", i, zat_u64));
+                                    }
+                                    total_zat += zat_u64;
+                                }
+                            }
+                        }
+                        drop(wallet_guard);
+
                         self.log_buffer
                             .lock()
                             .unwrap()
-                            .push(format!("Total ZEC found: {}", balance_in_zec.into_u64()));
+                            .push(format!("Total ZEC found: {}", total_zat / 10u64.pow(8)));
                         *self.sync_complete.lock().unwrap() = true;
 
                         break;
@@ -412,6 +455,7 @@ mod tests {
                 .start_wallet_sync_from_mnemonic(
                     vec.mnemonic.clone(),
                     Some(vec.birthday.unwrap_or(0) as u32),
+                    5,
                 )
                 .await;
 
