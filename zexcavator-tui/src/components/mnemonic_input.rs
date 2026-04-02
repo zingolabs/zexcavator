@@ -64,6 +64,13 @@ impl Component<Msg, NoUserEvent> for MnemonicInput {
             Event::Keyboard(KeyEvent {
                 code: Key::Enter, ..
             }) => CmdResult::None,
+            Event::Paste(text) => {
+                let mut result = CmdResult::None;
+                for ch in text.chars() {
+                    result = self.perform(Cmd::Type(ch));
+                }
+                result
+            }
             _ => CmdResult::None,
         };
 
