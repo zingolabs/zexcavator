@@ -57,6 +57,15 @@ impl Component<Msg, NoUserEvent> for PathInput {
             Event::Keyboard(KeyEvent {
                 code: Key::Enter, ..
             }) => self.perform(Cmd::Submit),
+            Event::Paste(text) => {
+                // Strip surrounding quotes added by macOS file drag-and-drop
+                let text = text.trim_matches('\'').trim_matches('"');
+                let mut result = CmdResult::None;
+                for ch in text.chars() {
+                    result = self.perform(Cmd::Type(ch));
+                }
+                result
+            }
             _ => CmdResult::None,
         };
 

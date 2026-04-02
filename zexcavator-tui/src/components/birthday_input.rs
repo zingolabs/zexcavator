@@ -57,6 +57,13 @@ impl Component<Msg, NoUserEvent> for BirthdayInput {
             Event::Keyboard(KeyEvent {
                 code: Key::Enter, ..
             }) => self.perform(Cmd::Submit),
+            Event::Paste(text) => {
+                let mut result = CmdResult::None;
+                for ch in text.chars() {
+                    result = self.perform(Cmd::Type(ch));
+                }
+                result
+            }
             _ => CmdResult::None,
         };
 

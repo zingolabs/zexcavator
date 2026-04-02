@@ -6,7 +6,9 @@ use std::io;
 
 use components::log_viewer::SyncSource;
 use tuirealm::application::PollStrategy;
-use tuirealm::ratatui::crossterm::event::DisableMouseCapture;
+use tuirealm::ratatui::crossterm::event::{
+    DisableBracketedPaste, DisableMouseCapture, EnableBracketedPaste,
+};
 use tuirealm::ratatui::crossterm::execute;
 use tuirealm::ratatui::crossterm::terminal::{LeaveAlternateScreen, disable_raw_mode};
 use tuirealm::{AttrValue, Attribute, Update};
@@ -80,9 +82,15 @@ pub enum Id {
 async fn main() {
     // Setup model
     let mut model = Model::default();
+    let _ = execute!(io::stdout(), EnableBracketedPaste);
     std::panic::set_hook(Box::new(|info| {
         let _ = disable_raw_mode();
-        let _ = execute!(io::stdout(), LeaveAlternateScreen, DisableMouseCapture);
+        let _ = execute!(
+            io::stdout(),
+            DisableBracketedPaste,
+            LeaveAlternateScreen,
+            DisableMouseCapture
+        );
         // Show WHY we crashed
         eprintln!("{}", info);
     }));
@@ -126,6 +134,7 @@ async fn main() {
         }
     }
     // Terminate terminal
+    let _ = execute!(io::stdout(), DisableBracketedPaste);
     let _ = model.terminal.leave_alternate_screen();
     let _ = model.terminal.disable_raw_mode();
     let _ = model.terminal.clear_screen();
