@@ -391,6 +391,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "live-chain sync test, too slow for default test runs"]
     async fn test_mnemonic_vectors_from_file() {
         let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         path.push("testvectors/mnemonic.json");
