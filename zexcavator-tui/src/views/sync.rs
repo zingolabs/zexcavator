@@ -8,9 +8,10 @@ use bip0039::{English, Mnemonic};
 use http::Uri;
 use pepper_sync::sync::{SyncConfig, TransparentAddressDiscovery};
 use pepper_sync::sync_status;
+use pepper_sync::wallet::OutputInterface;
 use tuirealm::ratatui::layout::{Constraint, Direction, Layout};
 use tuirealm::{Application, Frame, NoUserEvent};
-use zingolib::config::{ChainType, DEFAULT_LIGHTWALLETD_SERVER, load_clientconfig};
+use zingolib::config::{load_clientconfig, ChainType, DEFAULT_LIGHTWALLETD_SERVER};
 use zingolib::data::PollReport;
 use zingolib::lightclient::{self, LightClient};
 use zingolib::wallet::{LightWallet, WalletBase, WalletSettings};
@@ -208,6 +209,9 @@ impl SyncView {
         mnemonic_str: String,
         birthday: Option<u32>,
     ) -> LightClient {
+        const INITIAL_WINDOW: u32 = 10;
+        const GAP_LIMIT: u32 = 5;
+
         if let Err(e) = rustls::crypto::ring::default_provider().install_default() {
             self.log_buffer
                 .lock()
@@ -215,153 +219,183 @@ impl SyncView {
                 .push(format!("Error installing crypto provider: {:?}", e));
         }
 
+        let birthday = birthday.unwrap_or_default();
+        let wallet_settings = WalletSettings {
+            sync_config: SyncConfig {
+                transparent_address_discovery: TransparentAddressDiscovery::recovery(),
+            },
+        };
+        let mut no_of_accounts = INITIAL_WINDOW;
+        let mut light_client =
+            self.create_mnemonic_client(&mnemonic_str, birthday, no_of_accounts, &wallet_settings);
+
+        // Sync using the current account window; expand and retry if needed
+        loop {
+            self.log_buffer.lock().unwrap().push(format!(
+                "Scanning {} account(s) from birthday {}",
+                no_of_accounts, birthday
+            ));
+
+            // Start current wallet sync attempt
+            match light_client.sync().await {
+                Ok(_) => {}
+                Err(e) => self
+                    .log_buffer
+                    .lock()
+                    .unwrap()
+                    .push(format!("Error starting sync: {}", e)),
+            }
+
+            let mut interval = tokio::time::interval(Duration::from_secs(1));
+            interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+
+            // Poll current wallet sync until completion
+            loop {
+                interval.tick().await;
+                match light_client.poll_sync() {
+                    PollReport::NoHandle => (),
+                    PollReport::NotReady => {
+                        let wallet = light_client.wallet.lock().await;
+                        match sync_status(&*wallet).await {
+                            Ok(status) => {
+                                self.log_buffer.lock().unwrap().push(format!("{}", status));
+                                *self.progress.lock().unwrap() =
+                                    status.percentage_total_outputs_scanned;
+                            }
+                            Err(e) => {
+                                self.log_buffer.lock().unwrap().push(format!("{}", e));
+                                continue;
+                            }
+                        };
+                    }
+                    PollReport::Ready(result) => match result {
+                        Ok(sync_result) => {
+                            self.log_buffer
+                                .lock()
+                                .unwrap()
+                                .push(format!("Sync result: {:?}", sync_result));
+                            break;
+                        }
+                        Err(_e) => {
+                            self.log_buffer
+                                .lock()
+                                .unwrap()
+                                .push("Error. Resuming sync".to_string());
+                            match light_client.sync().await {
+                                Ok(_) => self
+                                    .log_buffer
+                                    .lock()
+                                    .unwrap()
+                                    .push("Sync resumed".to_string()),
+                                Err(e) => self.log_buffer.lock().unwrap().push(format!("{}", e)),
+                            }
+                            continue;
+                        }
+                    },
+                }
+            }
+
+            // Check highest account with any shielded note history (including spent)
+            let wallet_guard = light_client.wallet.lock().await;
+            let sapling_max: Option<u32> = wallet_guard
+                .wallet_transactions
+                .values()
+                .flat_map(|tx| tx.sapling_notes())
+                .map(|note| u32::from(note.key_id().account_id))
+                .max();
+            let orchard_max: Option<u32> = wallet_guard
+                .wallet_transactions
+                .values()
+                .flat_map(|tx| tx.orchard_notes())
+                .map(|note| u32::from(note.key_id().account_id))
+                .max();
+            drop(wallet_guard);
+            let highest_active = sapling_max.max(orchard_max);
+
+            let needs_expansion =
+                needs_account_expansion(highest_active, no_of_accounts, GAP_LIMIT);
+
+            if !needs_expansion {
+                break;
+            }
+
+            // Recreate wallet with a larger account window
+            no_of_accounts += GAP_LIMIT;
+            self.log_buffer.lock().unwrap().push(format!(
+                "Activity near bound (highest: {}), expanding to {} accounts",
+                highest_active.unwrap(),
+                no_of_accounts
+            ));
+            light_client = self.create_mnemonic_client(
+                &mnemonic_str,
+                birthday,
+                no_of_accounts,
+                &wallet_settings,
+            );
+        }
+
+        // Report total balance across all accounts
+        let wallet_guard = light_client.wallet.lock().await;
+        let mut total_zat: u64 = 0;
+        for i in 0..no_of_accounts {
+            let account_id = zip32::AccountId::try_from(i).unwrap();
+            if let Ok(b) = wallet_guard.account_balance(account_id).await {
+                let pool_sum = b.total_transparent_balance.unwrap()
+                    + b.total_sapling_balance.unwrap()
+                    + b.total_orchard_balance.unwrap();
+                if let Some(zat) = pool_sum {
+                    total_zat += u64::from(zat);
+                }
+            }
+        }
+        drop(wallet_guard);
+        self.log_buffer
+            .lock()
+            .unwrap()
+            .push(format!("Total ZEC found: {}", total_zat / 10u64.pow(8)));
+        *self.sync_complete.lock().unwrap() = true;
+
+        light_client
+    }
+
+    fn create_mnemonic_client(
+        &self,
+        mnemonic_str: &str,
+        birthday: u32,
+        no_of_accounts: u32,
+        wallet_settings: &WalletSettings,
+    ) -> LightClient {
         let zc = load_clientconfig(
             Uri::from_static(DEFAULT_LIGHTWALLETD_SERVER),
             None,
             ChainType::Mainnet,
-            WalletSettings {
-                sync_config: SyncConfig {
-                    transparent_address_discovery: TransparentAddressDiscovery::recovery(),
-                },
-            },
-            NonZero::new(1).unwrap(),
+            wallet_settings.clone(),
+            NonZero::new(no_of_accounts).unwrap(),
         )
         .unwrap();
-
-        let mnemonic = Mnemonic::<English>::from_str(&mnemonic_str).unwrap();
-
-        let birthday = birthday.unwrap_or_default();
-
         let lw = LightWallet::new(
             ChainType::Mainnet,
             WalletBase::Mnemonic {
-                mnemonic: mnemonic,
-                no_of_accounts: NonZero::new(1).unwrap(),
+                mnemonic: Mnemonic::<English>::from_str(mnemonic_str).unwrap(),
+                no_of_accounts: NonZero::new(no_of_accounts).unwrap(),
             },
             birthday.into(),
-            WalletSettings {
-                sync_config: SyncConfig {
-                    transparent_address_discovery: TransparentAddressDiscovery::recovery(),
-                },
-            },
+            wallet_settings.clone(),
         )
         .unwrap();
-
-        let mut light_client = LightClient::create_from_wallet(lw, zc, true).unwrap();
-
-        self.log_buffer
-            .lock()
-            .unwrap()
-            .push(format!("Starting sync from birthday: {}", birthday));
-        match light_client.sync().await {
-            Ok(_) => self
-                .log_buffer
-                .lock()
-                .unwrap()
-                .push("Sync started".to_string()),
-            Err(e) => self
-                .log_buffer
-                .lock()
-                .unwrap()
-                .push(format!("Error starting syncing: {}", e)),
-        }
-
-        let mut interval = tokio::time::interval(Duration::from_secs(1));
-        interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
-        loop {
-            interval.tick().await;
-            match light_client.poll_sync() {
-                PollReport::NoHandle => (),
-                PollReport::NotReady => {
-                    let wallet = light_client.wallet.lock().await;
-                    match sync_status(&*wallet).await {
-                        Ok(status) => {
-                            self.log_buffer.lock().unwrap().push(format!("{}", status));
-                            *self.progress.lock().unwrap() =
-                                status.percentage_total_outputs_scanned;
-                        }
-                        Err(e) => {
-                            self.log_buffer.lock().unwrap().push(format!("{}", e));
-                            continue;
-                        }
-                    };
-                }
-                PollReport::Ready(result) => match result {
-                    Ok(sync_result) => {
-                        self.log_buffer
-                            .lock()
-                            .unwrap()
-                            .push(format!("Sync result: {:?}", sync_result));
-                        let balances = light_client
-                            .wallet
-                            .lock()
-                            .await
-                            .account_balance(zip32::AccountId::try_from(0).unwrap())
-                            .await
-                            .unwrap();
-                        let final_balance = balances.total_transparent_balance.unwrap()
-                            + balances.total_sapling_balance.unwrap()
-                            + balances.total_orchard_balance.unwrap();
-                        let balance_in_zec =
-                            final_balance.unwrap() / NonZero::new(10u64.pow(8)).unwrap();
-                        self.log_buffer
-                            .lock()
-                            .unwrap()
-                            .push(format!("Total ZEC found: {}", balance_in_zec.into_u64()));
-                        *self.sync_complete.lock().unwrap() = true;
-
-                        break;
-                    }
-                    Err(_e) => {
-                        self.log_buffer
-                            .lock()
-                            .unwrap()
-                            .push("Error. Resuming sync".to_string());
-                        self.log_buffer
-                            .lock()
-                            .unwrap()
-                            .push("Restarting sync".to_string());
-
-                        match light_client.sync().await {
-                            Ok(_) => self
-                                .log_buffer
-                                .lock()
-                                .unwrap()
-                                .push("Sync resumed".to_string()),
-                            Err(e) => self.log_buffer.lock().unwrap().push(format!("{}", e)),
-                        }
-                        continue;
-                    }
-                },
-            }
-        }
-
-        match light_client.sync().await {
-            Ok(_) => {
-                self.log_buffer
-                    .lock()
-                    .unwrap()
-                    .push("Sync finished".to_string());
-            }
-            Err(e) => {
-                self.log_buffer.lock().unwrap().push(format!("{}", e));
-            }
-        }
-
-        light_client
+        LightClient::create_from_wallet(lw, zc, true).unwrap()
     }
 }
 
 impl Mountable for SyncView {
     fn mount(app: &mut Application<Id, Msg, tuirealm::event::NoUserEvent>) -> anyhow::Result<()> {
-        assert!(
-            app.mount(
+        assert!(app
+            .mount(
                 Id::ProgressBar,
                 Box::new(SyncBar::default()),
                 Vec::default()
             )
-            .is_ok()
-        );
+            .is_ok());
         Ok(())
     }
 }
@@ -375,6 +409,13 @@ impl Renderable for SyncView {
             .split(f.area());
         app.view(&Id::ProgressBar, f, chunks[0]);
         app.view(&Id::SyncLog, f, chunks[1]);
+    }
+}
+
+fn needs_account_expansion(highest_active: Option<u32>, window: u32, gap_limit: u32) -> bool {
+    match highest_active {
+        Some(h) => h >= window.saturating_sub(gap_limit),
+        None => false,
     }
 }
 
@@ -422,21 +463,87 @@ mod tests {
                 vec.mnemonic, vec.birthday
             );
 
-            let balances = client
-                .wallet
-                .lock()
-                .await
-                .account_balance(zip32::AccountId::try_from(0).unwrap())
-                .await
-                .unwrap();
-            let final_balance = balances.total_transparent_balance.unwrap()
-                + balances.total_sapling_balance.unwrap()
-                + balances.total_orchard_balance.unwrap();
-            let balance_in_zec = final_balance.unwrap() / NonZero::new(10u64.pow(8)).unwrap();
+            let wallet_guard = client.wallet.lock().await;
+            let mut total_zat: u64 = 0;
+            for acct in 0..5u32 {
+                let account_id = zip32::AccountId::try_from(acct).unwrap();
+                if let Ok(b) = wallet_guard.account_balance(account_id).await {
+                    let pool_sum = b.total_transparent_balance.unwrap()
+                        + b.total_sapling_balance.unwrap()
+                        + b.total_orchard_balance.unwrap();
+                    if let Some(zat) = pool_sum {
+                        total_zat += u64::from(zat);
+                    }
+                }
+            }
+            drop(wallet_guard);
 
             println!(
                 "Vector {i} passed! Found balance: {} ZEC",
-                balance_in_zec.into_u64()
+                total_zat / 10u64.pow(8)
+            );
+        }
+    }
+
+    mod expansion_predicate {
+        use super::super::needs_account_expansion;
+        #[test]
+        fn no_activity_does_not_expand() {
+            assert!(!needs_account_expansion(None, 10, 5));
+        }
+
+        #[test]
+        fn activity_below_threshold_does_not_expand() {
+            assert!(!needs_account_expansion(Some(4), 10, 5));
+        }
+
+        #[test]
+        fn activity_at_threshold_expands() {
+            assert!(needs_account_expansion(Some(5), 10, 5));
+        }
+
+        #[test]
+        fn saturating_sub_edge_case_expands() {
+            assert!(needs_account_expansion(Some(0), 3, 5));
+        }
+    }
+
+    mod discovery_loop {
+        use super::super::needs_account_expansion;
+
+        /// Test-only helper that simulates repeated account-window expansion
+        /// decisions from canned per-round `highest_active` values.
+        fn simulate_discovery(initial_window: u32, gap_limit: u32, rounds: &[Option<u32>]) -> u32 {
+            let mut window = initial_window;
+            for highest_active in rounds {
+                if !needs_account_expansion(*highest_active, window, gap_limit) {
+                    break;
+                }
+                window += gap_limit;
+            }
+            window
+        }
+
+        #[test]
+        fn no_activity_no_expansion() {
+            assert_eq!(simulate_discovery(10, 5, &[None]), 10);
+        }
+
+        #[test]
+        fn one_expansion_then_settles() {
+            // Round 0: window=10, highest=8, threshold=5 → 8 >= 5 → expand to 15
+            // Round 1: window=15, highest=8, threshold=10 → 8 < 10 → stop
+            assert_eq!(simulate_discovery(10, 5, &[Some(8), Some(8)]), 15);
+        }
+
+        #[test]
+        fn two_expansions_then_settles() {
+            // Round 0: window=10, highest=7, threshold=5 → 7 >= 5 → expand to 15
+            // Round 1: window=15, highest=12, threshold=10 → 12 >= 10 → expand to 20
+            // Round 2: window=20, highest=12, threshold=15 → 12 < 15 → stop
+            assert_eq!(
+                simulate_discovery(10, 5, &[Some(7), Some(12), Some(12)]),
+                20
             );
         }
     }
